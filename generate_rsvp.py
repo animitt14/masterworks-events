@@ -499,6 +499,8 @@ def render_panel(date_str: str, contacts: list, tab_id: str, active: bool) -> st
         <th>Score <span style="font-size:0.6rem;opacity:0.6">(click to override)</span></th>
         <th>LinkedIn</th>
         <th>HubSpot</th>
+        <th>Uninvite</th>
+        <th>Attended</th>
       </tr></thead>
       <tbody>{rows_html}</tbody>
     </table>
@@ -587,13 +589,13 @@ header{{background:#1b3c6e;padding:16px 28px;position:sticky;top:0;z-index:100;
              border-radius:8px;overflow:hidden;box-shadow:0 1px 6px rgba(27,60,110,0.08)}}
 .rsvp-table thead th{{background:#1b3c6e;color:#a8c8e8;font-size:0.68rem;
   text-transform:uppercase;letter-spacing:0.1em;font-weight:600;padding:10px 14px;
-  text-align:left;white-space:nowrap}}
+  text-align:center;white-space:nowrap}}
+.rsvp-table td{{padding:11px 14px;font-size:0.83rem;color:#3a5070;vertical-align:middle;text-align:center}}
 .rsvp-table tbody tr{{border-bottom:1px solid #eef1f7;transition:background 0.12s}}
 .rsvp-table tbody tr:nth-child(even){{background:#f8fafd}}
 .rsvp-table tbody tr:hover{{background:#edf3fb!important}}
 .rsvp-table tbody tr.overridden td:first-child::after{{content:'✏';font-size:0.6rem;color:#c9a84c;margin-left:3px}}
 .rsvp-table tbody tr:last-child{{border-bottom:none}}
-.rsvp-table td{{padding:11px 14px;font-size:0.83rem;color:#3a5070;vertical-align:top}}
 
 /* Score override popover */
 .score-popover{{position:absolute;background:#fff;border:1px solid #dde3ee;border-radius:10px;
