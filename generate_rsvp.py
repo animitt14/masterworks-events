@@ -764,6 +764,96 @@ var SCORE_META = {{
   1: {{label:'Low',        fg:'#a83030', bg:'#fde8e8'}},
 }};
 
+// ── Shared state (GitHub Gist) ────────────────────────────────────────────────
+var GIST_FILE   = 'mw_rsvp_state.json';
+var _gistId     = null;
+var _gistState  = {{}};
+var _writeTimer = null;
+
+function getSharedState(key) {{
+  return (key in _gistState) ? String(_gistState[key]) : localStorage.getItem(key);
+}}
+function saveSharedState(key, val) {{
+  _gistState[key] = val;
+  localStorage.setItem(key, val);
+  _writeGist();
+}}
+function removeSharedState(key) {{
+  delete _gistState[key];
+  localStorage.removeItem(key);
+  _writeGist();
+}}
+function _writeGist() {{
+  if (!_gistId) return;
+  var tok = localStorage.getItem('gh_pat');
+  if (!tok) return;
+  clearTimeout(_writeTimer);
+  _writeTimer = setTimeout(function() {{
+    var files = {{}};
+    files[GIST_FILE] = {{content: JSON.stringify(_gistState)}};
+    fetch('https://api.github.com/gists/' + _gistId, {{
+      method: 'PATCH',
+      headers: {{'Authorization':'token '+tok,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'}},
+      body: JSON.stringify({{files: files}})
+    }});
+  }}, 600);
+}}
+function _fetchGist(cb) {{
+  fetch('https://api.github.com/gists/' + _gistId, {{
+    headers: {{'Accept':'application/vnd.github.v3+json'}}, cache: 'no-store'
+  }})
+  .then(function(r) {{ return r.json(); }})
+  .then(function(data) {{
+    var f = data.files && data.files[GIST_FILE];
+    if (f && f.content) {{ try {{ _gistState = JSON.parse(f.content); }} catch(e) {{}} }}
+    if (cb) cb();
+  }})
+  .catch(function() {{ if (cb) cb(); }});
+}}
+function _createGist(cb) {{
+  var tok = localStorage.getItem('gh_pat');
+  if (!tok) {{ if (cb) cb(); return; }}
+  var files = {{}};
+  files[GIST_FILE] = {{content: '{{}}'}};
+  fetch('https://api.github.com/gists', {{
+    method: 'POST',
+    headers: {{'Authorization':'token '+tok,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'}},
+    body: JSON.stringify({{description:'Masterworks RSVP Dashboard shared state', public:true, files:files}})
+  }})
+  .then(function(r) {{ return r.json(); }})
+  .then(function(data) {{
+    if (!data.id) {{ if (cb) cb(); return Promise.resolve(); }}
+    _gistId = data.id;
+    _gistState = {{}};
+    localStorage.setItem('mw_gist_id', _gistId);
+    // Persist Gist ID to repo so all viewers discover it automatically
+    return fetch('https://api.github.com/repos/' + GITHUB_REPO + '/contents/docs/gist_id.txt', {{
+      method: 'PUT',
+      headers: {{'Authorization':'token '+tok,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'}},
+      body: JSON.stringify({{message:'chore: init shared RSVP state [skip ci]', content:btoa(_gistId)}})
+    }});
+  }})
+  .then(function() {{ if (cb) cb(); }})
+  .catch(function() {{ if (cb) cb(); }});
+}}
+function initSharedState(cb) {{
+  var cached = localStorage.getItem('mw_gist_id');
+  if (cached) {{ _gistId = cached; _fetchGist(cb); return; }}
+  fetch('https://raw.githubusercontent.com/' + GITHUB_REPO + '/main/docs/gist_id.txt', {{cache:'no-store'}})
+    .then(function(r) {{ return r.ok ? r.text() : ''; }})
+    .then(function(txt) {{
+      var id = (txt || '').trim();
+      if (id) {{
+        _gistId = id;
+        localStorage.setItem('mw_gist_id', id);
+        _fetchGist(cb);
+      }} else {{
+        _createGist(cb);
+      }}
+    }})
+    .catch(function() {{ if (cb) cb(); }});
+}}
+
 // ── Tab switching ─────────────────────────────────────────────────────────────
 function switchTab(id) {{
   document.querySelectorAll('.tab-panel').forEach(p => p.style.display = 'none');
@@ -860,9 +950,9 @@ function closePopover() {{
 function setOverride(cid, sc, tabId) {{
   var key = 'override_' + cid;
   if (sc === getAutoScore(cid, tabId)) {{
-    localStorage.removeItem(key);
+    removeSharedState(key);
   }} else {{
-    localStorage.setItem(key, sc);
+    saveSharedState(key, sc);
   }}
   applyOverride(cid, sc, tabId);
   updateResetBtn(tabId);
@@ -879,7 +969,7 @@ function applyOverride(cid, sc, tabId) {{
   var cell   = row.querySelector('.score-cell');
   var m      = SCORE_META[sc];
   var auto   = parseInt(row.dataset.auto);
-  var manual = localStorage.getItem('override_' + cid);
+  var manual = getSharedState('override_' + cid);
 
   row.dataset.score = sc;
   cell.innerHTML =
@@ -914,10 +1004,10 @@ function toggleUninvite(chk) {{
   var cid = row.dataset.id;
   var tid = row.closest('.tab-panel').id.replace('tab-','');
   if (chk.checked) {{
-    localStorage.setItem('uninvite_' + cid, '1');
+    saveSharedState('uninvite_' + cid, '1');
     row.classList.add('uninvited');
   }} else {{
-    localStorage.removeItem('uninvite_' + cid);
+    removeSharedState('uninvite_' + cid);
     row.classList.remove('uninvited');
   }}
   updateResetBtn(tid);
@@ -928,9 +1018,9 @@ function toggleAttended(chk) {{
   var cid = row.dataset.id;
   var tid = row.closest('.tab-panel').id.replace('tab-','');
   if (chk.checked) {{
-    localStorage.setItem('attended_' + cid, '1');
+    saveSharedState('attended_' + cid, '1');
   }} else {{
-    localStorage.removeItem('attended_' + cid);
+    removeSharedState('attended_' + cid);
   }}
   refreshHeader(tid);
   updateResetBtn(tid);
@@ -951,14 +1041,14 @@ function applyStoredOverrides(tabId) {{
   var rows = document.querySelectorAll('#tbl-' + tabId + ' tbody tr');
   rows.forEach(function(row) {{
     var cid = row.dataset.id;
-    var val = localStorage.getItem('override_' + cid);
+    var val = getSharedState('override_' + cid);
     if (val) applyOverride(cid, parseInt(val), tabId);
-    if (localStorage.getItem('uninvite_' + cid)) {{
+    if (getSharedState('uninvite_' + cid)) {{
       row.classList.add('uninvited');
       var uchk = row.querySelector('.uninvite-chk');
       if (uchk) uchk.checked = true;
     }}
-    if (localStorage.getItem('attended_' + cid)) {{
+    if (getSharedState('attended_' + cid)) {{
       var achk = row.querySelector('.attended-chk');
       if (achk) achk.checked = true;
     }}
@@ -969,9 +1059,9 @@ function applyStoredOverrides(tabId) {{
 function updateResetBtn(tabId) {{
   var rows   = document.querySelectorAll('#tbl-' + tabId + ' tbody tr');
   var hasAny = Array.from(rows).some(function(r) {{
-    return localStorage.getItem('override_'  + r.dataset.id) ||
-           localStorage.getItem('uninvite_'  + r.dataset.id) ||
-           localStorage.getItem('attended_'  + r.dataset.id);
+    return getSharedState('override_'  + r.dataset.id) ||
+           getSharedState('uninvite_'  + r.dataset.id) ||
+           getSharedState('attended_'  + r.dataset.id);
   }});
   var btn = document.querySelector('.reset-overrides-btn[data-tab="' + tabId + '"]');
   if (btn) btn.style.display = hasAny ? 'block' : 'none';
@@ -982,9 +1072,9 @@ function resetOverrides(tabId) {{
   rows.forEach(function(row) {{
     var cid  = row.dataset.id;
     var auto = parseInt(row.dataset.auto);
-    localStorage.removeItem('override_' + cid);
-    localStorage.removeItem('uninvite_' + cid);
-    localStorage.removeItem('attended_' + cid);
+    removeSharedState('override_' + cid);
+    removeSharedState('uninvite_' + cid);
+    removeSharedState('attended_' + cid);
     applyOverride(cid, auto, tabId);
     row.classList.remove('uninvited');
     var uchk = row.querySelector('.uninvite-chk');
@@ -1039,16 +1129,17 @@ document.addEventListener('click', function() {{
 // ── Init ──────────────────────────────────────────────────────────────────────
 (function() {{
   var defaultTab = '{default_tab}';
-  if (defaultTab) {{
-    applyStoredOverrides(defaultTab);
-    updateResetBtn(defaultTab);
-  }}
-  // If default tab is a past date, pre-mark the active past option
-  if ('{past_default_label}') {{
-    document.querySelectorAll('.past-opt').forEach(function(o) {{
-      if (o.dataset.tid === defaultTab) o.classList.add('active-past');
-    }});
-  }}
+  initSharedState(function() {{
+    if (defaultTab) {{
+      applyStoredOverrides(defaultTab);
+      updateResetBtn(defaultTab);
+    }}
+    if ('{past_default_label}') {{
+      document.querySelectorAll('.past-opt').forEach(function(o) {{
+        if (o.dataset.tid === defaultTab) o.classList.add('active-past');
+      }});
+    }}
+  }});
 }})();
 </script>
 </body>
