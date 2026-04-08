@@ -146,6 +146,7 @@ def fetch_contacts(start: date, end: date) -> list:
                 'hubspot_owner_id', 'lifecyclestage', 'call_completed',
                 'outbound_rsvp_to_event', 'attended_outbound_event',
                 'admin_url', 'totalamountpurchased',
+                'hs_v2_date_entered_current_stage',
             ],
             'limit': 200,
             'sorts': [{'propertyName': 'outbound_rsvp_to_event', 'direction': 'ASCENDING'}],
@@ -214,6 +215,15 @@ def score_contact(p: dict) -> tuple:
     no_data  = not title.strip() and not company.strip()
 
     # ── Already invested or warm pipeline contact ──────────────────────────────
+    # Ignore if the lifecycle stage was set on the day of the event — that's
+    # same-day HubSpot activity (e.g. someone logging an email confirmation)
+    # not a genuine prior pipeline signal.
+    rsvp_date  = (p.get('outbound_rsvp_to_event')              or '')[:10]
+    stage_date = (p.get('hs_v2_date_entered_current_stage')    or '')[:10]
+    same_day_stage = rsvp_date and stage_date and stage_date >= rsvp_date
+    if same_day_stage and 'opportunity' in flags:
+        flags.remove('opportunity')
+
     if 'invested' in flags or 'opportunity' in flags:
         return 5, flags
 
