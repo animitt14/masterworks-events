@@ -564,15 +564,15 @@ def build_html(by_date: dict, generated_at: str) -> str:
     ) if default_is_past else ''
 
     past_btn_html = ''
+    past_menu_html = ''
     if past_dates:
         init_label = escape(past_default_label) if default_is_past else 'Past Events'
-        past_btn_html = f'''<div class="past-dropdown-wrap" id="pastDropWrap">
-  <button class="tab-btn past-dropdown-btn" id="pastDropBtn"
+        # Button stays in tab-bar; menu is top-level to avoid overflow-x clipping
+        past_btn_html = f'''<button class="tab-btn past-dropdown-btn" id="pastDropBtn"
           style="{"border-bottom:3px solid #c9a84c;color:#1b3c6e;font-weight:700;" if default_is_past else "color:#9aaac0;"}"
-          onclick="togglePastDropdown(event)">{init_label} ▾</button>
-  <div class="past-dropdown-menu" id="pastDropMenu">
-{past_opts}  </div>
-</div>'''
+          onclick="togglePastDropdown(event)">{init_label} ▾</button>'''
+        past_menu_html = f'''<div class="past-dropdown-menu" id="pastDropMenu">
+{past_opts}</div>'''
 
     panels = [
         render_panel(d, by_date[d], d.replace('-', ''), d.replace('-', '') == default_tab)
@@ -659,12 +659,11 @@ header{{background:#1b3c6e;padding:16px 28px;position:sticky;top:0;z-index:100;
 .refresh-btn:hover{{border-color:rgba(255,255,255,0.5);color:#fff}}
 .refresh-btn:disabled{{opacity:0.45;cursor:default}}
 
-.past-dropdown-wrap{{position:relative;display:inline-block}}
 .past-dropdown-btn{{font-style:italic}}
-.past-dropdown-menu{{display:none;position:absolute;top:100%;left:0;background:#fff;
+.past-dropdown-menu{{display:none;position:fixed;background:#fff;
   border:1px solid #dde3ee;border-radius:8px;
   box-shadow:0 4px 16px rgba(27,60,110,0.14);z-index:300;
-  min-width:210px;max-height:300px;overflow-y:auto;padding:6px 0;margin-top:2px}}
+  min-width:210px;max-height:300px;overflow-y:auto;padding:6px 0}}
 .past-dropdown-menu.open{{display:block}}
 .past-opt{{display:block;width:100%;text-align:left;padding:9px 16px;background:none;
   border:none;cursor:pointer;font-family:inherit;font-size:0.82rem;color:#3a5070;
@@ -698,6 +697,8 @@ header{{background:#1b3c6e;padding:16px 28px;position:sticky;top:0;z-index:100;
   {past_btn_html}
 </div>
 <div class="no-date-msg" id="noDateMsg">No RSVP data for this date in the current window.</div>
+
+{past_menu_html}
 
 <div class="content">
   {''.join(panels)}
@@ -999,7 +1000,16 @@ function resetOverrides(tabId) {{
 function togglePastDropdown(e) {{
   e.stopPropagation();
   var menu = document.getElementById('pastDropMenu');
-  if (menu) menu.classList.toggle('open');
+  if (!menu) return;
+  var isOpen = menu.classList.contains('open');
+  menu.classList.remove('open');
+  if (!isOpen) {{
+    var rect = document.getElementById('pastDropBtn').getBoundingClientRect();
+    menu.style.position = 'fixed';
+    menu.style.top  = (rect.bottom + 4) + 'px';
+    menu.style.left = rect.left + 'px';
+    menu.classList.add('open');
+  }}
 }}
 
 function selectPast(tid, label) {{
