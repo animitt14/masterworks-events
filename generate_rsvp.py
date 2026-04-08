@@ -473,13 +473,9 @@ def render_panel(date_str: str, contacts: list, tab_id: str, active: bool) -> st
 
     past_note = ' <span style="font-size:0.72rem;color:#9aaac0">(past)</span>' if is_past(date_str) else ''
 
-    present_personas = sorted(
-        {get_persona(c['properties']) for c in contacts},
-        key=lambda x: PERSONA_LIST.index(x) if x in PERSONA_LIST else 99
-    )
-    opts = '<option value="">All Personas</option>\n' + '\n'.join(
-        f'<option value="{escape(per)}">{escape(per)}</option>'
-        for per in present_personas
+    opts = '<option value="">All Scores</option>\n' + '\n'.join(
+        f'<option value="{s}">{s} — {SCORE_LABELS[s]}</option>'
+        for s in SCORES if counts[s]
     )
 
     display = 'block' if active else 'none'
@@ -496,7 +492,7 @@ def render_panel(date_str: str, contacts: list, tab_id: str, active: bool) -> st
       <div class="score-pills" style="margin-top:6px">{pills_html}</div>
     </div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-      <select class="persona-filter" data-tab="{tab_id}">
+      <select class="score-filter" data-tab="{tab_id}">
         {opts}
       </select>
       <button class="reset-overrides-btn" data-tab="{tab_id}"
@@ -598,7 +594,7 @@ header{{background:#1b3c6e;padding:16px 28px;position:sticky;top:0;z-index:100;
                flex-wrap:wrap;gap:10px;margin-bottom:14px}}
 .rsvp-count{{font-size:0.95rem;font-weight:700;color:#1b3c6e}}
 .score-pills{{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}}
-.persona-filter{{background:#f5f7fb;border:1px solid #dde3ee;border-radius:8px;
+.score-filter{{background:#f5f7fb;border:1px solid #dde3ee;border-radius:8px;
                  padding:8px 12px;font-size:0.8rem;color:#1b3c6e;outline:none;
                  cursor:pointer;font-family:inherit}}
 
@@ -766,14 +762,14 @@ document.getElementById('dateJump').addEventListener('change', function() {{
   }}
 }});
 
-// ── Persona filter ────────────────────────────────────────────────────────────
-document.querySelectorAll('.persona-filter').forEach(function(sel) {{
+// ── Score filter ──────────────────────────────────────────────────────────────
+document.querySelectorAll('.score-filter').forEach(function(sel) {{
   sel.addEventListener('change', function() {{
     var val   = this.value;
     var tbody = document.querySelector('#tbl-' + this.dataset.tab + ' tbody');
     if (!tbody) return;
     Array.from(tbody.rows).forEach(function(row) {{
-      row.style.display = (!val || row.dataset.persona === val) ? '' : 'none';
+      row.style.display = (!val || row.dataset.score === val) ? '' : 'none';
     }});
   }});
 }});
