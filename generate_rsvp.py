@@ -44,23 +44,40 @@ INACTIVE_OWNERS = {
 }
 
 FINANCE_DOMAINS = {
-    'jpmorgan.com', 'gs.com', 'ubs.com', 'nb.com', 'pimco.com', 'kkr.com',
-    'virtu.com', 'blackrock.com', 'morganstanley.com', 'citi.com',
-    'baml.com', 'wellsfargo.com', 'tdsecurities.com', 'ml.com',
-    'alliancebernstein.com',
+    'jpmorgan.com', 'gs.com', 'goldmansachs.com', 'ubs.com', 'nb.com',
+    'pimco.com', 'kkr.com', 'virtu.com', 'blackrock.com', 'morganstanley.com',
+    'citadel.com', 'tdsecurities.com', 'ml.com', 'alliancebernstein.com',
+    'fticonsulting.com', 'stblaw.com', 'sullcrom.com', 'troutman.com',
+    'beckerglynn.com', 'dorflaw.com', 'willkie.com',
+}
+
+HOSPITAL_DOMAINS = {
+    'northwell.edu', 'nyulangone.org', 'mountsinai.org',
 }
 
 HIGH_TITLE_TERMS = [
-    'managing director', 'vice president', 'general partner',
-    'chief executive', 'chief financial', 'chief technology', 'chief operating',
-    'ceo', 'cfo', 'cto', 'coo', 'vp', 'md',
-    'founder', 'co-founder', 'president', 'principal', 'partner', 'chief',
+    'managing director', 'general partner', 'founding partner',
+    'fund manager', 'portfolio manager',
+    'chief executive', 'chief financial', 'chief operating', 'chief technology',
+    'chief investment', 'chief information',
+    'ceo', 'cfo', 'cto', 'coo', 'cio',
+    'founder', 'co-founder', 'president', 'principal', 'partner',
+    'head of',
 ]
 
+# These override HIGH signals — wealth advisors refer clients but don't invest personally
+WEALTH_ADVISOR_TERMS = [
+    'wealth advisor', 'wealth management advisor', 'private banker', 'financial advisor',
+    'financial planner', 'investment advisor',
+]
+
+# These are auto-Low or Low-Medium
 DOWNGRADE_TERMS = [
-    'real estate agent', 'realtor', 'art dealer', 'gallery', 'fine art',
-    'nft', 'crypto', 'wealth advisor', 'private banker', 'financial advisor',
-    'intern', 'assistant',
+    'real estate agent', 'realtor', 're agent', 're broker',
+    'art broker', 'art dealer', 'fine art broker',
+    'nft', 'crypto', 'web3',
+    'intern', 'assistant', 'paralegal',
+    'associate professor', 'clergy', 'pastor',
 ]
 
 FINANCE_COMPANIES = [
@@ -158,6 +175,20 @@ def has_high_title(title: str) -> bool:
             return True
     return False
 
+def is_physician(title: str, email: str, company: str) -> bool:
+    phys_terms = [
+        'physician', 'surgeon', 'doctor', 'cardiologist', 'radiologist',
+        'psychiatrist', 'dermatologist', 'neurologist', 'anesthesiologist',
+        'ophthalmologist', 'dentist', 'medical director',
+    ]
+    if any(t in title for t in phys_terms):
+        return True
+    if email_domain(email) in HOSPITAL_DOMAINS:
+        return True
+    if any(t in company for t in ['hospital', 'medical center', 'health system', 'northwell', 'nyu langone', 'mount sinai']):
+        return True
+    return False
+
 def score_contact(p: dict) -> tuple:
     """Returns (score: int 1-5, flags: list)."""
     title   = (p.get('jobtitle')       or '').lower()
@@ -174,77 +205,133 @@ def score_contact(p: dict) -> tuple:
         flags.append('opportunity')
     if call == 'no show':
         flags.append('no_show')
+    if call == 'not interested':
+        flags.append('not_interested')
     if state and state not in TRI_STATE:
         flags.append('non_tri_state')
 
-    combined      = title + ' ' + company
+    combined = title + ' ' + company
+    no_data  = not title.strip() and not company.strip()
+
+    # ── Already invested or warm pipeline contact ──────────────────────────────
+    if 'invested' in flags or 'opportunity' in flags:
+        return 5, flags
+
+    # ── Hard disqualifiers: not interested or no show ─────────────────────────
+    if 'not_interested' in flags:
+        return 1, flags
+    if 'no_show' in flags and any(t in combined for t in DOWNGRADE_TERMS):
+        return 1, flags
+
+    # ── Wealth advisors / financial advisors (refer clients, don't invest) ────
+    is_wealth_adv = any(t in combined for t in WEALTH_ADVISOR_TERMS)
+    if is_wealth_adv:
+        return 2 if 'no_show' not in flags else 1, flags
+
+    # ── Real estate agents / brokers ──────────────────────────────────────────
+    is_re_agent = any(t in combined for t in ['real estate agent', 'realtor', 're agent', 're broker'])
+    if is_re_agent:
+        return 1 if 'no_show' in flags else 2, flags
+
+    # ── Art world (dealers/brokers) — gallery owners are an exception ─────────
+    is_art_dealer = any(t in combined for t in ['art dealer', 'fine art broker', 'art broker'])
+    is_gallery    = 'gallery' in combined
+    is_gallery_owner = is_gallery and any(t in title for t in ['founder', 'owner', 'ceo', 'president', 'principal'])
+    if (is_art_dealer or (is_gallery and not is_gallery_owner)):
+        return 1 if 'no_show' in flags else 2, flags
+
+    # ── Other downgrade terms ─────────────────────────────────────────────────
     has_downgrade = any(t in combined for t in DOWNGRADE_TERMS)
     if 'broker' in combined and not any(fc in company for fc in FINANCE_COMPANIES):
         has_downgrade = True
-    no_data = not title.strip() and not company.strip()
+    if has_downgrade:
+        return 1 if 'no_show' in flags else 2, flags
 
-    if has_downgrade and 'no_show' in flags:
-        sc = 1
-    elif has_downgrade or 'no_show' in flags:
-        sc = 2
-    elif no_data:
-        sc = 2
-    elif email_domain(email) in FINANCE_DOMAINS:
-        sc = 5
-    elif has_high_title(title):
-        sc = 5
-    elif any(fc in company for fc in FINANCE_COMPANIES):
-        sc = 5
-    elif any(t in title for t in [
-        'director', 'senior director', 'head of', 'svp', 'evp', 'avp',
+    if 'no_show' in flags:
+        return 2, flags
+
+    if no_data:
+        return 2, flags
+
+    # ── HIGH signals ──────────────────────────────────────────────────────────
+    if email_domain(email) in FINANCE_DOMAINS:
+        return 5, flags
+    if is_physician(title, email, company):
+        return 5, flags
+    if has_high_title(title):
+        return 5, flags
+    if any(fc in company for fc in FINANCE_COMPANIES):
+        return 5, flags
+
+    # RE developers/executives (SVP at Extell etc.) → Medium-High
+    re_exec_co = any(t in company for t in ['real estate', 'realty', 'extell', 'related companies', 'tishman', 'sl green', 'brookfield'])
+    re_exec_title = any(t in title for t in ['vp', 'svp', 'evp', 'director', 'executive', 'president', 'ceo', 'coo', 'chief'])
+    if re_exec_co and re_exec_title:
+        return 4, flags
+
+    # ── MEDIUM-HIGH signals ───────────────────────────────────────────────────
+    medium_high = any(t in title for t in [
+        'vice president', 'vp', 'director', 'senior director', 'svp', 'evp', 'avp',
         'senior manager', 'senior vice', 'associate director',
-    ]):
-        sc = 4
-    else:
-        sc = 3
+    ])
+    sc = 4 if medium_high else 3
 
-    # Cap at Medium (3) for contacts with estimated NW clearly under $1M
+    # ── NW cap ────────────────────────────────────────────────────────────────
     nw, _ = get_nw(p)
     if nw == '$150K–$500K' and sc > 3:
         sc = 3
+    if nw == '$50K–$200K':
+        sc = min(sc, 2)
 
     return sc, flags
 
 def get_persona(p: dict) -> str:
     title   = (p.get('jobtitle') or '').lower()
     company = (p.get('company')  or '').lower()
+    email   = (p.get('email')    or '').lower()
 
     if not title.strip() and not company.strip():
         return 'Unknown'
     if any(t in title for t in ['retired', 'retiree']):
         return 'Cautious Retiree'
+    # Finance Bro: bankers, PE/VC/hedge, attorneys at top firms
     if any(t in title for t in [
-        'banker', 'trader', 'portfolio manager', 'fund manager', 'hedge fund',
-        'private equity', 'attorney', 'lawyer', 'counsel', 'managing director', 'general partner',
-    ]) or any(fc in company for fc in FINANCE_COMPANIES):
+        'banker', 'trader', 'portfolio manager', 'fund manager',
+        'managing director', 'general partner', 'founding partner',
+        'attorney', 'lawyer', 'counsel', 'partner',
+    ]) or any(fc in company for fc in FINANCE_COMPANIES) \
+      or email_domain(email) in FINANCE_DOMAINS:
         return 'Finance Bro'
-    if any(t in title for t in [
-        'physician', 'doctor', 'surgeon', 'cardiologist', 'radiologist',
-        'psychiatrist', 'dermatologist', 'neurologist', 'anesthesiologist',
-        'medical director', 'dentist', 'ophthalmologist',
-    ]) or any(t in company for t in ['hospital', 'medical center', 'health system', 'clinic']):
+    # Medical Pro: physicians, surgeons, healthcare C-suite
+    if is_physician(title, email, company):
         return 'Medical Pro'
+    # Tech Wealth Builder: senior engineers, CTOs, AI/fintech founders
     if any(t in title for t in [
-        'engineer', 'developer', 'software', 'data scientist', 'machine learning', 'tech lead', 'cto',
+        'engineer', 'developer', 'software', 'data scientist', 'machine learning',
+        'tech lead', 'cto', 'ai ', 'artificial intelligence',
     ]) or any(tc in company for tc in [
         'google', 'meta', 'apple', 'amazon', 'microsoft', 'netflix',
         'uber', 'airbnb', 'stripe', 'palantir', 'salesforce', 'oracle',
+        'openai', 'anthropic', 'databricks', 'snowflake',
     ]):
         return 'Tech Wealth Builder'
-    if any(t in title for t in ['founder', 'co-founder', 'ceo', 'owner']):
+    # Business Owner: founders/CEOs/presidents of non-finance cos
+    if any(t in title for t in ['founder', 'co-founder', 'ceo', 'owner', 'president']):
         return 'Business Owner'
-    if any(t in title for t in ['vp', 'vice president', 'director', 'chief', 'cfo', 'coo', 'svp', 'evp']):
+    # Corporate Climber: VPs/Directors/Sr Managers at large cos
+    if any(t in title for t in ['vp', 'vice president', 'director', 'chief', 'cfo', 'coo', 'cio', 'svp', 'evp']):
         return 'Corporate Climber'
-    if any(t in title for t in ['artist', 'designer', 'creative', 'photographer',
-                                  'filmmaker', 'musician', 'writer', 'content creator']):
+    # Young Diversifier: creative founders, early career
+    if any(t in title for t in [
+        'artist', 'designer', 'creative', 'photographer', 'filmmaker',
+        'musician', 'writer', 'content creator', 'producer',
+    ]):
         return 'Young Diversifier'
-    if any(t in title for t in ['teacher', 'nurse', 'sales representative', 'retail',
-                                  'coordinator', 'administrative', 'customer service']):
+    # Everyday Investor: service industry, lower wealth
+    if any(t in title for t in [
+        'teacher', 'nurse', 'sales representative', 'retail', 'coordinator',
+        'administrative', 'customer service', 'therapist', 'social worker',
+    ]):
         return 'Everyday Investor'
     return 'Corporate Climber'
 
@@ -255,23 +342,50 @@ def get_nw(p: dict) -> tuple:
     if not title.strip() and not company.strip():
         return '—', 'No title or company data'
 
-    if any(t in title for t in ['managing director', 'general partner', 'partner', 'principal']) \
-            and any(fc in company for fc in FINANCE_COMPANIES):
-        return '$2M–$8M', 'Senior role at top-tier finance/law firm'
-    if any(t in title for t in ['ceo', 'chief executive', 'founder', 'co-founder']):
-        return ('$2M–$8M', 'C-suite at major institution') \
-               if any(fc in company for fc in FINANCE_COMPANIES) \
-               else ('$1M–$4M', 'CEO / founder')
-    if any(t in title for t in ['managing director', 'president', 'managing partner']):
-        return '$1M–$4M', 'MD / President-level'
-    if any(t in title for t in ['vp', 'vice president', 'director', 'cfo', 'cto', 'coo', 'svp', 'evp']):
+    # Tier 1: PE/hedge fund partner/principal, elite law firm partner, bank MD → $3M–$10M
+    elite_finance_title = any(t in title for t in [
+        'managing director', 'general partner', 'founding partner',
+        'fund manager', 'portfolio manager', 'principal',
+    ])
+    in_top_finance = any(fc in company for fc in FINANCE_COMPANIES)
+    if elite_finance_title and in_top_finance:
+        return '$3M–$10M', 'Senior role at top-tier finance firm'
+    if 'partner' in title and any(lf in company for lf in [
+        'simpson thacher', 'sullivan & cromwell', 'willkie', 'troutman', 'dorf',
+        'skadden', 'kirkland', 'weil gotshal', 'latham', 'davis polk',
+        'cleary', 'paul weiss', 'cravath', 'debevoise', 'proskauer',
+    ]):
+        return '$3M–$10M', 'Partner at elite law firm'
+
+    # Tier 2: VP/Director at major finance, startup CEO, asset manager → $2M–$6M
+    if any(t in title for t in ['vp', 'vice president', 'director', 'svp', 'evp', 'cfo', 'cto', 'coo', 'cio', 'ceo', 'chief']) \
+            and in_top_finance:
+        return '$2M–$6M', 'C-suite / VP at major finance firm'
+    if any(t in title for t in ['ceo', 'chief executive', 'founder', 'co-founder']) and company:
+        return '$2M–$6M', 'CEO / founder'
+
+    # Tier 3: C-suite mid-size, law firm associate, senior consultant → $1M–$4M
+    if any(t in title for t in ['managing director', 'president', 'managing partner', 'cfo', 'cto', 'coo', 'cio']):
+        return '$1M–$4M', 'C-suite / MD-level'
+    if any(t in title for t in ['vp', 'vice president', 'director', 'svp', 'evp']):
         return '$1M–$4M', 'VP / Director-level'
     if any(t in title for t in ['owner', 'founder']) and company:
         return '$1M–$4M', 'Business owner'
-    if any(t in title for t in ['manager', 'senior', 'consultant', 'principal', 'lead', 'head of']):
-        return '$500K–$2M', 'Mid-level professional'
-    if any(t in title for t in ['analyst', 'associate', 'specialist', 'coordinator', 'engineer', 'developer']):
-        return '$150K–$500K', 'Early / mid-career'
+
+    # Tier 4: Senior Manager, small biz owner, VP at smaller firm → $500K–$2M
+    if any(t in title for t in ['senior manager', 'senior director', 'head of', 'lead', 'principal', 'senior']):
+        return '$500K–$2M', 'Senior / mid-level professional'
+    if any(t in title for t in ['manager', 'consultant', 'supervisor']):
+        return '$500K–$2M', 'Manager-level'
+
+    # Tier 5: Manager/associate/junior → $150K–$500K
+    if any(t in title for t in ['analyst', 'associate', 'specialist', 'coordinator', 'engineer', 'developer', 'advisor', 'representative']):
+        return '$150K–$500K', 'Early / mid-career professional'
+
+    # Tier 6: Intern/entry-level → $50K–$200K
+    if any(t in title for t in ['intern', 'entry level', 'entry-level', 'student', 'junior', 'assistant']):
+        return '$50K–$200K', 'Entry-level / intern'
+
     return '$150K–$500K', 'Limited seniority data'
 
 # ─── EVENT STATS ──────────────────────────────────────────────────────────────
@@ -514,7 +628,7 @@ def render_panel(date_str: str, contacts: list, tab_id: str, active: bool) -> st
         <th>Title / Company</th>
         <th>Persona</th>
         <th>Est. Net Worth</th>
-        <th>Score <span style="font-size:0.6rem;opacity:0.6">(click to override)</span></th>
+        <th>Likelihood <span style="font-size:0.6rem;opacity:0.6">(click to override)</span></th>
         <th>LinkedIn</th>
         <th>HubSpot</th>
         <th>Uninvite</th>
