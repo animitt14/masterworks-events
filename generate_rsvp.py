@@ -372,10 +372,6 @@ def render_row(idx: int, c: dict) -> str:
     opp_star = '⭐ ' if 'opportunity' in flags else ''
 
     loc_html = ''
-    if city or state:
-        loc_str = ', '.join(filter(None, [city, state.upper() if state else '']))
-        color   = '#d4721a' if 'non_tri_state' in flags else '#8a9fc0'
-        loc_html = f'<br><span style="font-size:0.7rem;color:{color}">📍 {escape(loc_str)}</span>'
 
     ns_html = '<br><span style="font-size:0.7rem;color:#c94040">⚠ No Show</span>' if 'no_show' in flags else ''
 
