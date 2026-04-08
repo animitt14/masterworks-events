@@ -23,6 +23,7 @@ HUBSPOT_TOKEN = os.environ.get('HUBSPOT_API_KEY', '')
 PORTAL_ID       = '5454671'
 GITHUB_REPO     = os.environ.get('GITHUB_REPO',     '')  # e.g. 'animitt14/masterworks-events'
 GITHUB_WORKFLOW = 'daily.yml'
+SHARED_GIST_ID  = '44d6dd7bc96a5cbe2454b65ee55f8cdb'
 SEARCH_URL    = 'https://api.hubapi.com/crm/v3/objects/contacts/search'
 
 # Date window: how many days back/ahead to pull
@@ -715,6 +716,7 @@ header{{background:#1b3c6e;padding:16px 28px;position:sticky;top:0;z-index:100;
 <script>
 var GITHUB_REPO     = '{escape(GITHUB_REPO)}';
 var GITHUB_WORKFLOW = '{GITHUB_WORKFLOW}';
+var SHARED_GIST_ID  = '{SHARED_GIST_ID}';
 
 function triggerRefresh() {{
   var tok = localStorage.getItem('gh_pat');
@@ -810,48 +812,9 @@ function _fetchGist(cb) {{
   }})
   .catch(function() {{ if (cb) cb(); }});
 }}
-function _createGist(cb) {{
-  var tok = localStorage.getItem('gh_pat');
-  if (!tok) {{ if (cb) cb(); return; }}
-  var files = {{}};
-  files[GIST_FILE] = {{content: '{{}}'}};
-  fetch('https://api.github.com/gists', {{
-    method: 'POST',
-    headers: {{'Authorization':'token '+tok,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'}},
-    body: JSON.stringify({{description:'Masterworks RSVP Dashboard shared state', public:true, files:files}})
-  }})
-  .then(function(r) {{ return r.json(); }})
-  .then(function(data) {{
-    if (!data.id) {{ if (cb) cb(); return Promise.resolve(); }}
-    _gistId = data.id;
-    _gistState = {{}};
-    localStorage.setItem('mw_gist_id', _gistId);
-    // Persist Gist ID to repo so all viewers discover it automatically
-    return fetch('https://api.github.com/repos/' + GITHUB_REPO + '/contents/docs/gist_id.txt', {{
-      method: 'PUT',
-      headers: {{'Authorization':'token '+tok,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'}},
-      body: JSON.stringify({{message:'chore: init shared RSVP state [skip ci]', content:btoa(_gistId)}})
-    }});
-  }})
-  .then(function() {{ if (cb) cb(); }})
-  .catch(function() {{ if (cb) cb(); }});
-}}
 function initSharedState(cb) {{
-  var cached = localStorage.getItem('mw_gist_id');
-  if (cached) {{ _gistId = cached; _fetchGist(cb); return; }}
-  fetch('https://raw.githubusercontent.com/' + GITHUB_REPO + '/main/docs/gist_id.txt', {{cache:'no-store'}})
-    .then(function(r) {{ return r.ok ? r.text() : ''; }})
-    .then(function(txt) {{
-      var id = (txt || '').trim();
-      if (id) {{
-        _gistId = id;
-        localStorage.setItem('mw_gist_id', id);
-        _fetchGist(cb);
-      }} else {{
-        _createGist(cb);
-      }}
-    }})
-    .catch(function() {{ if (cb) cb(); }});
+  _gistId = SHARED_GIST_ID;
+  if (_gistId) {{ _fetchGist(cb); }} else {{ if (cb) cb(); }}
 }}
 
 // ── Tab switching ─────────────────────────────────────────────────────────────
