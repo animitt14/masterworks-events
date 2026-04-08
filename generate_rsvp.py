@@ -386,7 +386,7 @@ def render_row(idx: int, c: dict) -> str:
                       'font-weight:700;padding:1px 7px;letter-spacing:0.04em;'
                       'vertical-align:middle;margin-right:5px">INV</span>'
                       if 'invested' in flags else '')
-    opp_star = '⭐ ' if 'opportunity' in flags else ''
+    opp_star = ''
 
     loc_html = ''
 
