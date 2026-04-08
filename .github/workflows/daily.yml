@@ -1,0 +1,40 @@
+name: Update RSVP Dashboard
+
+on:
+  schedule:
+    - cron: '0 12 * * *'   # 8am ET (EDT, UTC-4). Change to '0 13 * * *' in winter (EST)
+  push:
+    branches: [main]
+  workflow_dispatch:         # allow manual trigger from Actions tab
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Generate dashboard
+        env:
+          HUBSPOT_API_KEY: ${{ secrets.HUBSPOT_API_KEY }}
+          GITHUB_REPO: ${{ github.repository }}
+        run: python generate_rsvp.py
+
+      - name: Commit and push
+        run: |
+          git config user.name  'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add docs/index.html docs/events.html
+          git diff --staged --quiet && echo "No changes" || \
+            git commit -m 'chore: update dashboards [skip ci]' && git push
