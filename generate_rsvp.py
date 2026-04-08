@@ -529,8 +529,11 @@ def build_html(by_date: dict, generated_at: str) -> str:
     upcoming    = [d for d in dates if d >= today_str]  # dates is descending
     default_tab = (upcoming[-1] if upcoming else (dates[0] if dates else '')).replace('-', '')
 
+    past_dates   = [d for d in dates if d < today_str]   # descending
+    future_dates = [d for d in dates if d >= today_str]  # descending
+
     tab_btns = []
-    for d in dates:
+    for d in future_dates:
         tid    = d.replace('-', '')
         cnt    = len(by_date[d])
         label  = fmt_date(d)
@@ -539,12 +542,37 @@ def build_html(by_date: dict, generated_at: str) -> str:
             f'<button class="tab-btn" data-tab="{tid}" data-date="{d}" '
             f'style="border-bottom:3px solid {"#c9a84c" if active else "transparent"}; '
             f'color:{"#1b3c6e" if active else "#7a94b8"};'
-            f'font-weight:{"700" if active else "normal"};'
-            f'{"opacity:0.5;" if is_past(d) else ""}" '
+            f'font-weight:{"700" if active else "normal"};" '
             f'onclick="switchTab(\'{tid}\')">'
             f'{escape(label)}'
             f'<span class="tab-count">({cnt})</span></button>'
         )
+
+    # Past events dropdown
+    past_opts = ''.join(
+        f'<button class="past-opt" data-tid="{d.replace("-","")}" '
+        f'onclick="selectPast(\'{d.replace("-","")}\',\'{escape(fmt_date(d))}\')">'
+        f'{escape(fmt_date(d))} <span style="opacity:0.6;font-size:0.7rem">({len(by_date[d])})</span>'
+        f'</button>\n'
+        for d in past_dates
+    )
+
+    # Determine if default tab is a past date (no upcoming events)
+    default_is_past = default_tab in [d.replace('-', '') for d in past_dates]
+    past_default_label = fmt_date(
+        next(d for d in past_dates if d.replace('-', '') == default_tab)
+    ) if default_is_past else ''
+
+    past_btn_html = ''
+    if past_dates:
+        init_label = escape(past_default_label) if default_is_past else 'Past Events'
+        past_btn_html = f'''<div class="past-dropdown-wrap" id="pastDropWrap">
+  <button class="tab-btn past-dropdown-btn" id="pastDropBtn"
+          style="{"border-bottom:3px solid #c9a84c;color:#1b3c6e;font-weight:700;" if default_is_past else "color:#9aaac0;"}"
+          onclick="togglePastDropdown(event)">{init_label} ▾</button>
+  <div class="past-dropdown-menu" id="pastDropMenu">
+{past_opts}  </div>
+</div>'''
 
     panels = [
         render_panel(d, by_date[d], d.replace('-', ''), d.replace('-', '') == default_tab)
@@ -630,6 +658,19 @@ header{{background:#1b3c6e;padding:16px 28px;position:sticky;top:0;z-index:100;
               font-family:inherit;letter-spacing:0.04em;transition:all 0.15s;white-space:nowrap}}
 .refresh-btn:hover{{border-color:rgba(255,255,255,0.5);color:#fff}}
 .refresh-btn:disabled{{opacity:0.45;cursor:default}}
+
+.past-dropdown-wrap{{position:relative;display:inline-block}}
+.past-dropdown-btn{{font-style:italic}}
+.past-dropdown-menu{{display:none;position:absolute;top:100%;left:0;background:#fff;
+  border:1px solid #dde3ee;border-radius:8px;
+  box-shadow:0 4px 16px rgba(27,60,110,0.14);z-index:300;
+  min-width:210px;max-height:300px;overflow-y:auto;padding:6px 0;margin-top:2px}}
+.past-dropdown-menu.open{{display:block}}
+.past-opt{{display:block;width:100%;text-align:left;padding:9px 16px;background:none;
+  border:none;cursor:pointer;font-family:inherit;font-size:0.82rem;color:#3a5070;
+  transition:background 0.1s;white-space:nowrap}}
+.past-opt:hover{{background:#f0f3f8}}
+.past-opt.active-past{{background:#edf3fb;color:#1b3c6e;font-weight:700}}
 </style>
 </head>
 <body>
@@ -654,6 +695,7 @@ header{{background:#1b3c6e;padding:16px 28px;position:sticky;top:0;z-index:100;
 
 <div class="tab-bar" id="tabBar">
   {''.join(tab_btns)}
+  {past_btn_html}
 </div>
 <div class="no-date-msg" id="noDateMsg">No RSVP data for this date in the current window.</div>
 
@@ -953,12 +995,49 @@ function resetOverrides(tabId) {{
   updateResetBtn(tabId);
 }}
 
+// ── Past events dropdown ──────────────────────────────────────────────────────
+function togglePastDropdown(e) {{
+  e.stopPropagation();
+  var menu = document.getElementById('pastDropMenu');
+  if (menu) menu.classList.toggle('open');
+}}
+
+function selectPast(tid, label) {{
+  var menu = document.getElementById('pastDropMenu');
+  if (menu) menu.classList.remove('open');
+  // Switch to the past panel
+  switchTab(tid);
+  // Re-style the past dropdown button (switchTab resets all .tab-btn styles)
+  var btn = document.getElementById('pastDropBtn');
+  if (btn) {{
+    btn.textContent = label + ' ▾';
+    btn.style.borderBottom = '3px solid #c9a84c';
+    btn.style.color        = '#1b3c6e';
+    btn.style.fontWeight   = '700';
+  }}
+  // Mark active option
+  document.querySelectorAll('.past-opt').forEach(function(o) {{
+    o.classList.toggle('active-past', o.dataset.tid === tid);
+  }});
+}}
+
+document.addEventListener('click', function() {{
+  var menu = document.getElementById('pastDropMenu');
+  if (menu) menu.classList.remove('open');
+}});
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 (function() {{
   var defaultTab = '{default_tab}';
   if (defaultTab) {{
     applyStoredOverrides(defaultTab);
     updateResetBtn(defaultTab);
+  }}
+  // If default tab is a past date, pre-mark the active past option
+  if ('{past_default_label}') {{
+    document.querySelectorAll('.past-opt').forEach(function(o) {{
+      if (o.dataset.tid === defaultTab) o.classList.add('active-past');
+    }});
   }}
 }})();
 </script>
