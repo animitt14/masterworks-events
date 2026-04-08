@@ -454,7 +454,7 @@ def render_panel(date_str: str, contacts: list, tab_id: str, active: bool) -> st
             pills.append(
                 f'<span style="background:{bg};color:{fg};padding:2px 9px;border-radius:10px;'
                 f'font-size:0.68rem;font-weight:700;border:1px solid {fg}44">'
-                f'{counts[sc]}× {sc} — {SCORE_LABELS[sc]}</span>'
+                f'{counts[sc]}× {SCORE_LABELS[sc]}</span>'
             )
     pills_html = ' '.join(pills)
 
