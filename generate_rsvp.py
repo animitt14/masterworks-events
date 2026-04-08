@@ -8,6 +8,7 @@ scores them 1–5, and writes docs/index.html.
 
 import json
 import os
+import re
 import sys
 import requests
 from datetime import date, timedelta, datetime, timezone
@@ -339,13 +340,32 @@ def li_url(name: str, company: str) -> str:
 def hs_url(cid: str) -> str:
     return f'https://app.hubspot.com/contacts/{PORTAL_ID}/record/0-1/{cid}'
 
+_TITLE_ABBREVS = [
+    ('chief executive officer',   'CEO'),
+    ('chief technology officer',  'CTO'),
+    ('chief operating officer',   'COO'),
+    ('chief financial officer',   'CFO'),
+    ('chief marketing officer',   'CMO'),
+    ('chief revenue officer',     'CRO'),
+    ('chief information officer', 'CIO'),
+    ('chief product officer',     'CPO'),
+    ('chief people officer',      'CPO'),
+    ('chief data officer',        'CDO'),
+    ('chief strategy officer',    'CSO'),
+]
+
+def shorten_title(title: str) -> str:
+    for full, abbrev in _TITLE_ABBREVS:
+        title = re.sub(re.escape(full), abbrev, title, flags=re.IGNORECASE)
+    return title
+
 def render_row(idx: int, c: dict) -> str:
     p        = c['properties']
     cid      = c['id']
     fname    = p.get('firstname') or ''
     lname    = p.get('lastname')  or ''
     name     = f'{fname} {lname}'.strip() or '(No name)'
-    title    = p.get('jobtitle') or ''
+    title    = shorten_title(p.get('jobtitle') or '')
     company  = p.get('company')  or ''
     owner_id = p.get('hubspot_owner_id') or ''
     city     = p.get('city')  or ''
