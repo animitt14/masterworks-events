@@ -184,27 +184,31 @@ def score_contact(p: dict) -> tuple:
     no_data = not title.strip() and not company.strip()
 
     if has_downgrade and 'no_show' in flags:
-        return 1, flags
-    if has_downgrade or 'no_show' in flags:
-        return 2, flags
-    if no_data:
-        return 2, flags
-
-    if email_domain(email) in FINANCE_DOMAINS:
-        return 5, flags
-    if has_high_title(title):
-        return 5, flags
-    if any(fc in company for fc in FINANCE_COMPANIES):
-        return 5, flags
-
-    medium_high = any(t in title for t in [
+        sc = 1
+    elif has_downgrade or 'no_show' in flags:
+        sc = 2
+    elif no_data:
+        sc = 2
+    elif email_domain(email) in FINANCE_DOMAINS:
+        sc = 5
+    elif has_high_title(title):
+        sc = 5
+    elif any(fc in company for fc in FINANCE_COMPANIES):
+        sc = 5
+    elif any(t in title for t in [
         'director', 'senior director', 'head of', 'svp', 'evp', 'avp',
         'senior manager', 'senior vice', 'associate director',
-    ])
-    if medium_high:
-        return 4, flags
+    ]):
+        sc = 4
+    else:
+        sc = 3
 
-    return 3, flags
+    # Cap at Medium (3) for contacts with estimated NW clearly under $1M
+    nw, _ = get_nw(p)
+    if nw == '$150K–$500K' and sc > 3:
+        sc = 3
+
+    return sc, flags
 
 def get_persona(p: dict) -> str:
     title   = (p.get('jobtitle') or '').lower()
