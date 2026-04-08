@@ -1011,6 +1011,7 @@ def build_events_html(by_date: dict, generated_at: str) -> str:
   .stat-tile.gold   .stat-value {{ color:#d4a96a; }}
   .stat-tile.purple .stat-value {{ color:#b49ee0; }}
   .stat-tile.amber  .stat-value {{ color:#c9a84c; }}
+  .stat-tile.blue   .stat-value {{ color:#4a90d9; }}
 
   .funnel-wrap {{ background:#1a3660; border-bottom:2px solid #1b3c6e;
                  padding:16px 40px; display:flex; align-items:center; overflow-x:auto; }}
@@ -1055,7 +1056,7 @@ def build_events_html(by_date: dict, generated_at: str) -> str:
   thead th.no-sort:hover {{ color:#a8c8e8; }}
   thead th.group-rsvp     {{ color:#5fa8e8; border-bottom:3px solid #3a78c0; }}
   thead th.group-attended {{ color:#7dc4a8; border-bottom:3px solid #5aaa8a; }}
-  thead th.group-score    {{ color:#c9a84c; border-bottom:3px solid #a88830; }}
+  thead th.group-score    {{ color:#4a90d9; border-bottom:3px solid #2a70b9; }}
   thead th.group-account  {{ color:#d4a96a; border-bottom:3px solid #b88840; }}
   thead th.group-invested {{ color:#6dbf82; border-bottom:3px solid #4a9f60; }}
   thead th.group-capital  {{ color:#b49ee0; border-bottom:3px solid #8060c0; }}
@@ -1103,7 +1104,7 @@ def build_events_html(by_date: dict, generated_at: str) -> str:
   <div class="stat-tile">        <span class="stat-value" id="sAccRate">—</span>  <span class="stat-label">Acct Rate</span></div>
   <div class="stat-tile green">  <span class="stat-value" id="sInvested">—</span> <span class="stat-label">Investors</span></div>
   <div class="stat-tile purple"> <span class="stat-value" id="sCapital">—</span>  <span class="stat-label">Capital Raised</span></div>
-  <div class="stat-tile amber">  <span class="stat-value" id="sAttScore">—</span> <span class="stat-label">Att. Score</span></div>
+  <div class="stat-tile blue">   <span class="stat-value" id="sAttScore">—</span> <span class="stat-label">Att. Score</span></div>
 </div>
 
 <div class="funnel-wrap">
@@ -1237,7 +1238,7 @@ function render() {{
     var attCell   = pending ? '<span class="pending-badge">Pending</span>' : fmt(e.attended);
     var scoreCell = (pending || !e.attended)
       ? '<span style="color:#b0c4d8">—</span>'
-      : '<span style="color:#c9a84c;font-weight:600;font-variant-numeric:tabular-nums">' + e.attended_score + '</span>';
+      : '<span style="color:#4a90d9;font-weight:600;font-variant-numeric:tabular-nums">' + e.attended_score + '</span>';
     var accCell   = (pending || !e.attended)
       ? '<span style="color:#b0c4d8">—</span>'
       : accRate != null
