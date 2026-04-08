@@ -509,14 +509,12 @@ def render_panel(date_str: str, contacts: list, tab_id: str, active: bool) -> st
 
 def build_html(by_date: dict, generated_at: str) -> str:
     today_str = date.today().isoformat()
-    dates     = sorted(by_date.keys())
+    dates     = sorted(by_date.keys(), reverse=True)
     all_dates_json = '[' + ','.join(f'"{d}"' for d in dates) + ']'
 
-    # Default tab: today if it has data, else nearest upcoming date
-    default_tab = next(
-        (d.replace('-', '') for d in dates if d >= today_str),
-        dates[0].replace('-', '') if dates else ''
-    )
+    # Default tab: today if present, else nearest upcoming, else most recent past
+    upcoming    = [d for d in dates if d >= today_str]  # dates is descending
+    default_tab = (upcoming[-1] if upcoming else (dates[0] if dates else '')).replace('-', '')
 
     tab_btns = []
     for d in dates:
