@@ -182,9 +182,6 @@ def score_contact(p: dict) -> tuple:
         has_downgrade = True
     no_data = not title.strip() and not company.strip()
 
-    if 'invested' in flags or 'opportunity' in flags:
-        return 5, flags
-
     if has_downgrade and 'no_show' in flags:
         return 1, flags
     if has_downgrade or 'no_show' in flags:
