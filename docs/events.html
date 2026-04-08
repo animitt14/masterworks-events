@@ -1,4 +1,383 @@
-<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Masterworks — Event Dashboard</title></head>
-<body style="font-family:sans-serif;padding:60px;color:#1b3c6e;text-align:center">
-  <p style="font-size:1.1rem">Dashboard is being generated — check back in a minute.</p>
-</body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Masterworks — Event Dashboard</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#d8e2f0; color:#1e2a3a; font-family:'Georgia',serif; min-height:100vh; }
+
+  header { background:#1b3c6e; padding:16px 28px; position:sticky; top:0; z-index:100;
+            box-shadow:0 2px 8px rgba(27,60,110,0.25); }
+  .header-row { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  .brand { font-size:0.62rem; letter-spacing:0.2em; text-transform:uppercase; color:#c9a84c; font-weight:700; }
+  .title { font-size:0.98rem; font-weight:700; color:#fff; margin-top:2px; }
+  .meta  { font-size:0.65rem; color:rgba(255,255,255,0.4); margin-top:2px; }
+  .nav-link { color:#8eb4e0; text-decoration:none; font-size:0.72rem; letter-spacing:0.08em; white-space:nowrap; }
+  .nav-link:hover { color:#fff; }
+  .refresh-btn { background:none; border:1px solid rgba(255,255,255,0.22); border-radius:6px;
+                  padding:5px 11px; color:rgba(255,255,255,0.65); font-size:0.72rem; cursor:pointer;
+                  font-family:inherit; letter-spacing:0.04em; transition:all 0.15s; white-space:nowrap; }
+  .refresh-btn:hover { border-color:rgba(255,255,255,0.5); color:#fff; }
+  .refresh-btn:disabled { opacity:0.45; cursor:default; }
+
+  .stats-bar { background:#162f57; border-bottom:1px solid #1b3c6e;
+               padding:0 40px; display:flex; align-items:stretch; overflow-x:auto; }
+  .stat-tile { padding:18px 28px; display:flex; flex-direction:column; align-items:center;
+               gap:4px; border-right:1px solid rgba(255,255,255,0.07); flex-shrink:0; min-width:100px; }
+  .stat-tile:first-child { padding-left:0; }
+  .stat-tile:last-child  { border-right:none; }
+  .stat-value { font-size:1.65rem; color:#e8f0fc; letter-spacing:0.02em; line-height:1; }
+  .stat-label { font-size:0.65rem; color:#7aaace; text-transform:uppercase; letter-spacing:0.13em; white-space:nowrap; font-weight:600; }
+  .stat-tile.teal   .stat-value { color:#7dc4a8; }
+  .stat-tile.green  .stat-value { color:#6dbf82; }
+  .stat-tile.gold   .stat-value { color:#d4a96a; }
+  .stat-tile.purple .stat-value { color:#b49ee0; }
+  .stat-tile.amber  .stat-value { color:#c9a84c; }
+
+  .funnel-wrap { background:#1a3660; border-bottom:2px solid #1b3c6e;
+                 padding:16px 40px; display:flex; align-items:center; overflow-x:auto; }
+  .funnel-stage { display:flex; flex-direction:column; align-items:center; gap:5px; flex-shrink:0; min-width:140px; }
+  .funnel-row   { display:flex; align-items:center; gap:6px; }
+  .funnel-num   { font-size:1.3rem; color:#e8f0fc; line-height:1; font-weight:300; letter-spacing:0.02em; }
+  .funnel-sub   { font-size:0.72rem; color:#9aaac0; }
+  .funnel-bar-wrap { width:100px; height:6px; background:rgba(255,255,255,0.1); border-radius:3px; overflow:hidden; }
+  .funnel-bar-fill { height:100%; border-radius:3px; transition:width 0.4s ease; }
+  .fill-rsvp     { background:#4a90d9; }
+  .fill-attended { background:#7dc4a8; }
+  .fill-account  { background:#d4a96a; }
+  .funnel-label { font-size:0.66rem; color:#7aaace; text-transform:uppercase; letter-spacing:0.13em; font-weight:600; }
+  .funnel-arrow { font-size:1.1rem; color:#2f527a; padding:0 8px; align-self:center; margin-bottom:18px; flex-shrink:0; }
+
+  .controls { background:#22508a; padding:12px 40px; display:flex; align-items:center;
+              gap:14px; flex-wrap:wrap; border-bottom:2px solid #1b3c6e; }
+  .search-input { background:#1b3c6e; border:1px solid #3a6aaa; border-radius:4px;
+                  padding:8px 14px; color:#e8f0fc; font-size:0.88rem; font-family:'Georgia',serif;
+                  outline:none; transition:border-color 0.2s; width:220px; }
+  .search-input:focus { border-color:#8eb4e0; }
+  .search-input::placeholder { color:#6a90be; }
+  .filter-btn { background:transparent; border:1px solid #4a78b8; color:#9bbfe0;
+                padding:5px 13px; border-radius:20px; font-size:0.7rem;
+                letter-spacing:0.08em; text-transform:uppercase; cursor:pointer;
+                transition:all 0.2s; font-family:'Georgia',serif; }
+  .filter-btn:hover, .filter-btn.active { border-color:#fff; color:#fff; background:rgba(255,255,255,0.12); }
+
+  .count-bar { padding:9px 40px; font-size:0.68rem; color:#5a7a9e; letter-spacing:0.09em;
+               text-transform:uppercase; background:#cfd9ec; border-bottom:1px solid #bfcce0; font-weight:600; }
+
+  .table-wrap { padding:0 16px 48px; overflow-x:auto; }
+  table { width:100%; border-collapse:separate; border-spacing:0; background:#fff;
+          border-radius:4px; overflow:hidden; box-shadow:0 1px 4px rgba(27,60,110,0.08); margin-top:14px; }
+  thead th { background:#1b3c6e; color:#a8c8e8; font-size:0.72rem; text-transform:uppercase;
+             letter-spacing:0.1em; font-weight:600; padding:11px 14px; text-align:center;
+             white-space:nowrap; cursor:pointer; user-select:none; }
+  thead th:hover { color:#fff; }
+  thead th.sorted-asc::after  { content:' ↑'; color:#fff; }
+  thead th.sorted-desc::after { content:' ↓'; color:#fff; }
+  thead th.no-sort { cursor:default; }
+  thead th.no-sort:hover { color:#a8c8e8; }
+  thead th.group-rsvp     { color:#5fa8e8; border-bottom:3px solid #3a78c0; }
+  thead th.group-attended { color:#7dc4a8; border-bottom:3px solid #5aaa8a; }
+  thead th.group-score    { color:#c9a84c; border-bottom:3px solid #a88830; }
+  thead th.group-account  { color:#d4a96a; border-bottom:3px solid #b88840; }
+  thead th.group-invested { color:#6dbf82; border-bottom:3px solid #4a9f60; }
+  thead th.group-capital  { color:#b49ee0; border-bottom:3px solid #8060c0; }
+  tbody tr { border-bottom:1px solid #eef1f7; transition:background 0.15s; }
+  tbody tr:nth-child(even) { background:#f8fafd; }
+  tbody tr:hover { background:#edf3fb !important; }
+  tbody tr:last-child { border-bottom:none; }
+  tbody tr.pending-row td { opacity:0.6; }
+  td { padding:14px; font-size:0.85rem; color:#4a5f78; white-space:nowrap; text-align:center; }
+  td:first-child { font-size:0.68rem; color:#aabcd4; width:34px; }
+  .date-cell { color:#1b3c6e; font-size:0.88rem; font-weight:700; text-align:left; letter-spacing:0.01em; }
+  .num { font-variant-numeric:tabular-nums; }
+  .pending-badge { display:inline-block; padding:2px 7px; border-radius:10px; font-size:0.6rem;
+                   letter-spacing:0.08em; text-transform:uppercase; background:#f4f6fa;
+                   color:#8a9ab8; border:1px solid #dde4ef; }
+  .no-results { text-align:center; padding:60px; color:#9aaac0; font-size:0.9rem; letter-spacing:0.05em; }
+
+  footer { padding:24px 40px; text-align:center; font-size:0.7rem; color:#6a90be;
+           letter-spacing:0.1em; text-transform:uppercase; background:#1b3c6e; }
+  .footer-note { padding:6px 40px 10px; font-size:0.62rem; color:#8aabcc; letter-spacing:0.06em; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-row">
+    <div>
+      <div class="brand">Masterworks · Outbound</div>
+      <div class="title">Event Dashboard</div>
+      <div class="meta">Updated Apr 8, 2026 at 5:23 PM UTC</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+      <a href="index.html" class="nav-link">← RSVP Dashboard</a>
+      <button class="refresh-btn" id="refreshBtn" onclick="triggerRefresh()">↻ Refresh</button>
+    </div>
+  </div>
+</header>
+
+<div class="stats-bar">
+  <div class="stat-tile">        <span class="stat-value" id="sEvents">—</span>   <span class="stat-label">Events</span></div>
+  <div class="stat-tile">        <span class="stat-value" id="sRSVPs">—</span>    <span class="stat-label">Total RSVPs</span></div>
+  <div class="stat-tile teal">   <span class="stat-value" id="sAttended">—</span> <span class="stat-label">Attended</span></div>
+  <div class="stat-tile">        <span class="stat-value" id="sAttRate">—</span>  <span class="stat-label">Att. Rate</span></div>
+  <div class="stat-tile gold">   <span class="stat-value" id="sAccounts">—</span> <span class="stat-label">Accts Created</span></div>
+  <div class="stat-tile">        <span class="stat-value" id="sAccRate">—</span>  <span class="stat-label">Acct Rate</span></div>
+  <div class="stat-tile green">  <span class="stat-value" id="sInvested">—</span> <span class="stat-label">Investors</span></div>
+  <div class="stat-tile purple"> <span class="stat-value" id="sCapital">—</span>  <span class="stat-label">Capital Raised</span></div>
+  <div class="stat-tile amber">  <span class="stat-value" id="sAttScore">—</span> <span class="stat-label">Att. Score</span></div>
+</div>
+
+<div class="funnel-wrap">
+  <div class="funnel-stage">
+    <div class="funnel-row"><span class="funnel-num" id="fRSVP">—</span></div>
+    <div class="funnel-bar-wrap"><div class="funnel-bar-fill fill-rsvp" style="width:100%"></div></div>
+    <div class="funnel-label">RSVPs</div>
+  </div>
+  <div class="funnel-arrow">›</div>
+  <div class="funnel-stage">
+    <div class="funnel-row"><span class="funnel-num" id="fAtt">—</span><span class="funnel-sub" id="fAttPct"></span></div>
+    <div class="funnel-bar-wrap"><div class="funnel-bar-fill fill-attended" id="fBarAtt" style="width:0%"></div></div>
+    <div class="funnel-label">Attended</div>
+  </div>
+  <div class="funnel-arrow">›</div>
+  <div class="funnel-stage">
+    <div class="funnel-row"><span class="funnel-num" id="fAcc">—</span><span class="funnel-sub" id="fAccPct"></span></div>
+    <div class="funnel-bar-wrap"><div class="funnel-bar-fill fill-account" id="fBarAcc" style="width:0%"></div></div>
+    <div class="funnel-label">Accts Created</div>
+  </div>
+</div>
+
+<div class="controls">
+  <input type="text" class="search-input" id="searchInput" placeholder="Search date…" oninput="render()">
+  <button class="filter-btn active" data-filter="all"     onclick="setFilter(this)">All</button>
+  <button class="filter-btn"        data-filter="recent"  onclick="setFilter(this)">Last 30 Days</button>
+  <button class="filter-btn"        data-filter="pending" onclick="setFilter(this)">Pending Attendance</button>
+</div>
+
+<div class="count-bar" id="countBar">Loading…</div>
+
+<div class="table-wrap">
+  <table id="mainTable">
+    <thead>
+      <tr id="headerRow">
+        <th class="no-sort">#</th>
+        <th onclick="setSort('date')"          style="text-align:left">Date</th>
+        <th onclick="setSort('rsvps')"          class="group-rsvp">RSVPs</th>
+        <th onclick="setSort('attended')"       class="group-attended">Attended</th>
+        <th onclick="setSort('attended_score')" class="group-score">Att. Score</th>
+        <th onclick="setSort('accRate')"        class="group-account">Acct Created</th>
+        <th onclick="setSort('invested')"       class="group-invested">Investors</th>
+        <th onclick="setSort('capital')"        class="group-capital">Capital Raised</th>
+      </tr>
+    </thead>
+    <tbody id="tableBody"></tbody>
+  </table>
+</div>
+
+<p class="footer-note">
+  Data from HubSpot · Attended = <code>attended_outbound_event = Yes</code> · Acct Created = attended + <code>admin_url</code> populated · Invested = attended + <code>totalamountpurchased &gt; 0</code> · Att. Score = sum of lead scores for attended contacts
+</p>
+<footer>Masterworks Internal · Outbound Events · <span id="asOfDate"></span></footer>
+
+<script>
+var GITHUB_REPO     = 'animitt14/masterworks-events';
+var GITHUB_WORKFLOW = 'daily.yml';
+
+const eventData = [{"date": "2026-04-15", "rsvps": 1, "attended": 0, "attended_score": 0, "accountCreated": 0, "invested": 0, "capital": 0}, {"date": "2026-04-14", "rsvps": 1, "attended": 0, "attended_score": 0, "accountCreated": 0, "invested": 0, "capital": 0}, {"date": "2026-04-10", "rsvps": 4, "attended": 0, "attended_score": 0, "accountCreated": 0, "invested": 0, "capital": 0}, {"date": "2026-04-09", "rsvps": 44, "attended": 0, "attended_score": 0, "accountCreated": 0, "invested": 0, "capital": 0}, {"date": "2026-04-08", "rsvps": 27, "attended": 0, "attended_score": 0, "accountCreated": 0, "invested": 0, "capital": 0}, {"date": "2026-04-07", "rsvps": 27, "attended": 6, "attended_score": 23, "accountCreated": 1, "invested": 0, "capital": 0}, {"date": "2026-04-04", "rsvps": 45, "attended": 20, "attended_score": 65, "accountCreated": 3, "invested": 0, "capital": 0}, {"date": "2026-04-03", "rsvps": 25, "attended": 13, "attended_score": 41, "accountCreated": 2, "invested": 0, "capital": 0}, {"date": "2026-03-31", "rsvps": 20, "attended": 9, "attended_score": 33, "accountCreated": 3, "invested": 0, "capital": 0}, {"date": "2026-03-30", "rsvps": 16, "attended": 7, "attended_score": 28, "accountCreated": 1, "invested": 0, "capital": 0}, {"date": "2026-03-29", "rsvps": 26, "attended": 15, "attended_score": 63, "accountCreated": 3, "invested": 1, "capital": 1200}, {"date": "2026-03-28", "rsvps": 30, "attended": 12, "attended_score": 55, "accountCreated": 3, "invested": 0, "capital": 0}, {"date": "2026-03-26", "rsvps": 37, "attended": 11, "attended_score": 37, "accountCreated": 0, "invested": 0, "capital": 0}, {"date": "2026-03-24", "rsvps": 32, "attended": 9, "attended_score": 40, "accountCreated": 3, "invested": 1, "capital": 100}, {"date": "2026-03-23", "rsvps": 44, "attended": 18, "attended_score": 79, "accountCreated": 0, "invested": 0, "capital": 0}, {"date": "2026-03-22", "rsvps": 21, "attended": 11, "attended_score": 43, "accountCreated": 0, "invested": 0, "capital": 0}, {"date": "2026-03-21", "rsvps": 26, "attended": 12, "attended_score": 53, "accountCreated": 2, "invested": 0, "capital": 0}, {"date": "2026-03-20", "rsvps": 45, "attended": 14, "attended_score": 58, "accountCreated": 1, "invested": 0, "capital": 0}, {"date": "2026-03-18", "rsvps": 59, "attended": 17, "attended_score": 70, "accountCreated": 0, "invested": 0, "capital": 0}, {"date": "2026-03-16", "rsvps": 36, "attended": 17, "attended_score": 67, "accountCreated": 1, "invested": 0, "capital": 0}, {"date": "2026-03-15", "rsvps": 37, "attended": 13, "attended_score": 61, "accountCreated": 2, "invested": 0, "capital": 0}, {"date": "2026-03-14", "rsvps": 23, "attended": 9, "attended_score": 39, "accountCreated": 5, "invested": 3, "capital": 1780}, {"date": "2026-03-13", "rsvps": 41, "attended": 17, "attended_score": 79, "accountCreated": 0, "invested": 0, "capital": 0}, {"date": "2026-03-11", "rsvps": 51, "attended": 19, "attended_score": 79, "accountCreated": 4, "invested": 0, "capital": 0}, {"date": "2026-03-09", "rsvps": 31, "attended": 14, "attended_score": 52, "accountCreated": 2, "invested": 0, "capital": 0}, {"date": "2026-03-06", "rsvps": 26, "attended": 10, "attended_score": 38, "accountCreated": 1, "invested": 0, "capital": 0}, {"date": "2026-03-04", "rsvps": 15, "attended": 7, "attended_score": 28, "accountCreated": 0, "invested": 0, "capital": 0}, {"date": "2026-03-02", "rsvps": 36, "attended": 10, "attended_score": 37, "accountCreated": 3, "invested": 1, "capital": 4000}, {"date": "2026-02-27", "rsvps": 43, "attended": 16, "attended_score": 57, "accountCreated": 3, "invested": 1, "capital": 100}, {"date": "2026-02-23", "rsvps": 38, "attended": 5, "attended_score": 22, "accountCreated": 1, "invested": 0, "capital": 0}];
+const TODAY = '2026-04-08';
+
+function isPending(e) { return e.attended === 0 && e.date >= TODAY; }
+function isRecent(e)  {
+  var d = new Date(e.date), t = new Date(TODAY);
+  return (t - d) / 86400000 <= 30;
+}
+function fmt(n)    { return n == null ? '—' : n.toLocaleString(); }
+function fmtCap(n) {
+  if (!n) return '<span style="color:#b0c4d8">—</span>';
+  if (n >= 1000000) return '$' + (n/1000000).toFixed(2) + 'M';
+  if (n >= 1000)    return '$' + (n/1000).toFixed(1) + 'K';
+  return '$' + n.toLocaleString();
+}
+function pct(a, b) { if (!b) return null; return Math.round(a / b * 100); }
+function formatDate(d) {
+  var p = d.split('-');
+  var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var days   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  return days[new Date(+p[0],+p[1]-1,+p[2]).getDay()] + ', ' + months[+p[1]-1] + ' ' + +p[2] + ', ' + p[0];
+}
+
+var sortKey = 'date', sortDir = 'desc', activeFilter = 'all';
+
+function setFilter(btn) {
+  document.querySelectorAll('.filter-btn').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  activeFilter = btn.dataset.filter;
+  render();
+}
+function setSort(key) {
+  if (sortKey === key) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+  else { sortKey = key; sortDir = 'desc'; }
+  document.querySelectorAll('#headerRow th:not(.no-sort)').forEach(function(th){
+    th.classList.remove('sorted-asc','sorted-desc');
+  });
+  var cols = {date:1,rsvps:2,attended:3,attended_score:4,accRate:5,invested:6,capital:7};
+  var th = document.querySelectorAll('#headerRow th')[cols[key]];
+  if (th) th.classList.add(sortDir === 'asc' ? 'sorted-asc' : 'sorted-desc');
+  render();
+}
+
+function render() {
+  var q    = document.getElementById('searchInput').value.trim().toLowerCase();
+  var body = document.getElementById('tableBody');
+  body.innerHTML = '';
+
+  var filtered = eventData.filter(function(e) {
+    if (activeFilter === 'recent'  && !isRecent(e))  return false;
+    if (activeFilter === 'pending' && !isPending(e)) return false;
+    if (q && !e.date.includes(q)) return false;
+    return true;
+  });
+
+  var sorted = filtered.slice().sort(function(a, b) {
+    var av, bv;
+    if      (sortKey === 'date')          { av = a.date;                                   bv = b.date; }
+    else if (sortKey === 'rsvps')         { av = a.rsvps;                                  bv = b.rsvps; }
+    else if (sortKey === 'attended')      { av = a.attended;                               bv = b.attended; }
+    else if (sortKey === 'attended_score'){ av = a.attended_score;                         bv = b.attended_score; }
+    else if (sortKey === 'accRate')       { av = pct(a.accountCreated,a.attended) || -1;   bv = pct(b.accountCreated,b.attended) || -1; }
+    else if (sortKey === 'invested')      { av = a.invested;                               bv = b.invested; }
+    else if (sortKey === 'capital')       { av = a.capital;                                bv = b.capital; }
+    else                                  { av = a.date; bv = b.date; }
+    var cmp = av > bv ? 1 : av < bv ? -1 : 0;
+    return sortDir === 'asc' ? cmp : -cmp;
+  });
+
+  sorted.forEach(function(e, i) {
+    var pending   = isPending(e);
+    var accRate   = pct(e.accountCreated, e.attended);
+    var attCell   = pending ? '<span class="pending-badge">Pending</span>' : fmt(e.attended);
+    var scoreCell = (pending || !e.attended)
+      ? '<span style="color:#b0c4d8">—</span>'
+      : '<span style="color:#c9a84c;font-weight:600;font-variant-numeric:tabular-nums">' + e.attended_score + '</span>';
+    var accCell   = (pending || !e.attended)
+      ? '<span style="color:#b0c4d8">—</span>'
+      : accRate != null
+        ? '<span style="color:#d4a96a;font-weight:600">' + accRate + '%</span>'
+        : '<span style="color:#b0c4d8">—</span>';
+    var invCell   = e.invested > 0
+      ? '<span style="color:#6dbf82;font-weight:600;font-variant-numeric:tabular-nums">' + e.invested + '</span>'
+      : '<span style="color:#b0c4d8">—</span>';
+    var tr = document.createElement('tr');
+    if (pending) tr.classList.add('pending-row');
+    tr.innerHTML =
+      '<td>' + (i+1) + '</td>' +
+      '<td class="date-cell">' + formatDate(e.date) + '</td>' +
+      '<td class="num">' + fmt(e.rsvps) + '</td>' +
+      '<td class="num">' + attCell + '</td>' +
+      '<td class="num">' + scoreCell + '</td>' +
+      '<td class="num">' + accCell + '</td>' +
+      '<td class="num">' + invCell + '</td>' +
+      '<td class="num">' + fmtCap(e.capital) + '</td>';
+    body.appendChild(tr);
+  });
+
+  if (sorted.length === 0) {
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td colspan="8" class="no-results">No events match this filter.</td>';
+    body.appendChild(tr);
+  }
+
+  var total = eventData.reduce(function(s,e){return s+e.rsvps;},0);
+  document.getElementById('countBar').textContent =
+    'Showing ' + sorted.length + ' of ' + eventData.length + ' events · ' + total.toLocaleString() + ' total RSVPs';
+
+  updateStats(filtered);
+  updateFunnel(filtered);
+}
+
+function updateStats(evts) {
+  var src     = evts || eventData;
+  var tracked = src.filter(function(e){return !isPending(e);});
+  var rsvpBase      = tracked.reduce(function(s,e){return s+e.rsvps;},0);
+  var totalRSVPs    = src.reduce(function(s,e){return s+e.rsvps;},0);
+  var totalAttended = tracked.reduce(function(s,e){return s+e.attended;},0);
+  var totalAccounts = src.reduce(function(s,e){return s+e.accountCreated;},0);
+  var totalInvested = src.reduce(function(s,e){return s+e.invested;},0);
+  var totalCapital  = src.reduce(function(s,e){return s+e.capital;},0);
+  var totalAttScore = tracked.reduce(function(s,e){return s+e.attended_score;},0);
+  document.getElementById('sEvents').textContent   = src.length;
+  document.getElementById('sRSVPs').textContent    = fmt(totalRSVPs);
+  document.getElementById('sAttended').textContent = fmt(totalAttended);
+  document.getElementById('sAttRate').textContent  = pct(totalAttended,rsvpBase) != null ? pct(totalAttended,rsvpBase)+'%' : '—';
+  document.getElementById('sAccounts').textContent = fmt(totalAccounts);
+  document.getElementById('sAccRate').textContent  = pct(totalAccounts,totalAttended) != null ? pct(totalAccounts,totalAttended)+'%' : '—';
+  document.getElementById('sInvested').textContent = fmt(totalInvested);
+  document.getElementById('sCapital').textContent  = fmtCap(totalCapital);
+  document.getElementById('sAttScore').textContent = fmt(totalAttScore);
+}
+
+function updateFunnel(evts) {
+  var src     = evts || eventData;
+  var tracked = src.filter(function(e){return !isPending(e);});
+  var r = src.reduce(function(s,e){return s+e.rsvps;},0);
+  var a = tracked.reduce(function(s,e){return s+e.attended;},0);
+  var c = src.reduce(function(s,e){return s+e.accountCreated;},0);
+  var rsvpBase = tracked.reduce(function(s,e){return s+e.rsvps;},0);
+  document.getElementById('fRSVP').textContent = fmt(r);
+  document.getElementById('fAtt').textContent  = fmt(a);
+  document.getElementById('fAcc').textContent  = fmt(c);
+  var attP = pct(a, rsvpBase), accP = pct(c, r);
+  document.getElementById('fAttPct').textContent  = attP != null ? attP+'%' : '';
+  document.getElementById('fAccPct').textContent  = accP != null ? accP+'%' : '';
+  document.getElementById('fBarAtt').style.width  = attP != null ? attP+'%' : '0%';
+  document.getElementById('fBarAcc').style.width  = accP != null ? accP+'%' : '0%';
+}
+
+function triggerRefresh() {
+  var tok = localStorage.getItem('gh_pat');
+  if (!tok) {
+    tok = prompt('Enter your GitHub personal access token to trigger a refresh.\n(Saved in your browser — you only need to do this once.)');
+    if (!tok) return;
+    localStorage.setItem('gh_pat', tok.trim());
+    tok = tok.trim();
+  }
+  var btn = document.getElementById('refreshBtn');
+  btn.disabled = true;
+  btn.textContent = 'Updating…';
+  fetch('https://api.github.com/repos/' + GITHUB_REPO + '/actions/workflows/' + GITHUB_WORKFLOW + '/dispatches', {
+    method: 'POST',
+    headers: {
+      'Authorization': 'token ' + tok,
+      'Accept': 'application/vnd.github.v3+json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ref: 'main'})
+  }).then(function(r) {
+    if (r.status === 204) {
+      btn.textContent = 'Updating… (~45s)';
+      setTimeout(function(){ location.reload(); }, 45000);
+    } else if (r.status === 401) {
+      localStorage.removeItem('gh_pat');
+      btn.disabled = false;
+      btn.textContent = '↻ Refresh';
+      alert('Token invalid or expired. Click Refresh to enter a new one.');
+    } else {
+      btn.disabled = false;
+      btn.textContent = '↻ Refresh';
+    }
+  }).catch(function() {
+    btn.disabled = false;
+    btn.textContent = '↻ Refresh';
+  });
+}
+
+document.getElementById('asOfDate').textContent =
+  'Data as of ' + new Date('2026-04-08').toLocaleDateString('en-US', {month:'long',day:'numeric',year:'numeric'});
+document.querySelectorAll('#headerRow th')[1].classList.add('sorted-desc');
+render();
+</script>
+</body>
+</html>
