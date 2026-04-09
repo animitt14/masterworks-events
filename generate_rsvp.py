@@ -854,8 +854,7 @@ def render_row(idx: int, c: dict) -> str:
     if company: tc_parts.append(f'<span style="color:#7a94b8;font-size:0.78rem">{escape(company)}</span>')
     tc_html = '<br>'.join(tc_parts) or '<span style="color:#c0ccd8">—</span>'
 
-    nw_cell = (f'<strong style="font-size:0.85rem">{escape(nw)}</strong>'
-               f'<br><span style="font-size:0.7rem;color:#8a9fc0">{escape(nw_r)}</span>')
+    nw_cell = f'<strong style="font-size:0.85rem">{escape(nw)}</strong>'
 
     name_cell = (
         f'{opp_star}<strong>{escape(name)}</strong>{invested_badge}'
