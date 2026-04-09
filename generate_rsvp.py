@@ -270,20 +270,11 @@ def enrich_no_data_contacts(contacts: list) -> int:
 
     enriched = 0
     for c in contacts:
-        if enriched >= ENRICH_LIMIT or _quota_exhausted:
+        if _quota_exhausted:
             break
-        p = c['properties']
+        p    = c['properties']
         if p.get('jobtitle') or p.get('company'):
             continue   # already has data — skip
-        if (p.get('firstname', '') + p.get('lastname', '')).strip() in _enrich_cache:
-            # Already cached (no result found previously) — skip
-            fname = p.get('firstname') or ''
-            lname = p.get('lastname')  or ''
-            cached = _enrich_cache.get(f'{fname} {lname}'.strip(), {})
-            if cached:
-                c['properties'] = {**p, **cached}
-                enriched += 1
-            continue
 
         fname = p.get('firstname') or ''
         lname = p.get('lastname')  or ''
@@ -291,6 +282,17 @@ def enrich_no_data_contacts(contacts: list) -> int:
         if not name:
             continue
 
+        # Apply from cache if already looked up (hit or miss from a previous run)
+        if name in _enrich_cache:
+            cached = _enrich_cache[name]
+            if cached:
+                c['properties'] = {**p, **cached}
+                enriched += 1
+            continue   # either way, don't make an API call
+
+        # New name — use a query against our daily quota
+        if enriched >= ENRICH_LIMIT:
+            break
         result = google_enrich(name)
         if result:
             c['properties'] = {**p, **result}
