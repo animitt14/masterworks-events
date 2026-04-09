@@ -28,6 +28,8 @@ jobs:
       - name: Generate dashboard
         env:
           HUBSPOT_API_KEY: ${{ secrets.HUBSPOT_API_KEY }}
+          GOOGLE_API_KEY:  ${{ secrets.GOOGLE_API_KEY }}
+          GOOGLE_CSE_ID:   ${{ secrets.GOOGLE_CSE_ID }}
           GITHUB_REPO: ${{ github.repository }}
         run: python generate_rsvp.py
 

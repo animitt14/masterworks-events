@@ -26,6 +26,19 @@ GITHUB_WORKFLOW = 'daily.yml'
 SHARED_GIST_ID  = '44d6dd7bc96a5cbe2454b65ee55f8cdb'
 SEARCH_URL    = 'https://api.hubapi.com/crm/v3/objects/contacts/search'
 
+# Google Custom Search — used to enrich contacts with no title AND no company
+GOOGLE_API_KEY     = os.environ.get('GOOGLE_API_KEY', '')
+GOOGLE_CSE_ID      = os.environ.get('GOOGLE_CSE_ID', '')
+GOOGLE_SEARCH_URL  = 'https://www.googleapis.com/customsearch/v1'
+ENRICH_LIMIT       = 95   # stay just under the 100/day free quota
+
+PERSONAL_DOMAINS = {
+    'gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com',
+    'aol.com', 'protonmail.com', 'me.com', 'mac.com', 'live.com',
+    'msn.com', 'ymail.com', 'googlemail.com', 'comcast.net', 'verizon.net',
+    'att.net', 'sbcglobal.net',
+}
+
 # Date window: how many days back/ahead to pull
 DAYS_BACK  = int(os.environ.get('DAYS_BACK',  180))
 DAYS_AHEAD = int(os.environ.get('DAYS_AHEAD', 30))
@@ -56,14 +69,41 @@ HOSPITAL_DOMAINS = {
 }
 
 HIGH_TITLE_TERMS = [
-    'managing director', 'general partner', 'founding partner',
+    'managing director', 'general partner', 'founding partner', 'managing partner', 'senior partner',
     'fund manager', 'portfolio manager',
     'chief executive', 'chief financial', 'chief operating', 'chief technology',
     'chief investment', 'chief information',
     'ceo', 'cfo', 'cto', 'coo', 'cio',
-    'founder', 'co-founder', 'president', 'principal', 'partner',
+    'founder', 'co-founder',
     'head of',
 ]
+# 'partner', 'president', 'principal' handled separately in has_high_title
+# to avoid false positives (VP → president, "Account Partner" → partner, "Principal Engineer" → principal)
+_PARTNER_EXCLUSIONS = {
+    'account', 'channel', 'strategic', 'implementation', 'solutions',
+    'solution', 'business', 'technology', 'alliance', 'referral', 'reseller',
+}
+
+# Company name signals for small local / lifestyle businesses.
+# Founders/CEOs of these should be Medium (3), not High (5).
+SMALL_BIZ_INDICATORS = [
+    # Food & beverage
+    'restaurant', 'cafe', 'coffee shop', 'coffee house', 'juice', 'smoothie',
+    'bakery', 'pizza', 'deli', 'bagel', 'sandwich', 'burger', 'sushi', 'ramen',
+    'steakhouse', 'bistro', 'tavern', 'eatery', 'food truck', 'catering',
+    'ice cream', 'dessert', 'pastry', 'wine bar', 'cocktail bar', 'speakeasy',
+    # Personal services
+    'salon', 'barbershop', 'barber shop', 'nail salon', 'nail studio',
+    'hair salon', 'beauty salon', 'day spa', 'lash studio', 'brow bar',
+    'massage', 'med spa', 'medspa',
+    # Retail / trades
+    'boutique', 'flower shop', 'florist', 'dry clean', 'laundromat',
+    'car wash', 'auto repair', 'auto body', 'pet grooming', 'dog grooming',
+]
+
+def is_small_biz(company: str) -> bool:
+    co = company.lower()
+    return any(term in co for term in SMALL_BIZ_INDICATORS)
 
 # These override HIGH signals — wealth advisors refer clients but don't invest personally
 WEALTH_ADVISOR_TERMS = [
@@ -122,6 +162,113 @@ def epoch_ms(d: date, end_of_day: bool = False) -> int:
     h, m, s = (23, 59, 59) if end_of_day else (0, 0, 0)
     return int(datetime(d.year, d.month, d.day, h, m, s, tzinfo=timezone.utc).timestamp() * 1000)
 
+# ─── GOOGLE ENRICHMENT ───────────────────────────────────────────────────────
+
+_enrich_cache: dict = {}   # name → result dict, avoids duplicate queries
+
+def _parse_linkedin_result(title_tag: str, snippet: str) -> tuple:
+    """Return (job_title, company) from a Google/LinkedIn search result.
+
+    LinkedIn title tags look like:
+      "Jane Smith - VP at Morgan Stanley | LinkedIn"
+      "Jane Smith - Managing Director - Goldman Sachs | LinkedIn"
+    Snippets look like:
+      "VP at Morgan Stanley · New York · 500+ connections"
+    """
+    # Strip trailing "| LinkedIn" or "- LinkedIn"
+    t = re.sub(r'\s*[|\-–]\s*LinkedIn\s*$', '', title_tag, flags=re.IGNORECASE).strip()
+    # Strip leading "Name - " (everything up to first " - ")
+    t = re.sub(r'^[^–\-]+ [-–] ', '', t, count=1).strip()
+
+    # Pattern: "Title at Company"
+    m = re.match(r'^(.+?)\s+at\s+(.+?)(?:\s*[·|\-–]|$)', t, re.IGNORECASE)
+    if m:
+        return m.group(1).strip(), m.group(2).strip()
+
+    # Pattern: "Title - Company" or "Title · Company"
+    m = re.match(r'^(.+?)\s*[–\-·]\s*(.+?)(?:\s*[–\-·]|$)', t)
+    if m:
+        return m.group(1).strip(), m.group(2).strip()
+
+    # Fall back to snippet: "Title at Company · ..."
+    m = re.match(r'^(.+?)\s+at\s+(.+?)(?:\s*·|\s*[-–]|\s*$)', snippet.strip(), re.IGNORECASE)
+    if m:
+        return m.group(1).strip(), m.group(2).strip()
+
+    return t.strip(), ''
+
+
+def google_enrich(name: str) -> dict:
+    """Search LinkedIn for a person by name. Returns enriched property dict or {}."""
+    if not GOOGLE_API_KEY or not GOOGLE_CSE_ID or not name.strip():
+        return {}
+    if name in _enrich_cache:
+        return _enrich_cache[name]
+
+    try:
+        resp = requests.get(
+            GOOGLE_SEARCH_URL,
+            params={'key': GOOGLE_API_KEY, 'cx': GOOGLE_CSE_ID,
+                    'q': f'"{name}" "New York" site:linkedin.com/in', 'num': 3},
+            timeout=10,
+        )
+        if not resp.ok:
+            print(f'  Google search error {resp.status_code} for "{name}"', file=sys.stderr)
+            _enrich_cache[name] = {}
+            return {}
+
+        items = resp.json().get('items', [])
+        for item in items:
+            inferred_title, inferred_company = _parse_linkedin_result(
+                item.get('title', ''), item.get('snippet', '')
+            )
+            if inferred_title or inferred_company:
+                result = {
+                    'jobtitle':  inferred_title,
+                    'company':   inferred_company,
+                    '_enriched': True,
+                }
+                _enrich_cache[name] = result
+                return result
+
+        _enrich_cache[name] = {}
+        return {}
+
+    except Exception as e:
+        print(f'  Google search exception for "{name}": {e}', file=sys.stderr)
+        _enrich_cache[name] = {}
+        return {}
+
+
+def enrich_no_data_contacts(contacts: list) -> int:
+    """For contacts with no title AND no company, try Google enrichment.
+    Returns number of contacts enriched."""
+    if not GOOGLE_API_KEY or not GOOGLE_CSE_ID:
+        return 0
+
+    enriched = 0
+    for c in contacts:
+        if enriched >= ENRICH_LIMIT:
+            break
+        p = c['properties']
+        if p.get('jobtitle') or p.get('company'):
+            continue   # already has data — skip
+
+        fname = p.get('firstname') or ''
+        lname = p.get('lastname')  or ''
+        name  = f'{fname} {lname}'.strip()
+        if not name:
+            continue
+
+        result = google_enrich(name)
+        if result:
+            c['properties'] = {**p, **result}
+            enriched += 1
+            print(f'  Enriched: {name} → {result.get("jobtitle", "")} @ {result.get("company", "")}')
+
+    return enriched
+
+
 def fetch_contacts(start: date, end: date) -> list:
     if not HUBSPOT_TOKEN:
         print('ERROR: HUBSPOT_API_KEY not set', file=sys.stderr)
@@ -170,9 +317,23 @@ def email_domain(email: str) -> str:
     return email.split('@')[-1].lower() if email and '@' in email else ''
 
 def has_high_title(title: str) -> bool:
-    t = ' ' + title.lower().strip() + ' '
+    tl = title.lower().strip()
+    t  = ' ' + tl + ' '
     for term in HIGH_TITLE_TERMS:
         if (' ' + term + ' ') in t:
+            return True
+    # 'president' — only match when NOT preceded by 'vice'
+    if ' president ' in t and 'vice president' not in tl:
+        return True
+    # 'partner' — only senior/equity partner contexts, not "Account/Channel Partner"
+    if tl == 'partner' or tl.endswith(' partner'):
+        prefix = tl[: -len(' partner')].strip() if ' partner' in tl else ''
+        if prefix not in _PARTNER_EXCLUSIONS:
+            return True
+    # 'principal' — high only outside of clearly technical/analytical roles
+    if tl == 'principal' or tl.startswith('principal ') or ' principal ' in t:
+        tech_ctx = ['engineer', 'software', 'developer', 'analyst', 'scientist', 'researcher', 'architect']
+        if not any(tc in tl for tc in tech_ctx):
             return True
     return False
 
@@ -243,11 +404,15 @@ def score_contact(p: dict) -> tuple:
     if is_re_agent:
         return 1 if 'no_show' in flags else 2, flags
 
-    # ── Art world (dealers/brokers) — gallery owners are an exception ─────────
-    is_art_dealer = any(t in combined for t in ['art dealer', 'fine art broker', 'art broker'])
-    is_gallery    = 'gallery' in combined
-    is_gallery_owner = is_gallery and any(t in title for t in ['founder', 'owner', 'ceo', 'president', 'principal'])
-    if (is_art_dealer or (is_gallery and not is_gallery_owner)):
+    # ── Art world — all art advisors, dealers, brokers, gallery staff → Low ────
+    # These people think of art as a whole purchase, not fractional investment.
+    # No exceptions for gallery owners/founders — they're all Low.
+    is_art_world = any(t in combined for t in [
+        'art dealer', 'fine art broker', 'art broker',
+        'art advisor', 'art adviser', 'art consultant',
+        'gallery',
+    ])
+    if is_art_world:
         return 1 if 'no_show' in flags else 2, flags
 
     # ── Other downgrade terms ─────────────────────────────────────────────────
@@ -265,33 +430,46 @@ def score_contact(p: dict) -> tuple:
 
     # ── HIGH signals ──────────────────────────────────────────────────────────
     if email_domain(email) in FINANCE_DOMAINS:
-        return 5, flags
-    if is_physician(title, email, company):
-        return 5, flags
-    if has_high_title(title):
-        return 5, flags
-    if any(fc in company for fc in FINANCE_COMPANIES):
-        return 5, flags
+        sc = 5
+    elif is_physician(title, email, company):
+        sc = 5
+    elif has_high_title(title):
+        sc = 5
+    elif any(fc in company for fc in FINANCE_COMPANIES):
+        sc = 5
+    else:
+        # RE developers/executives (SVP at Extell etc.) → Medium-High
+        re_exec_co    = any(t in company for t in ['real estate', 'realty', 'extell', 'related companies', 'tishman', 'sl green', 'brookfield'])
+        re_exec_title = any(t in title   for t in ['vp', 'svp', 'evp', 'director', 'executive', 'president', 'ceo', 'coo', 'chief'])
+        # ── MEDIUM-HIGH signals ───────────────────────────────────────────────
+        medium_high = any(t in title for t in [
+            'vice president', 'vp', 'director', 'senior director', 'svp', 'evp', 'avp',
+            'senior manager', 'senior vice', 'associate director',
+        ])
+        if re_exec_co and re_exec_title:
+            sc = 4
+        elif medium_high:
+            sc = 4
+        else:
+            sc = 3
 
-    # RE developers/executives (SVP at Extell etc.) → Medium-High
-    re_exec_co = any(t in company for t in ['real estate', 'realty', 'extell', 'related companies', 'tishman', 'sl green', 'brookfield'])
-    re_exec_title = any(t in title for t in ['vp', 'svp', 'evp', 'director', 'executive', 'president', 'ceo', 'coo', 'chief'])
-    if re_exec_co and re_exec_title:
-        return 4, flags
-
-    # ── MEDIUM-HIGH signals ───────────────────────────────────────────────────
-    medium_high = any(t in title for t in [
-        'vice president', 'vp', 'director', 'senior director', 'svp', 'evp', 'avp',
-        'senior manager', 'senior vice', 'associate director',
-    ])
-    sc = 4 if medium_high else 3
-
-    # ── NW cap ────────────────────────────────────────────────────────────────
-    nw, _ = get_nw(p)
-    if nw == '$150K–$500K' and sc > 3:
+    # ── Small biz cap — founders/CEOs of juice shops, salons, etc. → Medium ───
+    if sc > 3 and is_small_biz(company) and 'invested' not in flags and 'opportunity' not in flags:
         sc = 3
-    if nw == '$50K–$200K':
-        sc = min(sc, 2)
+
+    # ── NW cap — applied to all except finance-domain and physician hits ───────
+    # Finance domain (@gs.com etc.) and physicians are reliable HIGH signals
+    # regardless of estimated NW. Everything else is capped by wealth tier.
+    _fin_domain = email_domain(email) in FINANCE_DOMAINS
+    _physician  = is_physician(title, email, company)
+    if 'invested' not in flags and 'opportunity' not in flags and not _fin_domain and not _physician:
+        nw, _ = get_nw(p)
+        if nw == '$50K–$200K':
+            sc = min(sc, 2)
+        elif nw == '$150K–$500K':
+            sc = min(sc, 3)
+        elif nw == '$500K–$2M':
+            sc = min(sc, 4)   # straddles $1M — cap at Medium-High, not High
 
     return sc, flags
 
@@ -352,6 +530,10 @@ def get_nw(p: dict) -> tuple:
     if not title.strip() and not company.strip():
         return '—', 'No title or company data'
 
+    # Physicians — before title tiers (title-only matching understimates their NW)
+    if is_physician(title, email_domain(p.get('email', '')), company):
+        return '$1M–$4M', 'Physician / medical professional'
+
     # Tier 1: PE/hedge fund partner/principal, elite law firm partner, bank MD → $3M–$10M
     elite_finance_title = any(t in title for t in [
         'managing director', 'general partner', 'founding partner',
@@ -372,6 +554,8 @@ def get_nw(p: dict) -> tuple:
             and in_top_finance:
         return '$2M–$6M', 'C-suite / VP at major finance firm'
     if any(t in title for t in ['ceo', 'chief executive', 'founder', 'co-founder']) and company:
+        if is_small_biz(company):
+            return '$500K–$2M', 'Small business CEO / founder'
         return '$2M–$6M', 'CEO / founder'
 
     # Tier 3: C-suite mid-size, law firm associate, senior consultant → $1M–$4M
@@ -380,6 +564,8 @@ def get_nw(p: dict) -> tuple:
     if any(t in title for t in ['vp', 'vice president', 'director', 'svp', 'evp']):
         return '$1M–$4M', 'VP / Director-level'
     if any(t in title for t in ['owner', 'founder']) and company:
+        if is_small_biz(company):
+            return '$500K–$2M', 'Small business owner'
         return '$1M–$4M', 'Business owner'
 
     # Tier 4: Senior Manager, small biz owner, VP at smaller firm → $500K–$2M
@@ -521,8 +707,14 @@ def render_row(idx: int, c: dict) -> str:
 
     ns_html = '<br><span style="font-size:0.7rem;color:#c94040">⚠ No Show</span>' if 'no_show' in flags else ''
 
+    enriched_tag = (
+        '<span title="Inferred via Google / LinkedIn search" '
+        'style="font-size:0.6rem;color:#9aaac0;margin-left:4px;vertical-align:middle">🔍</span>'
+        if p.get('_enriched') else ''
+    )
+
     tc_parts = []
-    if title:   tc_parts.append(escape(title))
+    if title:   tc_parts.append(escape(title) + enriched_tag)
     if company: tc_parts.append(f'<span style="color:#7a94b8;font-size:0.78rem">{escape(company)}</span>')
     tc_html = '<br>'.join(tc_parts) or '<span style="color:#c0ccd8">—</span>'
 
@@ -1220,12 +1412,22 @@ document.addEventListener('click', function() {{
 // ── Init ──────────────────────────────────────────────────────────────────────
 (function() {{
   var defaultTab = '{default_tab}';
+
+  // If the page was built on a different day, the baked-in defaultTab may be
+  // stale. Always try to land on today's tab first.
+  var todayTid = new Date().toLocaleDateString('en-CA').replace(/-/g, '');
+  var todayPanel = document.getElementById('tab-' + todayTid);
+  if (todayPanel && todayTid !== defaultTab) {{
+    switchTab(todayTid);
+    defaultTab = todayTid;
+  }}
+
   initSharedState(function() {{
     if (defaultTab) {{
       applyStoredOverrides(defaultTab);
       updateResetBtn(defaultTab);
     }}
-    if ('{past_default_label}') {{
+    if ('{past_default_label}' && defaultTab === '{default_tab}') {{
       document.querySelectorAll('.past-opt').forEach(function(o) {{
         if (o.dataset.tid === defaultTab) o.classList.add('active-past');
       }});
@@ -1651,6 +1853,16 @@ def main():
     print(f'Fetching RSVPs {start} → {end}  (DAYS_BACK={DAYS_BACK}, DAYS_AHEAD={DAYS_AHEAD})')
     contacts = fetch_contacts(start, end)
     print(f'Got {len(contacts)} contacts')
+
+    # Prioritise today's contacts so they consume the quota first
+    today_iso = today.isoformat()
+    contacts.sort(key=lambda c: (
+        0 if (c['properties'].get('outbound_rsvp_to_event') or '')[:10] == today_iso else 1
+    ))
+
+    n_enriched = enrich_no_data_contacts(contacts)
+    if n_enriched:
+        print(f'Enriched {n_enriched} no-data contacts via Google Search')
 
     by_date = defaultdict(list)
     for c in contacts:
