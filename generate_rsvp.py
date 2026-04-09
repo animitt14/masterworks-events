@@ -107,8 +107,10 @@ def is_small_biz(company: str) -> bool:
 
 # These override HIGH signals — wealth advisors refer clients but don't invest personally
 WEALTH_ADVISOR_TERMS = [
-    'wealth advisor', 'wealth management advisor', 'private banker', 'financial advisor',
-    'financial planner', 'investment advisor',
+    'wealth advisor', 'wealth management advisor', 'wealth management',
+    'private banker', 'private client', 'private wealth',
+    'financial advisor', 'financial planner',
+    'investment advisor', 'personal banking advisor',
 ]
 
 # These are auto-Low or Low-Medium
@@ -431,7 +433,7 @@ def score_contact(p: dict) -> tuple:
     # ── Wealth advisors / financial advisors (refer clients, don't invest) ────
     is_wealth_adv = any(t in combined for t in WEALTH_ADVISOR_TERMS)
     if is_wealth_adv:
-        return 2 if 'no_show' not in flags else 1, flags
+        return 1, flags
 
     # ── Real estate agents / brokers ──────────────────────────────────────────
     is_re_agent = any(t in combined for t in ['real estate agent', 'realtor', 're agent', 're broker'])
@@ -447,6 +449,17 @@ def score_contact(p: dict) -> tuple:
         'gallery',
     ])
     if is_art_world:
+        return 1 if 'no_show' in flags else 2, flags
+
+    # ── Music / entertainment industry workers → Low-Medium ───────────────────
+    # Similar profile to art world — cultural workers without high liquid wealth.
+    # Only fires on title, not company, to avoid catching execs at entertainment firms.
+    is_music_ent = any(t in title for t in [
+        'music producer', 'music programming', 'music curation', 'music curator',
+        'music supervisor', 'film-maker', 'filmmaker', 'screenwriter',
+        'cinematographer', 'fine art broker',
+    ])
+    if is_music_ent:
         return 1 if 'no_show' in flags else 2, flags
 
     # ── Other downgrade terms ─────────────────────────────────────────────────
@@ -490,6 +503,14 @@ def score_contact(p: dict) -> tuple:
     # ── Small biz cap — founders/CEOs of juice shops, salons, etc. → Medium ───
     if sc > 3 and is_small_biz(company) and 'invested' not in flags and 'opportunity' not in flags:
         sc = 3
+
+    # ── Founder/co-founder with no company → can't verify scale → Medium-High ─
+    if sc == 5 and not company.strip():
+        tl = title.lower()
+        if any(t in tl for t in ['founder', 'co-founder']) \
+           and email_domain(email) not in FINANCE_DOMAINS \
+           and not is_physician(title, email, company):
+            sc = 4
 
     # ── NW cap — applied to all except finance-domain and physician hits ───────
     # Finance domain (@gs.com etc.) and physicians are reliable HIGH signals
