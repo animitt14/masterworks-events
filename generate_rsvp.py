@@ -1029,6 +1029,12 @@ header{{background:#1b3c6e;padding:16px 28px;position:sticky;top:0;z-index:100;
 .nav-link{{font-size:0.72rem;color:#c9a84c;text-decoration:none;letter-spacing:0.08em;
            text-transform:uppercase;opacity:0.8;white-space:nowrap}}
 .nav-link:hover{{opacity:1}}
+.page-tabs{{display:flex;margin-top:2px;border-top:1px solid rgba(255,255,255,0.1)}}
+.page-tab{{padding:10px 22px;font-size:0.7rem;letter-spacing:0.09em;text-transform:uppercase;
+           text-decoration:none;color:rgba(255,255,255,0.42);border-bottom:2px solid transparent;
+           transition:all 0.15s;white-space:nowrap}}
+.page-tab:hover{{color:rgba(255,255,255,0.8);border-bottom-color:rgba(255,255,255,0.25)}}
+.page-tab.active-tab{{color:#fff;border-bottom-color:#c9a84c;font-weight:700}}
 .refresh-btn{{background:none;border:1px solid rgba(255,255,255,0.22);border-radius:6px;
               padding:5px 11px;color:rgba(255,255,255,0.65);font-size:0.72rem;cursor:pointer;
               font-family:inherit;letter-spacing:0.04em;transition:all 0.15s;white-space:nowrap}}
@@ -1058,14 +1064,17 @@ header{{background:#1b3c6e;padding:16px 28px;position:sticky;top:0;z-index:100;
       <div class="meta">Updated {escape(generated_at)}</div>
     </div>
     <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
-      <a href="events.html" class="nav-link">Event Dashboard →</a>
-      <a href="scoring.html" class="nav-link">Scoring Logic →</a>
       <div class="date-jump-wrap">
         <span class="date-jump-label">Jump to date</span>
         <input type="date" id="dateJump" title="Jump to event date">
       </div>
       <button class="refresh-btn" id="refreshBtn" onclick="triggerRefresh()">↻ Refresh</button>
     </div>
+  </div>
+  <div class="page-tabs">
+    <a href="index.html"   class="page-tab active-tab">RSVP Dashboard</a>
+    <a href="events.html"  class="page-tab">Event Dashboard</a>
+    <a href="scoring.html" class="page-tab">Scoring Logic</a>
   </div>
 </header>
 
@@ -1532,6 +1541,12 @@ def build_events_html(by_date: dict, generated_at: str) -> str:
   .meta  {{ font-size:0.65rem; color:rgba(255,255,255,0.4); margin-top:2px; }}
   .nav-link {{ color:#8eb4e0; text-decoration:none; font-size:0.72rem; letter-spacing:0.08em; white-space:nowrap; }}
   .nav-link:hover {{ color:#fff; }}
+  .page-tabs {{ display:flex; margin-top:2px; border-top:1px solid rgba(255,255,255,0.1); }}
+  .page-tab {{ padding:10px 22px; font-size:0.7rem; letter-spacing:0.09em; text-transform:uppercase;
+               text-decoration:none; color:rgba(255,255,255,0.42); border-bottom:2px solid transparent;
+               transition:all 0.15s; white-space:nowrap; }}
+  .page-tab:hover {{ color:rgba(255,255,255,0.8); border-bottom-color:rgba(255,255,255,0.25); }}
+  .page-tab.active-tab {{ color:#fff; border-bottom-color:#c9a84c; font-weight:700; }}
   .refresh-btn {{ background:none; border:1px solid rgba(255,255,255,0.22); border-radius:6px;
                   padding:5px 11px; color:rgba(255,255,255,0.65); font-size:0.72rem; cursor:pointer;
                   font-family:inherit; letter-spacing:0.04em; transition:all 0.15s; white-space:nowrap; }}
@@ -1629,10 +1644,13 @@ def build_events_html(by_date: dict, generated_at: str) -> str:
       <div class="meta">Updated {escape(generated_at)}</div>
     </div>
     <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
-      <a href="index.html" class="nav-link">← RSVP Dashboard</a>
-      <a href="scoring.html" class="nav-link">Scoring Logic →</a>
       <button class="refresh-btn" id="refreshBtn" onclick="triggerRefresh()">↻ Refresh</button>
     </div>
+  </div>
+  <div class="page-tabs">
+    <a href="index.html"   class="page-tab">RSVP Dashboard</a>
+    <a href="events.html"  class="page-tab active-tab">Event Dashboard</a>
+    <a href="scoring.html" class="page-tab">Scoring Logic</a>
   </div>
 </header>
 
@@ -1950,9 +1968,12 @@ def build_scoring_html(generated_at: str) -> str:
   .brand {{ font-size:0.7rem;letter-spacing:0.18em;text-transform:uppercase;opacity:0.55;margin-bottom:2px; }}
   .title {{ font-size:1.35rem;font-weight:700;letter-spacing:0.01em; }}
   .meta  {{ font-size:0.65rem;color:rgba(255,255,255,0.4);margin-top:2px; }}
-  .nav-link {{ color:#c9a84c;text-decoration:none;font-size:0.72rem;letter-spacing:0.08em;
-               text-transform:uppercase;opacity:0.8;white-space:nowrap; }}
-  .nav-link:hover {{ opacity:1; }}
+  .page-tabs {{ display:flex; margin-top:2px; border-top:1px solid rgba(255,255,255,0.1); }}
+  .page-tab {{ padding:10px 22px; font-size:0.7rem; letter-spacing:0.09em; text-transform:uppercase;
+               text-decoration:none; color:rgba(255,255,255,0.42); border-bottom:2px solid transparent;
+               transition:all 0.15s; white-space:nowrap; }}
+  .page-tab:hover {{ color:rgba(255,255,255,0.8); border-bottom-color:rgba(255,255,255,0.25); }}
+  .page-tab.active-tab {{ color:#fff; border-bottom-color:#c9a84c; font-weight:700; }}
   main {{ max-width:860px;margin:36px auto;padding:0 24px 60px; }}
   h2 {{ font-size:0.75rem;letter-spacing:0.14em;text-transform:uppercase;color:#6a80a0;
         margin:32px 0 14px;border-bottom:1px solid #dde4ef;padding-bottom:6px; }}
@@ -1970,10 +1991,11 @@ def build_scoring_html(generated_at: str) -> str:
       <div class="title">Lead Scoring Logic</div>
       <div class="meta">Updated {escape(generated_at)}</div>
     </div>
-    <div style="display:flex;gap:16px;align-items:center">
-      <a href="index.html" class="nav-link">← RSVP Dashboard</a>
-      <a href="events.html" class="nav-link">Event Dashboard →</a>
-    </div>
+  </div>
+  <div class="page-tabs">
+    <a href="index.html"   class="page-tab">RSVP Dashboard</a>
+    <a href="events.html"  class="page-tab">Event Dashboard</a>
+    <a href="scoring.html" class="page-tab active-tab">Scoring Logic</a>
   </div>
 </header>
 
