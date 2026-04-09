@@ -1854,13 +1854,16 @@ def main():
     contacts = fetch_contacts(start, end)
     print(f'Got {len(contacts)} contacts')
 
-    # Prioritise today's contacts so they consume the quota first
+    # Enrich only today + future events — skip past events entirely.
+    # Today's contacts go first to max out the quota on what matters most.
     today_iso = today.isoformat()
-    contacts.sort(key=lambda c: (
-        0 if (c['properties'].get('outbound_rsvp_to_event') or '')[:10] == today_iso else 1
-    ))
+    contacts_to_enrich = sorted(
+        [c for c in contacts
+         if (c['properties'].get('outbound_rsvp_to_event') or '')[:10] >= today_iso],
+        key=lambda c: (c['properties'].get('outbound_rsvp_to_event') or ''),
+    )
 
-    n_enriched = enrich_no_data_contacts(contacts)
+    n_enriched = enrich_no_data_contacts(contacts_to_enrich)
     if n_enriched:
         print(f'Enriched {n_enriched} no-data contacts via Google Search')
 
