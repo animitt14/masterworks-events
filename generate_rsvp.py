@@ -74,7 +74,7 @@ HIGH_TITLE_TERMS = [
     'chief executive', 'chief financial', 'chief operating', 'chief technology',
     'chief investment', 'chief information',
     'ceo', 'cfo', 'cto', 'coo', 'cio',
-    'founder', 'co-founder',
+    # 'founder', 'co-founder' removed — handled separately with conservative default (low unless proven)
     'head of',
 ]
 # 'partner', 'president', 'principal' handled separately in has_high_title
@@ -125,6 +125,28 @@ DOWNGRADE_TERMS = [
     # Fitness / personal training — low liquid wealth
     'personal trainer', 'fitness trainer', 'fitness instructor', 'fitness coach',
     'yoga instructor', 'pilates instructor', 'gym owner', 'fitness management',
+]
+
+# Time-for-money service providers — income tied to hours worked, not scalable assets
+SERVICE_PROVIDER_TERMS = [
+    # Freelance / solo / independent
+    'freelancer', 'freelance consultant', 'freelance designer', 'freelance writer',
+    'freelance photographer', 'freelance videographer', 'freelance developer',
+    'self-employed', 'independent contractor', 'sole proprietor', 'solopreneur',
+    'independent consultant', 'independent advisor',
+    # Coaching (non-corporate context)
+    'life coach', 'business coach', 'executive coach', 'career coach',
+    'health coach', 'wellness coach', 'dating coach', 'mindset coach',
+    'leadership coach', 'performance coach',
+    # Personal services
+    'personal chef', 'private chef',
+]
+
+# Creators / influencers — income rarely translates to investable wealth at scale
+CREATOR_TERMS = [
+    'content creator', 'influencer', 'youtuber', 'tiktoker', 'tiktok creator',
+    'blogger', 'podcaster', 'vlogger', 'brand ambassador',
+    'social media creator', 'social media influencer',
 ]
 
 FINANCE_COMPANIES = [
@@ -467,6 +489,24 @@ def score_contact(p: dict) -> tuple:
     if is_music_ent:
         return 1 if 'no_show' in flags else 2, flags
 
+    # ── Time-for-money service providers → Low-Medium ────────────────────────
+    # Freelancers, solo coaches, independent contractors rarely have investable assets.
+    is_service = any(t in combined for t in SERVICE_PROVIDER_TERMS)
+    if is_service:
+        return 1 if 'no_show' in flags else 2, flags
+
+    # ── Creators / influencers → Low-Medium ──────────────────────────────────
+    is_creator = any(t in combined for t in CREATOR_TERMS)
+    if is_creator:
+        return 1 if 'no_show' in flags else 2, flags
+
+    # ── Generic consultant/coach/advisor with no company → Low-Medium ─────────
+    # A named-firm consultant (Bain, Deloitte, etc.) stays in play; solo = service provider.
+    if not company.strip() and email_domain(email) not in FINANCE_DOMAINS:
+        if any(t in title for t in ['consultant', 'coach', 'advisor', 'adviser']):
+            if not any(fc in title for fc in ['management consulting', 'strategy']):
+                return 1 if 'no_show' in flags else 2, flags
+
     # ── Other downgrade terms ─────────────────────────────────────────────────
     has_downgrade = any(t in combined for t in DOWNGRADE_TERMS)
     if 'broker' in combined and not any(fc in company for fc in FINANCE_COMPANIES):
@@ -509,13 +549,17 @@ def score_contact(p: dict) -> tuple:
     if sc > 3 and is_small_biz(company) and 'invested' not in flags and 'opportunity' not in flags:
         sc = 3
 
-    # ── Founder/co-founder with no company → can't verify scale → Medium-High ─
-    if sc == 5 and not company.strip():
-        tl = title.lower()
-        if any(t in tl for t in ['founder', 'co-founder']) \
-           and email_domain(email) not in FINANCE_DOMAINS \
-           and not is_physician(title, email, company):
-            sc = 4
+    # ── Founder/co-founder — conservative default: Low-Medium unless proven ───
+    # Most founders are solo, pre-revenue, or running lifestyle businesses.
+    # Only finance domain email, confirmed physician, or named top-tier finance company
+    # provides sufficient evidence to override this default.
+    _is_founder_title = any(t in title for t in ['founder', 'co-founder', 'cofounder'])
+    if _is_founder_title and 'invested' not in flags and 'opportunity' not in flags:
+        _fin_dom   = email_domain(email) in FINANCE_DOMAINS
+        _phys      = is_physician(title, email, company)
+        _top_fin   = any(fc in company for fc in FINANCE_COMPANIES)
+        if not (_fin_dom or _phys or _top_fin):
+            sc = min(sc, 2)
 
     # ── NW cap — applied to all except finance-domain and physician hits ───────
     # Finance domain (@gs.com etc.) and physicians are reliable HIGH signals
@@ -660,10 +704,18 @@ def get_nw(p: dict) -> tuple:
     if any(t in title for t in ['vp', 'vice president', 'director', 'svp', 'evp', 'cfo', 'cto', 'coo', 'cio', 'ceo', 'chief']) \
             and in_top_finance:
         return '$2M–$6M', 'C-suite / VP at major finance firm'
-    if any(t in title for t in ['ceo', 'chief executive', 'founder', 'co-founder']) and company:
+    # CEO without top-finance context → conservative NW estimate
+    if any(t in title for t in ['ceo', 'chief executive']) and company:
         if is_small_biz(company):
-            return '$500K–$2M', 'Small business CEO / founder'
-        return '$2M–$6M', 'CEO / founder'
+            return '$150K–$500K', 'CEO of small / lifestyle business'
+        return '$500K–$2M', 'CEO (unverified scale)'
+    # Founder/co-founder — assume low unless finance signal already triggered above
+    if any(t in title for t in ['founder', 'co-founder', 'cofounder']):
+        if not company.strip():
+            return '$150K–$500K', 'Founder with no company listed'
+        if is_small_biz(company):
+            return '$150K–$500K', 'Founder of small / lifestyle business'
+        return '$150K–$500K', 'Founder (unverified scale — assume conservative)'
 
     # Attorney / CPA (non-finance firm) → $500K–$2M (associate) or $1M–$4M (partner)
     if any(t in title for t in ['attorney', 'lawyer', 'counsel', 'solicitor']):
@@ -680,10 +732,10 @@ def get_nw(p: dict) -> tuple:
         return '$1M–$4M', 'C-suite / MD-level'
     if any(t in title for t in ['vp', 'vice president', 'director', 'svp', 'evp']):
         return '$1M–$4M', 'VP / Director-level'
-    if any(t in title for t in ['owner', 'founder']) and company:
+    if 'owner' in title and company:
         if is_small_biz(company):
-            return '$500K–$2M', 'Small business owner'
-        return '$1M–$4M', 'Business owner'
+            return '$150K–$500K', 'Small business owner'
+        return '$500K–$2M', 'Business owner'
 
     # Tier 4: Senior Manager, engineers at tech cos, consultants → $500K–$2M
     if any(t in title for t in ['senior manager', 'senior director', 'head of', 'lead', 'principal', 'senior']):
@@ -2032,6 +2084,7 @@ def build_scoring_html(generated_at: str) -> str:
 
     high_titles_fmt = [t.title() for t in HIGH_TITLE_TERMS] + [
         'President (not Vice President)', 'Partner (equity/law/PE only)', 'Principal (non-technical)']
+    # Note: Founder / Co-Founder removed from High — defaulted to Low-Medium (see caps below)
     wealth_terms_fmt = [t.title() for t in WEALTH_ADVISOR_TERMS]
     finance_cos_sample = sorted(FINANCE_COMPANIES)[:24]
 
@@ -2056,22 +2109,24 @@ def build_scoring_html(generated_at: str) -> str:
         rule('Real estate executives (SVP at Extell, Related, Brookfield, etc.)') +
         rule('Senior engineers at FAANG (RSU hedge angle)') +
         rule('Principal Engineer / Analyst / Developer (not High &mdash; technical, not investment-focused)') +
-        rule('UN / senior government &mdash; Senior Director level only') +
-        rule('Founder / Co-Founder <em>with no company listed</em> &mdash; can\'t verify scale') +
-        rule('CEO of small or unverifiable business (can\'t confirm funded / scale)')
+        rule('UN / senior government &mdash; Senior Director level only')
     )
 
     card3 = tier_card(3, 'Medium', '#8a6800', '#fdf6e3',
         rule('Solo practitioners / small law firm attorneys') +
-        rule('Senior Manager, small business owner') +
-        rule('No data + NYC zip code (assume local)') +
-        rule('CEO of a funded startup (Series A+) &mdash; High only if verifiable')
+        rule('Senior Manager at non-finance company') +
+        rule('No data + NYC zip code (assume local)')
     )
 
     card2 = tier_card(2, 'Low-Medium', '#b85a00', '#fdf0e8',
+        rule('Founder / Co-Founder &mdash; <strong>default Low-Medium unless finance domain, physician, or named top-tier finance firm</strong>') +
+        rule('CEO / Owner without verifiable scale (no press, no funding, no recognizable company)') +
         rule('Real estate agents / realtors (commission-based, low liquid wealth)') +
         rule('Art world: dealers, brokers, advisors, consultants, all gallery staff &mdash; no exceptions') +
         rule('Music / entertainment industry workers: producers, programmers, curators, filmmakers, screenwriters') +
+        rule('Freelancers, independent contractors, sole proprietors, solopreneurs') +
+        rule('Coaches: life, business, executive, career, health, wellness, mindset, etc.') +
+        rule('Content creators / influencers / bloggers / podcasters') +
         rule('NFT / crypto / web3 focused') +
         rule('No Show (prior call) without other downgrade signals') +
         rule('No data + no location') +
@@ -2082,14 +2137,16 @@ def build_scoring_html(generated_at: str) -> str:
         rule('Previously said Not Interested') +
         rule('Wealth advisors / financial advisors / private bankers &mdash; they refer clients, they don\'t invest personally') +
         chip_row(wealth_terms_fmt, '#a83030', '#fde0e0') +
+        rule('Personal trainers, fitness coaches, yoga / pilates instructors, gym owners') +
         rule('No Show + other disqualifying signals (low title, art world, etc.)')
     )
 
     caps_html = (
+        rule('<strong>Founder / Co-Founder (any context)</strong> &rarr; max score 2 (Low-Medium) unless: finance-domain email, confirmed physician, or company in top-tier finance list') +
         rule('<strong>Estimated NW $150K&ndash;$500K</strong> &rarr; max score 3 (Medium), even if High title or finance company') +
         rule('<strong>Estimated NW $50K&ndash;$200K</strong> &rarr; max score 2 (Low-Medium)') +
-        rule('<strong>Founder / Co-Founder with no company</strong> &rarr; max score 4 (Medium-High) &mdash; can\'t verify scale') +
-        rule('<strong>Owner / CEO of a local lifestyle business</strong> (salon, restaurant, caf&eacute;, juice bar, etc.) &rarr; max score 3 (Medium)') +
+        rule('<strong>Owner / CEO of a local lifestyle business</strong> (salon, restaurant, caf&eacute;, gym, etc.) &rarr; max score 2 (Low-Medium)') +
+        rule('<strong>Conservative principle</strong>: if income appears tied to time-for-money services (solo, no scale indicators) &rarr; default Low') +
         '<div style="margin-top:10px;font-size:0.75rem;color:#8a9ab8">'
         'NW cap does not apply to: elite email domains (gs.com, jpmorgan.com, etc.) or confirmed physicians.'
         '</div>'
@@ -2163,11 +2220,11 @@ def build_scoring_html(generated_at: str) -> str:
 <h2>NW Estimation Tiers</h2>
 <div class="nw-grid"><div class="nw-grid-inner">
   <div>PE/HF partner, elite law partner, bank MD</div><div style="color:#1a7a45;font-weight:600">$3M&ndash;$10M</div>
-  <div>VP/Director at major bank, startup CEO</div><div style="color:#1a7a45;font-weight:600">$2M&ndash;$6M</div>
+  <div>VP/Director at major bank, finance firm</div><div style="color:#1a7a45;font-weight:600">$2M&ndash;$6M</div>
   <div>C-suite mid-size, law associate, senior consultant</div><div style="color:#1a5fa8;font-weight:600">$1M&ndash;$4M</div>
-  <div>Senior Manager, small business owner</div><div style="color:#8a6800;font-weight:600">$500K&ndash;$2M</div>
-  <div>Manager / associate / junior</div><div style="color:#b85a00;font-weight:600">$150K&ndash;$500K</div>
-  <div>Intern / entry-level</div><div style="color:#a83030;font-weight:600">$50K&ndash;$200K</div>
+  <div>Senior Manager, attorney (non-partner)</div><div style="color:#8a6800;font-weight:600">$500K&ndash;$2M</div>
+  <div>Manager / associate / junior / founder (unverified)</div><div style="color:#b85a00;font-weight:600">$150K&ndash;$500K</div>
+  <div>Intern / entry-level / trades / service worker</div><div style="color:#a83030;font-weight:600">$50K&ndash;$200K</div>
 </div></div>
 
 <h2>Investor Personas</h2>
