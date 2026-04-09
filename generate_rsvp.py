@@ -1921,75 +1921,143 @@ render();
 # ─── SCORING PAGE ─────────────────────────────────────────────────────────────
 
 def build_scoring_html(generated_at: str) -> str:
-    def chips(items, color='#1b3c6e', bg='#e8f0fb'):
+    def chips(items, color, bg):
         return ''.join(
-            f'<span style="display:inline-block;background:{bg};color:{color};'
-            f'border-radius:12px;padding:3px 10px;font-size:0.75rem;margin:3px 3px 3px 0;'
-            f'font-family:inherit;white-space:nowrap">{escape(i)}</span>'
+            '<span style="display:inline-block;background:' + bg + ';color:' + color + ';'
+            'border-radius:12px;padding:3px 10px;font-size:0.75rem;margin:3px 3px 3px 0;'
+            'font-family:inherit;white-space:nowrap">' + escape(i) + '</span>'
             for i in items
         )
 
     def tier_card(score, label, color_fg, color_bg, body):
-        return f'''
-<div style="background:{color_bg};border-left:4px solid {color_fg};border-radius:8px;
-            padding:18px 22px;margin-bottom:16px">
-  <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
-    <span style="background:{color_fg};color:#fff;border-radius:50%;width:28px;height:28px;
-                 display:flex;align-items:center;justify-content:center;
-                 font-weight:700;font-size:0.9rem;flex-shrink:0">{score}</span>
-    <span style="font-weight:700;font-size:1rem;color:{color_fg}">{label}</span>
-  </div>
-  {body}
-</div>'''
+        return (
+            '<div style="background:' + color_bg + ';border-left:4px solid ' + color_fg + ';border-radius:8px;'
+            'padding:18px 22px;margin-bottom:16px">'
+            '<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">'
+            '<span style="background:' + color_fg + ';color:#fff;border-radius:50%;width:28px;height:28px;'
+            'display:flex;align-items:center;justify-content:center;'
+            'font-weight:700;font-size:0.9rem;flex-shrink:0">' + str(score) + '</span>'
+            '<span style="font-weight:700;font-size:1rem;color:' + color_fg + '">' + label + '</span>'
+            '</div>' + body + '</div>'
+        )
 
     def rule(text):
-        return f'<div style="font-size:0.83rem;color:#3a5070;margin:5px 0 5px 12px">• {text}</div>'
+        return '<div style="font-size:0.83rem;color:#3a5070;margin:5px 0 5px 12px">&bull; ' + text + '</div>'
 
     def section(title):
-        return f'<div style="font-size:0.7rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#8a9ab8;margin:12px 0 5px">{title}</div>'
+        return '<div style="font-size:0.7rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#8a9ab8;margin:12px 0 5px">' + title + '</div>'
 
-    high_titles_fmt = [t.title() for t in HIGH_TITLE_TERMS] + ['President (not Vice President)', 'Partner (equity/law/PE only)', 'Principal (non-technical)']
+    def chip_row(items, color, bg):
+        return '<div style="margin:5px 0 5px 12px">' + chips(items, color, bg) + '</div>'
+
+    high_titles_fmt = [t.title() for t in HIGH_TITLE_TERMS] + [
+        'President (not Vice President)', 'Partner (equity/law/PE only)', 'Principal (non-technical)']
     wealth_terms_fmt = [t.title() for t in WEALTH_ADVISOR_TERMS]
     finance_cos_sample = sorted(FINANCE_COMPANIES)[:24]
 
-    body = f'''<!DOCTYPE html>
+    # Pre-compute tier card bodies to avoid nested f-strings (Python < 3.12 limitation)
+    card5 = tier_card(5, 'High', '#1a7a45', '#eaf7f0',
+        section('Auto-High: lifecycle / call status') +
+        rule('Already invested (Order Completed call outcome)') +
+        rule('Warm pipeline (lifecyclestage = Opportunity)') +
+        section('Auto-High: elite email domains') +
+        chip_row(sorted(FINANCE_DOMAINS), '#1a7a45', '#d4f0e0') +
+        section('Auto-High: title signals') +
+        chip_row(high_titles_fmt, '#1a7a45', '#d4f0e0') +
+        section('Auto-High: company signals (sample)') +
+        chip_row(finance_cos_sample, '#1a7a45', '#d4f0e0') +
+        rule('+ PE firms, hedge funds, major banks, top law firms, VC firms') +
+        section('Auto-High: profession') +
+        rule('Physicians, surgeons, MDs (pitched on MMFC K-1 angle)')
+    )
+
+    card4 = tier_card(4, 'Medium-High', '#1a5fa8', '#e8f0fb',
+        rule('VP, Director, SVP, EVP, AVP, Senior Director, Associate Director at any company') +
+        rule('Real estate executives (SVP at Extell, Related, Brookfield, etc.)') +
+        rule('Senior engineers at FAANG (RSU hedge angle)') +
+        rule('Principal Engineer / Analyst / Developer (not High &mdash; technical, not investment-focused)') +
+        rule('UN / senior government &mdash; Senior Director level only') +
+        rule('Founder / Co-Founder <em>with no company listed</em> &mdash; can\'t verify scale') +
+        rule('CEO of small or unverifiable business (can\'t confirm funded / scale)')
+    )
+
+    card3 = tier_card(3, 'Medium', '#8a6800', '#fdf6e3',
+        rule('Solo practitioners / small law firm attorneys') +
+        rule('Senior Manager, small business owner') +
+        rule('No data + NYC zip code (assume local)') +
+        rule('CEO of a funded startup (Series A+) &mdash; High only if verifiable')
+    )
+
+    card2 = tier_card(2, 'Low-Medium', '#b85a00', '#fdf0e8',
+        rule('Real estate agents / realtors (commission-based, low liquid wealth)') +
+        rule('Art world: dealers, brokers, advisors, consultants, all gallery staff &mdash; no exceptions') +
+        rule('Music / entertainment industry workers: producers, programmers, curators, filmmakers, screenwriters') +
+        rule('NFT / crypto / web3 focused') +
+        rule('No Show (prior call) without other downgrade signals') +
+        rule('No data + no location') +
+        rule('Interns, entry-level, paralegals, assistants')
+    )
+
+    card1 = tier_card(1, 'Low', '#a83030', '#fde8e8',
+        rule('Previously said Not Interested') +
+        rule('Wealth advisors / financial advisors / private bankers &mdash; they refer clients, they don\'t invest personally') +
+        chip_row(wealth_terms_fmt, '#a83030', '#fde0e0') +
+        rule('No Show + other disqualifying signals (low title, art world, etc.)')
+    )
+
+    caps_html = (
+        rule('<strong>Estimated NW $150K&ndash;$500K</strong> &rarr; max score 3 (Medium), even if High title or finance company') +
+        rule('<strong>Estimated NW $50K&ndash;$200K</strong> &rarr; max score 2 (Low-Medium)') +
+        rule('<strong>Founder / Co-Founder with no company</strong> &rarr; max score 4 (Medium-High) &mdash; can\'t verify scale') +
+        rule('<strong>Owner / CEO of a local lifestyle business</strong> (salon, restaurant, caf&eacute;, juice bar, etc.) &rarr; max score 3 (Medium)') +
+        '<div style="margin-top:10px;font-size:0.75rem;color:#8a9ab8">'
+        'NW cap does not apply to: elite email domains (gs.com, jpmorgan.com, etc.) or confirmed physicians.'
+        '</div>'
+    )
+
+    gen = escape(generated_at)
+    return '''<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Masterworks — Lead Scoring Logic</title>
+<title>Masterworks &mdash; Lead Scoring Logic</title>
 <style>
-  * {{ box-sizing:border-box; margin:0; padding:0; }}
-  body {{ font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-          background:#f4f6fa;color:#2a3a52;min-height:100vh; }}
-  header {{ background:linear-gradient(135deg,#1b3c6e 0%,#2a5298 100%);
-            padding:20px 40px;color:#fff; }}
-  .header-row {{ display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px; }}
-  .brand {{ font-size:0.7rem;letter-spacing:0.18em;text-transform:uppercase;opacity:0.55;margin-bottom:2px; }}
-  .title {{ font-size:1.35rem;font-weight:700;letter-spacing:0.01em; }}
-  .meta  {{ font-size:0.65rem;color:rgba(255,255,255,0.4);margin-top:2px; }}
-  .page-tabs {{ display:flex; margin-top:2px; border-top:1px solid rgba(255,255,255,0.1); }}
-  .page-tab {{ padding:10px 22px; font-size:0.7rem; letter-spacing:0.09em; text-transform:uppercase;
-               text-decoration:none; color:rgba(255,255,255,0.42); border-bottom:2px solid transparent;
-               transition:all 0.15s; white-space:nowrap; }}
-  .page-tab:hover {{ color:rgba(255,255,255,0.8); border-bottom-color:rgba(255,255,255,0.25); }}
-  .page-tab.active-tab {{ color:#fff; border-bottom-color:#c9a84c; font-weight:700; }}
-  main {{ max-width:860px;margin:36px auto;padding:0 24px 60px; }}
-  h2 {{ font-size:0.75rem;letter-spacing:0.14em;text-transform:uppercase;color:#6a80a0;
-        margin:32px 0 14px;border-bottom:1px solid #dde4ef;padding-bottom:6px; }}
-  .note {{ background:#fff;border:1px solid #dde4ef;border-radius:8px;padding:14px 18px;
-           font-size:0.82rem;color:#5a7090;line-height:1.6;margin-bottom:20px; }}
-  footer {{ background:#1b3c6e;color:#6a90be;text-align:center;font-size:0.7rem;
-            letter-spacing:0.1em;text-transform:uppercase;padding:20px 40px; }}
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+         background:#f4f6fa;color:#2a3a52;min-height:100vh; }
+  header { background:linear-gradient(135deg,#1b3c6e 0%,#2a5298 100%);
+           padding:20px 40px;color:#fff; }
+  .header-row { display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px; }
+  .brand { font-size:0.7rem;letter-spacing:0.18em;text-transform:uppercase;opacity:0.55;margin-bottom:2px; }
+  .title { font-size:1.35rem;font-weight:700;letter-spacing:0.01em; }
+  .meta  { font-size:0.65rem;color:rgba(255,255,255,0.4);margin-top:2px; }
+  .page-tabs { display:flex; margin-top:2px; border-top:1px solid rgba(255,255,255,0.1); }
+  .page-tab { padding:10px 22px; font-size:0.7rem; letter-spacing:0.09em; text-transform:uppercase;
+              text-decoration:none; color:rgba(255,255,255,0.42); border-bottom:2px solid transparent;
+              transition:all 0.15s; white-space:nowrap; }
+  .page-tab:hover { color:rgba(255,255,255,0.8); border-bottom-color:rgba(255,255,255,0.25); }
+  .page-tab.active-tab { color:#fff; border-bottom-color:#c9a84c; font-weight:700; }
+  main { max-width:860px;margin:36px auto;padding:0 24px 60px; }
+  h2 { font-size:0.75rem;letter-spacing:0.14em;text-transform:uppercase;color:#6a80a0;
+       margin:32px 0 14px;border-bottom:1px solid #dde4ef;padding-bottom:6px; }
+  .note { background:#fff;border:1px solid #dde4ef;border-radius:8px;padding:14px 18px;
+          font-size:0.82rem;color:#5a7090;line-height:1.6;margin-bottom:20px; }
+  .caps { background:#fff;border:1px solid #dde4ef;border-radius:8px;padding:18px 22px; }
+  .nw-grid { background:#fff;border:1px solid #dde4ef;border-radius:8px;padding:18px 22px;
+             font-size:0.83rem;color:#3a5070;line-height:2; }
+  .nw-grid-inner { display:grid;grid-template-columns:1fr 1fr;gap:4px 24px; }
+  footer { background:#1b3c6e;color:#6a90be;text-align:center;font-size:0.7rem;
+           letter-spacing:0.1em;text-transform:uppercase;padding:20px 40px; }
 </style>
 </head>
 <body>
 <header>
   <div class="header-row">
     <div>
-      <div class="brand">Masterworks · Outbound</div>
+      <div class="brand">Masterworks &middot; Outbound</div>
       <div class="title">Lead Scoring Logic</div>
-      <div class="meta">Updated {escape(generated_at)}</div>
+      <div class="meta">Updated ''' + gen + '''</div>
     </div>
   </div>
   <div class="page-tabs">
@@ -2002,90 +2070,30 @@ def build_scoring_html(generated_at: str) -> str:
 <main>
 
 <div class="note">
-  Scores run <strong>1 (Low) → 5 (High)</strong> and represent investment likelihood based on
-  estimated net worth, title, company, and other signals. Scores are computed automatically
-  from HubSpot data each morning at 8am ET. Questions or disagreements? Tell Ani directly.
+  Scores run <strong>1 (Low) &rarr; 5 (High)</strong> and represent investment likelihood based on
+  estimated net worth, title, company, and other signals. Computed automatically from HubSpot
+  data each morning at 8am ET. Questions or disagreements? Tell Ani directly.
 </div>
 
 <h2>Score Tiers</h2>
-
-{tier_card(5, 'High', '#1a7a45', '#eaf7f0', f'''
-  {section("Auto-High: lifecycle / call status")}
-  {rule("Already invested (Order Completed call outcome)")}
-  {rule("Warm pipeline (lifecyclestage = Opportunity)")}
-  {section("Auto-High: elite email domains")}
-  <div style="margin:5px 0 5px 12px">{chips(sorted(FINANCE_DOMAINS), '#1a7a45', '#d4f0e0')}</div>
-  {section("Auto-High: title signals")}
-  <div style="margin:5px 0 5px 12px">{chips(high_titles_fmt, '#1a7a45', '#d4f0e0')}</div>
-  {section("Auto-High: company signals (sample)")}
-  <div style="margin:5px 0 5px 12px">{chips(finance_cos_sample, '#1a7a45', '#d4f0e0')}</div>
-  {rule("+ PE firms, hedge funds, major banks, top law firms, VC firms")}
-  {section("Auto-High: profession")}
-  {rule("Physicians, surgeons, MDs (pitched on MMFC K-1 angle)")}
-''')}
-
-{tier_card(4, 'Medium-High', '#1a5fa8', '#e8f0fb', f'''
-  {rule("VP, Director, SVP, EVP, AVP, Senior Director, Associate Director at any company")}
-  {rule("Real estate executives (SVP at Extell, Related, Brookfield, etc.)")}
-  {rule("Senior engineers at FAANG (RSU hedge angle)")}
-  {rule("Principal Engineer / Analyst / Developer (not High — technical, not investment-focused)")}
-  {rule("UN / senior government — Senior Director level only")}
-  {rule("Founder / Co-Founder <em>with no company listed</em> — can't verify scale")}
-  {rule("CEO of small or unverifiable business (can't confirm funded / scale)")}
-''')}
-
-{tier_card(3, 'Medium', '#8a6800', '#fdf6e3', f'''
-  {rule("Solo practitioners / small law firm attorneys")}
-  {rule("Senior Manager, small business owner")}
-  {rule("No data + NYC zip code (assume local)")}
-  {rule("CEO of a funded startup (Series A+) — High only if verifiable")}
-''')}
-
-{tier_card(2, 'Low-Medium', '#b85a00', '#fdf0e8', f'''
-  {rule("Real estate agents / realtors (commission-based, low liquid wealth)")}
-  {rule("Art world: dealers, brokers, advisors, consultants, all gallery staff — no exceptions")}
-  {rule("Music / entertainment industry workers: music producers, programmers, curators, filmmakers, screenwriters")}
-  {rule("NFT / crypto / web3 focused")}
-  {rule("No Show (prior call) without other downgrade signals")}
-  {rule("No data + no location")}
-  {rule("Interns, entry-level, paralegals, assistants")}
-''')}
-
-{tier_card(1, 'Low', '#a83030', '#fde8e8', f'''
-  {rule("Previously said Not Interested")}
-  {rule("Wealth advisors / financial advisors / private bankers — they refer clients, they don't invest personally")}
-  <div style="margin:5px 0 5px 12px">{chips(wealth_terms_fmt, '#a83030', '#fde8e8')}</div>
-  {rule("No Show + other disqualifying signals (low title, art world, etc.)")}
-''')}
-
+''' + card5 + card4 + card3 + card2 + card1 + '''
 <h2>Score Caps (override everything above)</h2>
-<div style="background:#fff;border:1px solid #dde4ef;border-radius:8px;padding:18px 22px">
-  {rule("<strong>Estimated NW $150K–$500K</strong> → max score 3 (Medium), even if High title or finance company")}
-  {rule("<strong>Estimated NW $50K–$200K</strong> → max score 2 (Low-Medium)")}
-  {rule("<strong>Founder / Co-Founder with no company</strong> → max score 4 (Medium-High) — can't verify scale")}
-  {rule("<strong>Owner / CEO of a local lifestyle business</strong> (salon, restaurant, café, juice bar, etc.) → max score 3 (Medium)")}
-  <div style="margin-top:10px;font-size:0.75rem;color:#8a9ab8">
-    NW cap does not apply to: elite email domains (gs.com, jpmorgan.com, etc.) or confirmed physicians.
-  </div>
-</div>
+<div class="caps">''' + caps_html + '''</div>
 
 <h2>NW Estimation Tiers</h2>
-<div style="background:#fff;border:1px solid #dde4ef;border-radius:8px;padding:18px 22px;font-size:0.83rem;color:#3a5070;line-height:2">
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 24px">
-    <div>PE/HF partner, elite law partner, bank MD</div><div style="color:#1a7a45;font-weight:600">$3M–$10M</div>
-    <div>VP/Director at major bank, startup CEO</div><div style="color:#1a7a45;font-weight:600">$2M–$6M</div>
-    <div>C-suite mid-size, law associate, senior consultant</div><div style="color:#1a5fa8;font-weight:600">$1M–$4M</div>
-    <div>Senior Manager, small business owner</div><div style="color:#8a6800;font-weight:600">$500K–$2M</div>
-    <div>Manager / associate / junior</div><div style="color:#b85a00;font-weight:600">$150K–$500K</div>
-    <div>Intern / entry-level</div><div style="color:#a83030;font-weight:600">$50K–$200K</div>
-  </div>
-</div>
+<div class="nw-grid"><div class="nw-grid-inner">
+  <div>PE/HF partner, elite law partner, bank MD</div><div style="color:#1a7a45;font-weight:600">$3M&ndash;$10M</div>
+  <div>VP/Director at major bank, startup CEO</div><div style="color:#1a7a45;font-weight:600">$2M&ndash;$6M</div>
+  <div>C-suite mid-size, law associate, senior consultant</div><div style="color:#1a5fa8;font-weight:600">$1M&ndash;$4M</div>
+  <div>Senior Manager, small business owner</div><div style="color:#8a6800;font-weight:600">$500K&ndash;$2M</div>
+  <div>Manager / associate / junior</div><div style="color:#b85a00;font-weight:600">$150K&ndash;$500K</div>
+  <div>Intern / entry-level</div><div style="color:#a83030;font-weight:600">$50K&ndash;$200K</div>
+</div></div>
 
 </main>
-<footer>Masterworks Outbound · Scores auto-generated from HubSpot data · Last updated {escape(generated_at)}</footer>
+<footer>Masterworks Outbound &middot; Scores auto-generated from HubSpot data &middot; Last updated ''' + gen + '''</footer>
 </body>
 </html>'''
-    return body
 
 
 # ─── MAIN ─────────────────────────────────────────────────────────────────────
