@@ -99,6 +99,8 @@ SMALL_BIZ_INDICATORS = [
     # Retail / trades
     'boutique', 'flower shop', 'florist', 'dry clean', 'laundromat',
     'car wash', 'auto repair', 'auto body', 'pet grooming', 'dog grooming',
+    # Fitness / wellness
+    'gym', 'fitness studio', 'fitness center', 'yoga studio', 'pilates', 'crossfit',
 ]
 
 def is_small_biz(company: str) -> bool:
@@ -120,6 +122,9 @@ DOWNGRADE_TERMS = [
     'nft', 'crypto', 'web3',
     'intern', 'assistant', 'paralegal',
     'associate professor', 'clergy', 'pastor',
+    # Fitness / personal training — low liquid wealth
+    'personal trainer', 'fitness trainer', 'fitness instructor', 'fitness coach',
+    'yoga instructor', 'pilates instructor', 'gym owner', 'fitness management',
 ]
 
 FINANCE_COMPANIES = [
@@ -625,27 +630,6 @@ def get_persona(p: dict) -> str:
     return 'Corporate Climber'
 
 
-def get_product_rec(p: dict) -> str:
-    """Return 'MMFC' or 'Individual' based on persona + estimated NW."""
-    per    = get_persona(p)
-    nw, _  = get_nw(p)
-    HIGH   = {'$3M–$10M', '$2M–$6M'}
-    MID    = {'$1M–$4M'}
-
-    # Finance Bro: MMFC is always the lead product (matches PE/HF mental model)
-    if per == 'Finance Bro':
-        return 'MMFC'
-    # Medical Pro at $1M+: MMFC solves K-1 consolidation pain
-    if per == 'Medical Pro' and nw in HIGH | MID:
-        return 'MMFC'
-    # Any high-NW contact ($2M+): accredited, can do MMFC
-    if nw in HIGH:
-        return 'MMFC'
-    # $1M–$4M with strong-conviction personas
-    if nw in MID and per in ('Corporate Climber', 'Business Owner', 'Tech Wealth Builder'):
-        return 'MMFC'
-    return 'Individual'
-
 def get_nw(p: dict) -> tuple:
     title   = (p.get('jobtitle') or '').lower()
     company = (p.get('company')  or '').lower()
@@ -838,7 +822,6 @@ def render_row(idx: int, c: dict) -> str:
     sc, flags = score_contact(p)
     per       = get_persona(p)
     nw, nw_r  = get_nw(p)
-    prod_rec  = get_product_rec(p)
 
     owner_name = OWNERS.get(owner_id, owner_id or '—')
     if owner_id in INACTIVE_OWNERS:
@@ -887,8 +870,6 @@ def render_row(idx: int, c: dict) -> str:
         f'<td>{tc_html}</td>'
         f'<td style="font-size:0.8rem">{escape(per)}</td>'
         f'<td>{nw_cell}</td>'
-        f'<td style="text-align:center;font-size:0.72rem;font-weight:700;letter-spacing:0.04em;'
-        f'color:{"#1a5fa8" if prod_rec == "MMFC" else "#5a7090"}">{escape(prod_rec)}</td>'
         f'<td style="text-align:center" class="score-cell">{score_badge_html(sc)}</td>'
         f'<td style="text-align:center">'
         f'<a href="{li_url(name, company)}" target="_blank" '
@@ -985,7 +966,6 @@ def render_panel(date_str: str, contacts: list, tab_id: str, active: bool) -> st
         <th>Title / Company</th>
         <th>Persona</th>
         <th>Est. Net Worth</th>
-        <th>Product</th>
         <th>Likelihood <span style="font-size:0.6rem;opacity:0.6">(click to override)</span></th>
         <th>LinkedIn</th>
         <th>HubSpot</th>
@@ -1173,10 +1153,9 @@ header{{background:#1b3c6e;padding:16px 28px;position:sticky;top:0;z-index:100;
     </div>
   </div>
   <div class="page-tabs">
-    <a href="index.html"    class="page-tab active-tab">RSVP Dashboard</a>
+    <a href="index.html"   class="page-tab active-tab">RSVP Dashboard</a>
     <a href="events.html"  class="page-tab">Event Dashboard</a>
     <a href="scoring.html" class="page-tab">Scoring Logic</a>
-    <a href="personas.html" class="page-tab">Persona Guide</a>
   </div>
 </header>
 
@@ -1750,10 +1729,9 @@ def build_events_html(by_date: dict, generated_at: str) -> str:
     </div>
   </div>
   <div class="page-tabs">
-    <a href="index.html"    class="page-tab">RSVP Dashboard</a>
+    <a href="index.html"   class="page-tab">RSVP Dashboard</a>
     <a href="events.html"  class="page-tab active-tab">Event Dashboard</a>
     <a href="scoring.html" class="page-tab">Scoring Logic</a>
-    <a href="personas.html" class="page-tab">Persona Guide</a>
   </div>
 </header>
 
@@ -2021,225 +1999,6 @@ render();
 </body>
 </html>'''
 
-# ─── PERSONA GUIDE PAGE ───────────────────────────────────────────────────────
-
-def build_personas_html(generated_at: str) -> str:
-    gen = escape(generated_at)
-
-    PERSONAS = [
-        {
-            'name': 'Corporate Climber', 'pct': '25–28%', 'avg_port': '$1.8M', 'age': '42–56',
-            'color_fg': '#1a5fa8', 'color_bg': '#e8f0fb',
-            'who': 'VPs, Directors, SVPs at tech, insurance, financial services, accounting, marketing, energy, consulting. Built wealth through salary + corporate equity. Self-identify as conservative (risk 2–4/10).',
-            'nw': '$500K–$3M', 'first_inv': '$200–$5K (0.8–1.5%)', 'calls': '3+', 'product': 'Individual → MMFC at $50K+',
-            'signals': ['Zero art market knowledge', 'Mentions spouse / adviser / CPA as stakeholders', 'Asks about recession performance early', 'Uses corporate language: "pilot program," "due diligence"', 'Tiny initial investment relative to portfolio'],
-            'approach': ['Budget 10–15 min for art market education — it\'s the foundation of trust', '3-stakeholder chain: personal conviction → spouse → adviser/CPA', 'Lead with correlation data (0.04 to S&P), not returns', 'Use Basquiat as the gateway artist', 'Embrace the small first investment: "Most of our best investors started exactly here"'],
-            'kills': ['Skipping art education and jumping to product', 'Pushing for bigger allocation than they\'re comfortable with', 'Urgency tactics ("This painting is 80% funded")', 'Leading with IRR to a self-described conservative investor'],
-        },
-        {
-            'name': 'Finance Bro', 'pct': '18–20%', 'avg_port': '$5.2M', 'age': '38–55',
-            'color_fg': '#1a7a45', 'color_bg': '#eaf7f0',
-            'who': 'Partners, MDs, PE professionals, attorneys, CPAs, management consultants. Highest-AUM segment. Evaluate Masterworks like any other allocation. Already understand alternative assets.',
-            'nw': '$2M–$10M+', 'first_inv': '$40K–$100K (<1%)', 'calls': '2', 'product': 'MMFC (default)',
-            'signals': ['Uses financial jargon fluently (IRR, carry, NAV, origination)', 'Compares Masterworks fees to PE (2/20)', 'Asks about secondary market mechanics', 'Challenges the thesis rather than asking for education'],
-            'approach': ['Lead with MMFC — matches PE/hedge fund mental model', 'Peer-level conversation — discuss IRR, carry, NAV at PE associate level', 'Preemptively address secondary market discounts before they find them', 'Full fee transparency — hand-waving the 10% origination destroys trust', 'Spouse is the hidden gatekeeper — prepare non-technical materials for them'],
-            'kills': ['Treating them like a retail investor (explaining what a K-1 is)', 'Over-pitching urgency or scarcity', 'Hiding or minimizing the fees', 'Reading from a script — any hint of it kills credibility'],
-        },
-        {
-            'name': 'Business Owner', 'pct': '12–15%', 'avg_port': '$3.5M', 'age': '38–68',
-            'color_fg': '#6a3a8a', 'color_bg': '#f3eefb',
-            'who': 'Founders, Owners, CEOs across healthcare, hospitality, professional services, tech, construction, real estate, franchise. Widest portfolio range. Time-poor, accustomed to delegation.',
-            'nw': '$200K–$25M', 'first_inv': '$10K–$25K', 'calls': '1–2', 'product': 'Individual → MMFC at $5M+ portfolio',
-            'signals': ['Leads with talking about their company', 'Asks about investing through LLC, trust, or entity', 'Compares art to real estate', 'Makes decisions quickly or defers indefinitely'],
-            'approach': ['Ask about the business first, the portfolio second', 'Position art vs real estate: "Same appreciation, zero management burden"', 'Master entity investing cold (LLC, S-Corp, trust, checkbook IRA)', 'Minimize friction — front-load the decision to the call', 'Follow up at business pace (next-day → 2-week → monthly)'],
-            'kills': ['Launching into the art pitch without asking about their business', 'Not knowing entity investing pathways', 'Creating process friction (multiple calls, document requests during business hours)', 'Slow follow-up after they say "I\'m in"'],
-        },
-        {
-            'name': 'Tech Wealth Builder', 'pct': '~12%', 'avg_port': '$1.2M', 'age': '28–44',
-            'color_fg': '#0a7a8a', 'color_bg': '#e4f7fa',
-            'who': 'Senior/Staff/Principal Engineers, Engineering Managers, Data Scientists, DevOps at FAANG, fintech, defense, startups. RSU concentration anxiety — portfolio is 60–80% tech stocks.',
-            'nw': '$200K–$2M', 'first_inv': '$10K–$50K (~2.5%)', 'calls': '1', 'product': 'Individual (10–20 paintings) → managed portfolio',
-            'signals': ['Has already researched Masterworks before the call', 'Asks analytical questions immediately (not "what is Masterworks?" but "what\'s the appraisal methodology?")', 'Mentions RSU concentration or tech stock overweight', 'Wants data structures, not narratives'],
-            'approach': ['Open with: "What have you already read about us?" — respect their pre-work', 'Lead with correlation data (0.04), not returns — they\'re buying uncorrelation', 'Present art like a technical specification: market size, fee architecture, risk profile', 'Actively pitch the secondary market as a trading opportunity', 'One-call close is achievable — they pre-research and decide fast'],
-            'kills': ['Starting from scratch on education when they\'ve already researched', 'Underselling their allocation when they\'ve done the math', 'Using emotional art pitches ("Imagine owning a Basquiat")', 'Slow follow-up — when they say "overnight," they mean 24 hours'],
-        },
-        {
-            'name': 'Cautious Retiree', 'pct': '8–10%', 'avg_port': '$3M', 'age': '58–80',
-            'color_fg': '#7a5a00', 'color_bg': '#fdf6e3',
-            'who': 'Retired attorneys, Big Four partners, bank CEOs, military retirees, CFAs, cardiologists, corporate VPs. Not trying to beat the market — trying to survive the next downturn.',
-            'nw': '$500K–$7M', 'first_inv': '$500–$1K/quarter', 'calls': '2–3', 'product': 'Individual (small); MMFC only at $2M+ executive sub-segment',
-            'signals': ['Mentions spouse as financial co-decision-maker immediately', 'Describes fixed income sources (pension, Social Security)', 'States very small investment amounts', 'Surprisingly relaxed about the hold period'],
-            'approach': ['Start with life, not money ("How are you spending your time in retirement?")', 'Give them language to convince their spouse: "We\'re talking about $500/quarter into an asset that doesn\'t follow the stock market"', 'Formalize the chip-away pattern: "$500–$1K every quarter, 8–16 artworks over 2 years"', 'Lead with correlation data, then capital preservation — returns last', 'Address estate implications: "These are SEC-registered securities that transfer to your beneficiaries"'],
-            'kills': ['Pushing for lump sums on fixed income', 'Ignoring the spouse', 'Urgency tactics of any kind', 'Oversimplifying for the sophisticated retiree (retired EY partner, CFA)'],
-        },
-        {
-            'name': 'Everyday Investor', 'pct': '8–10%', 'avg_port': '$180K', 'age': '30–65',
-            'color_fg': '#a85800', 'color_bg': '#fdf0e8',
-            'who': 'Electricians, Mechanics, HVAC Technicians, Truck Drivers, Contractors, Aircraft Mechanics, Elevator Mechanics. Found Masterworks through podcasts, YouTube, or social media.',
-            'nw': '$50K–$500K', 'first_inv': '$1K–$5K', 'calls': '2–4', 'product': 'Individual only (never MMFC — $100K min is unsuitable)',
-            'signals': ['Openly states they know nothing about art', 'Mentions a trade or blue-collar profession', 'Available primarily in evenings, not during business hours', 'Asks simple questions in plain language'],
-            'approach': ['Normalize art ignorance: "99% of our 70K investors are not art experts"', 'Anchor on diversification data only — the 0.04 correlation is the entire pitch', 'Text first to confirm availability. Never call during business hours without appointment', 'Use tangible analogies: "Like a car auction with a reserve price"', 'Keep allocation under 5–7% for portfolios under $500K'],
-            'kills': ['Using jargon (Reg A+, accredited, NAV, SPV)', 'Assuming "small portfolio = not worth the time" (HVAC tech invested $196K)', 'Six calls for a $500 investment — sub-$2K should be self-service', 'Neglecting annual check-ins'],
-        },
-        {
-            'name': 'Medical Pro', 'pct': '7–8%', 'avg_port': '$3.2M', 'age': '40–64',
-            'color_fg': '#a83030', 'color_bg': '#fde8e8',
-            'who': 'Physicians, Surgeons, Dentists, Anesthesiologists, Oral Surgeons, Cardiologists, Podiatrists, Pathologists. Dentists are 22.5% of the cohort and include the highest portfolios.',
-            'nw': '$300K–$20M', 'first_inv': '$25K–$50K', 'calls': '2–3', 'product': 'MMFC (default at $100K+) — solves K-1 consolidation',
-            'signals': ['Mentions being between patients or taking call during lunch', 'References Morgan Stanley, Goldman, or Fisher as financial adviser', 'Asks about K-1 forms and accounting burden', 'May be an active art collector independently'],
-            'approach': ['Position yourself as peer consultant, not salesperson', 'MMFC as default: one K-1 vs 30+ forms at $50–100 each', 'Walk through the PPM together on-screen — doctors process information visually', 'Open with November 2025 auction season results — concrete, verifiable data', 'For frustrated existing members: data-driven specificity before new pitch'],
-            'kills': ['Dismissing their statistical objections (survivorship bias — they\'re right)', 'Assuming liquid portfolio = total wealth', 'Pitching art education to someone who collects art', 'Ignoring the accountant friction (K-1 cost)'],
-        },
-        {
-            'name': 'Young Diversifier', 'pct': '~7%', 'avg_port': '$285K', 'age': '24–34',
-            'color_fg': '#1a5fa8', 'color_bg': '#eef4ff',
-            'who': 'Software Engineers, Consultants, MBA candidates, Product Managers, Account Executives, Founders. Entry point is aspiration and identity, not analysis. Treat first allocation as tuition.',
-            'nw': '$60K–$1M', 'first_inv': '$500–$2K', 'calls': '1–3', 'product': 'Individual ($500–$2K); MMFC for compliance-restricted (one approval = 133 paintings)',
-            'signals': ['Says "it seems cool" or "I saw it on YouTube"', 'Knows finance but knows zero about art', 'Mentions compliance or employment restrictions on trading', 'States small initial investment ($500–$2K)'],
-            'approach': ['Honor the "seems cool" entry: "What caught your attention?"', 'Always ask: "Do you have employment restrictions on trading?" — MMFC is the compliance solution', 'Translate art into financial language: "Auctions just had their best year" = "The asset class posted a strong earnings quarter"', 'Show the full allocation model (12% target) but start wherever they\'re comfortable', 'Minimize call burden for sub-$5K — should be app/web-based, not 6 phone calls'],
-            'kills': ['Overselling returns to someone here for diversification', 'Ignoring the compliance restriction', 'Art education overload — 2–3 artist names max', 'Forgetting the LTV thesis — the $260 MBA intern becomes a managing director'],
-        },
-    ]
-
-    def persona_card(pe):
-        signals_html = ''.join(
-            '<li style="margin:3px 0;font-size:0.82rem;color:#3a5070">' + escape(s) + '</li>'
-            for s in pe['signals']
-        )
-        approach_html = ''.join(
-            '<li style="margin:3px 0;font-size:0.82rem;color:#3a5070">' + escape(a) + '</li>'
-            for a in pe['approach']
-        )
-        kills_html = ''.join(
-            '<li style="margin:3px 0;font-size:0.82rem;color:#a83030">' + escape(k) + '</li>'
-            for k in pe['kills']
-        )
-        fg = pe['color_fg']
-        bg = pe['color_bg']
-        return (
-            '<div style="background:' + bg + ';border-left:4px solid ' + fg + ';border-radius:8px;'
-            'padding:20px 24px;margin-bottom:20px">'
-            '<div style="display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;margin-bottom:12px">'
-            '<span style="font-size:1.05rem;font-weight:700;color:' + fg + '">' + escape(pe['name']) + '</span>'
-            '<span style="font-size:0.72rem;color:#8a9ab8">' + escape(pe['pct']) + ' of base</span>'
-            '<span style="font-size:0.72rem;color:#8a9ab8">&bull; Avg portfolio ' + escape(pe['avg_port']) + '</span>'
-            '<span style="font-size:0.72rem;color:#8a9ab8">&bull; Age ' + escape(pe['age']) + '</span>'
-            '</div>'
-            '<p style="font-size:0.82rem;color:#4a5f78;line-height:1.5;margin-bottom:12px">' + escape(pe['who']) + '</p>'
-            '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px 16px;'
-            'background:rgba(255,255,255,0.6);border-radius:6px;padding:10px 14px;margin-bottom:14px;font-size:0.78rem">'
-            '<div><span style="color:#8a9ab8;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em">Est. NW</span>'
-            '<br><strong style="color:' + fg + '">' + escape(pe['nw']) + '</strong></div>'
-            '<div><span style="color:#8a9ab8;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em">First Investment</span>'
-            '<br><strong>' + escape(pe['first_inv']) + '</strong></div>'
-            '<div><span style="color:#8a9ab8;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em">Calls to Close</span>'
-            '<br><strong>' + escape(pe['calls']) + '</strong></div>'
-            '<div><span style="color:#8a9ab8;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em">Product</span>'
-            '<br><strong>' + escape(pe['product']) + '</strong></div>'
-            '</div>'
-            '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 20px">'
-            '<div><div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;'
-            'color:#8a9ab8;margin-bottom:6px">How to Spot</div>'
-            '<ul style="list-style:none;padding:0;margin:0">' + signals_html + '</ul></div>'
-            '<div><div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;'
-            'color:#1a7a45;margin-bottom:6px">Call Approach</div>'
-            '<ul style="list-style:none;padding:0;margin:0">' + approach_html + '</ul></div>'
-            '<div><div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;'
-            'color:#a83030;margin-bottom:6px">What Kills the Deal</div>'
-            '<ul style="list-style:none;padding:0;margin:0">' + kills_html + '</ul></div>'
-            '</div>'
-            '</div>'
-        )
-
-    matrix_rows = ''.join(
-        '<tr>'
-        '<td style="font-weight:700;color:' + pe['color_fg'] + ';white-space:nowrap">' + escape(pe['name']) + '</td>'
-        '<td>' + escape(pe['pct']) + '</td>'
-        '<td>' + escape(pe['avg_port']) + '</td>'
-        '<td>' + escape(pe['age']) + '</td>'
-        '<td>' + escape(pe['first_inv']) + '</td>'
-        '<td>' + escape(pe['calls']) + '</td>'
-        '<td style="font-size:0.75rem">' + escape(pe['product']) + '</td>'
-        '</tr>'
-        for pe in PERSONAS
-    )
-
-    cards_html = ''.join(persona_card(pe) for pe in PERSONAS)
-
-    return '''<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Masterworks &mdash; Persona Guide</title>
-<style>
-  * { box-sizing:border-box; margin:0; padding:0; }
-  body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-         background:#f4f6fa;color:#2a3a52;min-height:100vh; }
-  header { background:linear-gradient(135deg,#1b3c6e 0%,#2a5298 100%);
-           padding:20px 40px;color:#fff; }
-  .header-row { display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px; }
-  .brand { font-size:0.7rem;letter-spacing:0.18em;text-transform:uppercase;opacity:0.55;margin-bottom:2px; }
-  .title { font-size:1.35rem;font-weight:700;letter-spacing:0.01em; }
-  .meta  { font-size:0.65rem;color:rgba(255,255,255,0.4);margin-top:2px; }
-  .page-tabs { display:flex; margin-top:2px; border-top:1px solid rgba(255,255,255,0.1); }
-  .page-tab { padding:10px 22px; font-size:0.7rem; letter-spacing:0.09em; text-transform:uppercase;
-              text-decoration:none; color:rgba(255,255,255,0.42); border-bottom:2px solid transparent;
-              transition:all 0.15s; white-space:nowrap; }
-  .page-tab:hover { color:rgba(255,255,255,0.8); border-bottom-color:rgba(255,255,255,0.25); }
-  .page-tab.active-tab { color:#fff; border-bottom-color:#c9a84c; font-weight:700; }
-  main { max-width:1100px;margin:36px auto;padding:0 24px 60px; }
-  h2 { font-size:0.75rem;letter-spacing:0.14em;text-transform:uppercase;color:#6a80a0;
-       margin:32px 0 14px;border-bottom:1px solid #dde4ef;padding-bottom:6px; }
-  table { width:100%;border-collapse:collapse;background:#fff;border-radius:8px;
-          overflow:hidden;border:1px solid #dde4ef;font-size:0.82rem; }
-  thead th { background:#1b3c6e;color:#a8c8e8;font-size:0.68rem;letter-spacing:0.08em;
-             text-transform:uppercase;padding:10px 14px;text-align:left; }
-  tbody td { padding:10px 14px;border-bottom:1px solid #eef1f7;color:#3a5070; }
-  tbody tr:last-child td { border-bottom:none; }
-  tbody tr:nth-child(even) { background:#f8fafd; }
-  footer { background:#1b3c6e;color:#6a90be;text-align:center;font-size:0.7rem;
-           letter-spacing:0.1em;text-transform:uppercase;padding:20px 40px; }
-</style>
-</head>
-<body>
-<header>
-  <div class="header-row">
-    <div>
-      <div class="brand">Masterworks &middot; Outbound</div>
-      <div class="title">Investor Persona Guide</div>
-      <div class="meta">Updated ''' + gen + '''</div>
-    </div>
-  </div>
-  <div class="page-tabs">
-    <a href="index.html"    class="page-tab">RSVP Dashboard</a>
-    <a href="events.html"   class="page-tab">Event Dashboard</a>
-    <a href="scoring.html"  class="page-tab">Scoring Logic</a>
-    <a href="personas.html" class="page-tab active-tab">Persona Guide</a>
-  </div>
-</header>
-
-<main>
-
-<h2>Quick Reference Matrix</h2>
-<table>
-  <thead>
-    <tr>
-      <th>Persona</th><th>% of Base</th><th>Avg Portfolio</th>
-      <th>Age Range</th><th>Median 1st Investment</th><th>Calls to Close</th><th>Product</th>
-    </tr>
-  </thead>
-  <tbody>''' + matrix_rows + '''</tbody>
-</table>
-
-<h2>Persona Deep-Dives</h2>
-''' + cards_html + '''
-</main>
-<footer>Masterworks Outbound &middot; Field research synthesis &middot; Updated ''' + gen + '''</footer>
-</body>
-</html>'''
-
-
 # ─── SCORING PAGE ─────────────────────────────────────────────────────────────
 
 def build_scoring_html(generated_at: str) -> str:
@@ -2383,10 +2142,9 @@ def build_scoring_html(generated_at: str) -> str:
     </div>
   </div>
   <div class="page-tabs">
-    <a href="index.html"    class="page-tab">RSVP Dashboard</a>
+    <a href="index.html"   class="page-tab">RSVP Dashboard</a>
     <a href="events.html"  class="page-tab">Event Dashboard</a>
     <a href="scoring.html" class="page-tab active-tab">Scoring Logic</a>
-    <a href="personas.html" class="page-tab">Persona Guide</a>
   </div>
 </header>
 
@@ -2412,6 +2170,106 @@ def build_scoring_html(generated_at: str) -> str:
   <div>Manager / associate / junior</div><div style="color:#b85a00;font-weight:600">$150K&ndash;$500K</div>
   <div>Intern / entry-level</div><div style="color:#a83030;font-weight:600">$50K&ndash;$200K</div>
 </div></div>
+
+<h2>Investor Personas</h2>
+<div style="overflow-x:auto">
+<table style="width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;border:1px solid #dde4ef;font-size:0.8rem">
+  <thead>
+    <tr>
+      <th style="background:#1b3c6e;color:#a8c8e8;font-size:0.68rem;letter-spacing:0.08em;text-transform:uppercase;padding:10px 14px;text-align:left;white-space:nowrap">Persona</th>
+      <th style="background:#1b3c6e;color:#a8c8e8;font-size:0.68rem;letter-spacing:0.08em;text-transform:uppercase;padding:10px 14px;text-align:left;white-space:nowrap">% of Base</th>
+      <th style="background:#1b3c6e;color:#a8c8e8;font-size:0.68rem;letter-spacing:0.08em;text-transform:uppercase;padding:10px 14px;text-align:left;white-space:nowrap">Avg Portfolio</th>
+      <th style="background:#1b3c6e;color:#a8c8e8;font-size:0.68rem;letter-spacing:0.08em;text-transform:uppercase;padding:10px 14px;text-align:left;white-space:nowrap">Age Range</th>
+      <th style="background:#1b3c6e;color:#a8c8e8;font-size:0.68rem;letter-spacing:0.08em;text-transform:uppercase;padding:10px 14px;text-align:left;white-space:nowrap">1st Investment</th>
+      <th style="background:#1b3c6e;color:#a8c8e8;font-size:0.68rem;letter-spacing:0.08em;text-transform:uppercase;padding:10px 14px;text-align:left;white-space:nowrap">Calls to Close</th>
+      <th style="background:#1b3c6e;color:#a8c8e8;font-size:0.68rem;letter-spacing:0.08em;text-transform:uppercase;padding:10px 14px;text-align:left;white-space:nowrap">Product</th>
+      <th style="background:#1b3c6e;color:#a8c8e8;font-size:0.68rem;letter-spacing:0.08em;text-transform:uppercase;padding:10px 14px;text-align:left;white-space:nowrap">How to Spot</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;font-weight:700;color:#1a5fa8;white-space:nowrap">Corporate Climber</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;color:#3a5070">25&ndash;28%</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;color:#3a5070">$1.8M</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;color:#3a5070">42&ndash;56</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;color:#3a5070">$200&ndash;$5K</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;color:#3a5070">3+</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;color:#3a5070;font-size:0.75rem">Individual &rarr; MMFC at $50K+</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;color:#5a7090;font-size:0.75rem">Uses corporate language; mentions spouse/CPA; tiny first investment; asks about recession performance</td>
+    </tr>
+    <tr style="background:#f8fafd">
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;font-weight:700;color:#1a7a45;white-space:nowrap">Finance Bro</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;color:#3a5070">18&ndash;20%</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;color:#3a5070">$5.2M</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;color:#3a5070">38&ndash;55</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;color:#3a5070">$40K&ndash;$100K</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;color:#3a5070">2</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;color:#3a5070;font-size:0.75rem">MMFC (default)</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;color:#5a7090;font-size:0.75rem">Uses IRR/NAV/carry fluently; challenges thesis not asks for education; compares fees to PE 2/20</td>
+    </tr>
+    <tr>
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;font-weight:700;color:#6a3a8a;white-space:nowrap">Business Owner</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;color:#3a5070">12&ndash;15%</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;color:#3a5070">$3.5M</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;color:#3a5070">38&ndash;68</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;color:#3a5070">$10K&ndash;$25K</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;color:#3a5070">1&ndash;2</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;color:#3a5070;font-size:0.75rem">Individual &rarr; MMFC at $5M+</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;color:#5a7090;font-size:0.75rem">Leads with their company; asks about LLC/trust investing; compares art to real estate; decides fast or defers indefinitely</td>
+    </tr>
+    <tr style="background:#f8fafd">
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;font-weight:700;color:#0a7a8a;white-space:nowrap">Tech Wealth Builder</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;color:#3a5070">~12%</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;color:#3a5070">$1.2M</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;color:#3a5070">28&ndash;44</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;color:#3a5070">$10K&ndash;$50K</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;color:#3a5070">1</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;color:#3a5070;font-size:0.75rem">Individual (10&ndash;20 paintings)</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;color:#5a7090;font-size:0.75rem">Pre-researches before the call; asks technical questions immediately; mentions RSU concentration; wants data not narratives</td>
+    </tr>
+    <tr>
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;font-weight:700;color:#7a5a00;white-space:nowrap">Cautious Retiree</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;color:#3a5070">8&ndash;10%</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;color:#3a5070">$3M</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;color:#3a5070">58&ndash;80</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;color:#3a5070">$500&ndash;$1K/quarter</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;color:#3a5070">2&ndash;3</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;color:#3a5070;font-size:0.75rem">Individual (small)</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;color:#5a7090;font-size:0.75rem">Mentions spouse immediately; describes pension/Social Security; states very small amounts; relaxed about hold period</td>
+    </tr>
+    <tr style="background:#f8fafd">
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;font-weight:700;color:#a85800;white-space:nowrap">Everyday Investor</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;color:#3a5070">8&ndash;10%</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;color:#3a5070">$180K</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;color:#3a5070">30&ndash;65</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;color:#3a5070">$1K&ndash;$5K</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;color:#3a5070">2&ndash;4</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;color:#3a5070;font-size:0.75rem">Individual only</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;color:#5a7090;font-size:0.75rem">States they know nothing about art; mentions blue-collar trade; available evenings only; plain language questions</td>
+    </tr>
+    <tr>
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;font-weight:700;color:#a83030;white-space:nowrap">Medical Pro</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;color:#3a5070">7&ndash;8%</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;color:#3a5070">$3.2M</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;color:#3a5070">40&ndash;64</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;color:#3a5070">$25K&ndash;$50K</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;color:#3a5070">2&ndash;3</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;color:#3a5070;font-size:0.75rem">MMFC at $100K+ (K-1 consolidation)</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eef1f7;color:#5a7090;font-size:0.75rem">Mentions being between patients; references Goldman/Morgan adviser; asks about K-1 burden; may already collect art</td>
+    </tr>
+    <tr style="background:#f8fafd">
+      <td style="padding:10px 14px;font-weight:700;color:#1a5fa8;white-space:nowrap">Young Diversifier</td>
+      <td style="padding:10px 14px;color:#3a5070">~7%</td>
+      <td style="padding:10px 14px;color:#3a5070">$285K</td>
+      <td style="padding:10px 14px;color:#3a5070">24&ndash;34</td>
+      <td style="padding:10px 14px;color:#3a5070">$500&ndash;$2K</td>
+      <td style="padding:10px 14px;color:#3a5070">1&ndash;3</td>
+      <td style="padding:10px 14px;color:#3a5070;font-size:0.75rem">Individual; MMFC if compliance-restricted</td>
+      <td style="padding:10px 14px;color:#5a7090;font-size:0.75rem">Says &ldquo;it seems cool&rdquo;; knows finance but not art; mentions compliance/trading restrictions; small first investment</td>
+    </tr>
+  </tbody>
+</table>
+</div>
 
 </main>
 <footer>Masterworks Outbound &middot; Scores auto-generated from HubSpot data &middot; Last updated ''' + gen + '''</footer>
@@ -2468,10 +2326,6 @@ def main():
     scoring_html = build_scoring_html(now_str)
     (docs / 'scoring.html').write_text(scoring_html, encoding='utf-8')
     print(f'Written → docs/scoring.html  ({len(scoring_html):,} bytes)')
-
-    personas_html = build_personas_html(now_str)
-    (docs / 'personas.html').write_text(personas_html, encoding='utf-8')
-    print(f'Written → docs/personas.html  ({len(personas_html):,} bytes)')
 
 if __name__ == '__main__':
     main()
