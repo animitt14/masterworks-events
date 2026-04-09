@@ -164,7 +164,9 @@ def epoch_ms(d: date, end_of_day: bool = False) -> int:
 
 # ─── GOOGLE ENRICHMENT ───────────────────────────────────────────────────────
 
-_enrich_cache: dict = {}   # name → result dict, avoids duplicate queries
+ENRICH_CACHE_FILE = Path('docs/enrich_cache.json')
+_enrich_cache: dict = {}      # loaded from file at start of main()
+_quota_exhausted: bool = False  # flip to True on first 429 — stops all further queries
 
 def _parse_linkedin_result(title_tag: str, snippet: str) -> tuple:
     """Return (job_title, company) from a Google/LinkedIn search result.
@@ -198,9 +200,25 @@ def _parse_linkedin_result(title_tag: str, snippet: str) -> tuple:
     return t.strip(), ''
 
 
+def _load_enrich_cache():
+    global _enrich_cache
+    if ENRICH_CACHE_FILE.exists():
+        try:
+            _enrich_cache = json.loads(ENRICH_CACHE_FILE.read_text(encoding='utf-8'))
+            print(f'Loaded enrich cache: {len(_enrich_cache)} entries')
+        except Exception:
+            _enrich_cache = {}
+
+def _save_enrich_cache():
+    ENRICH_CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
+    ENRICH_CACHE_FILE.write_text(json.dumps(_enrich_cache, indent=2), encoding='utf-8')
+
+
 def google_enrich(name: str) -> dict:
-    """Search LinkedIn for a person by name. Returns enriched property dict or {}."""
-    if not GOOGLE_API_KEY or not GOOGLE_CSE_ID or not name.strip():
+    """Search LinkedIn for a person by name. Returns enriched property dict or {}.
+    Returns None if quota is exhausted (caller should stop querying)."""
+    global _quota_exhausted
+    if _quota_exhausted or not GOOGLE_API_KEY or not GOOGLE_CSE_ID or not name.strip():
         return {}
     if name in _enrich_cache:
         return _enrich_cache[name]
@@ -212,6 +230,10 @@ def google_enrich(name: str) -> dict:
                     'q': f'"{name}" "New York" site:linkedin.com/in', 'num': 3},
             timeout=10,
         )
+        if resp.status_code == 429:
+            print('  Google quota exhausted for today — stopping enrichment', file=sys.stderr)
+            _quota_exhausted = True
+            return {}
         if not resp.ok:
             print(f'  Google search error {resp.status_code} for "{name}"', file=sys.stderr)
             _enrich_cache[name] = {}
@@ -248,11 +270,20 @@ def enrich_no_data_contacts(contacts: list) -> int:
 
     enriched = 0
     for c in contacts:
-        if enriched >= ENRICH_LIMIT:
+        if enriched >= ENRICH_LIMIT or _quota_exhausted:
             break
         p = c['properties']
         if p.get('jobtitle') or p.get('company'):
             continue   # already has data — skip
+        if (p.get('firstname', '') + p.get('lastname', '')).strip() in _enrich_cache:
+            # Already cached (no result found previously) — skip
+            fname = p.get('firstname') or ''
+            lname = p.get('lastname')  or ''
+            cached = _enrich_cache.get(f'{fname} {lname}'.strip(), {})
+            if cached:
+                c['properties'] = {**p, **cached}
+                enriched += 1
+            continue
 
         fname = p.get('firstname') or ''
         lname = p.get('lastname')  or ''
@@ -266,6 +297,7 @@ def enrich_no_data_contacts(contacts: list) -> int:
             enriched += 1
             print(f'  Enriched: {name} → {result.get("jobtitle", "")} @ {result.get("company", "")}')
 
+    _save_enrich_cache()
     return enriched
 
 
@@ -1850,6 +1882,7 @@ def main():
     start = today - timedelta(days=DAYS_BACK)
     end   = today + timedelta(days=DAYS_AHEAD)
 
+    _load_enrich_cache()
     print(f'Fetching RSVPs {start} → {end}  (DAYS_BACK={DAYS_BACK}, DAYS_AHEAD={DAYS_AHEAD})')
     contacts = fetch_contacts(start, end)
     print(f'Got {len(contacts)} contacts')
