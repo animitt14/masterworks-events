@@ -583,6 +583,17 @@ def score_contact(p: dict) -> tuple:
         if not (_fin_dom or _phys or _top_fin or _exec_title):
             sc = min(sc, 2)
 
+    # ── Title-only HIGH → cap at Medium-High without a firm-quality signal ──────
+    # A strong title (MD, President, CEO) at an unknown firm doesn't reliably mean
+    # investable wealth. HIGH requires title + at least one firm-quality corroboration:
+    # finance-domain email, confirmed physician, or named top-tier finance company.
+    if sc == 5 and 'invested' not in flags and 'opportunity' not in flags:
+        _firm_signal = (email_domain(email) in FINANCE_DOMAINS
+                        or is_physician(title, email, company)
+                        or any(fc in company for fc in FINANCE_COMPANIES))
+        if not _firm_signal:
+            sc = 4
+
     # ── NW cap — applied to all except finance-domain and physician hits ───────
     # Finance domain (@gs.com etc.) and physicians are reliable HIGH signals
     # regardless of estimated NW. Everything else is capped by wealth tier.
