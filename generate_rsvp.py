@@ -69,7 +69,8 @@ HOSPITAL_DOMAINS = {
 }
 
 HIGH_TITLE_TERMS = [
-    'managing director', 'general partner', 'founding partner', 'managing partner', 'senior partner',
+    'managing director', 'managing member',
+    'general partner', 'founding partner', 'managing partner', 'senior partner',
     'fund manager', 'portfolio manager',
     'chief executive', 'chief financial', 'chief operating', 'chief technology',
     'chief investment', 'chief information',
@@ -551,14 +552,21 @@ def score_contact(p: dict) -> tuple:
 
     # ── Founder/co-founder — conservative default: Low-Medium unless proven ───
     # Most founders are solo, pre-revenue, or running lifestyle businesses.
-    # Only finance domain email, confirmed physician, or named top-tier finance company
-    # provides sufficient evidence to override this default.
+    # Override exceptions: finance domain, physician, named top-tier finance firm,
+    # OR an independently HIGH exec title (CEO, COO, etc.) alongside the founder signal.
     _is_founder_title = any(t in title for t in ['founder', 'co-founder', 'cofounder'])
     if _is_founder_title and 'invested' not in flags and 'opportunity' not in flags:
         _fin_dom   = email_domain(email) in FINANCE_DOMAINS
         _phys      = is_physician(title, email, company)
         _top_fin   = any(fc in company for fc in FINANCE_COMPANIES)
-        if not (_fin_dom or _phys or _top_fin):
+        _exec_title = any(t in title for t in [
+            'ceo', 'coo', 'cto', 'cfo', 'cio', 'cmo', 'cro',
+            'chief executive', 'chief operating', 'chief technology',
+            'chief financial', 'chief information', 'chief marketing',
+            'managing director', 'managing member', 'managing partner',
+            'general partner', 'president',
+        ])
+        if not (_fin_dom or _phys or _top_fin or _exec_title):
             sc = min(sc, 2)
 
     # ── NW cap — applied to all except finance-domain and physician hits ───────
