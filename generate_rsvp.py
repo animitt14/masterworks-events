@@ -1315,8 +1315,6 @@ header{{background:#1b3c6e;padding:16px 28px;position:sticky;top:0;z-index:100;
 var GITHUB_REPO     = '{escape(GITHUB_REPO)}';
 var GITHUB_WORKFLOW = '{GITHUB_WORKFLOW}';
 var SHARED_GIST_ID  = '{SHARED_GIST_ID}';
-var HS_TOKEN        = '{HUBSPOT_TOKEN}';
-
 function triggerRefresh() {{
   var tok = localStorage.getItem('gh_pat');
   if (!tok) {{
@@ -1561,34 +1559,16 @@ function applyOverride(cid, sc, tabId) {{
   }});
 }}
 
-function patchHubSpot(cid, props) {{
-  if (!HS_TOKEN) {{ console.warn('HS_TOKEN not set'); return; }}
-  fetch('https://api.hubapi.com/crm/v3/objects/contacts/' + cid, {{
-    method: 'PATCH',
-    headers: {{
-      'Authorization': 'Bearer ' + HS_TOKEN,
-      'Content-Type': 'application/json',
-    }},
-    body: JSON.stringify({{properties: props}}),
-  }}).then(function(r) {{
-    if (!r.ok) {{
-      r.json().then(function(e) {{ console.error('HubSpot PATCH error', r.status, e); }});
-    }}
-  }}).catch(function(e) {{
-    console.error('HubSpot PATCH failed:', e);
-  }});
-}}
-
 function toggleUninvite(chk) {{
   var row = chk.closest('tr');
   var cid = row.dataset.id;
   var tid = row.closest('.tab-panel').id.replace('tab-','');
   if (chk.checked) {{
+    saveSharedState('uninvite_' + cid, '1');
     row.classList.add('uninvited');
-    patchHubSpot(cid, {{outbound_event_attendee_disqualified: 'Disqualified'}});
   }} else {{
+    removeSharedState('uninvite_' + cid);
     row.classList.remove('uninvited');
-    patchHubSpot(cid, {{outbound_event_attendee_disqualified: ''}});
   }}
   updateResetBtn(tid);
 }}
@@ -1623,7 +1603,11 @@ function applyStoredOverrides(tabId) {{
     var cid = row.dataset.id;
     var val = getSharedState('override_' + cid);
     if (val) applyOverride(cid, parseInt(val), tabId);
-    // uninvite state comes from HubSpot via data-disqualified attr, already applied server-side
+    if (getSharedState('uninvite_' + cid)) {{
+      row.classList.add('uninvited');
+      var uchk = row.querySelector('.uninvite-chk');
+      if (uchk) uchk.checked = true;
+    }}
     if (getSharedState('attended_' + cid)) {{
       var achk = row.querySelector('.attended-chk');
       if (achk) achk.checked = true;
@@ -1636,6 +1620,7 @@ function updateResetBtn(tabId) {{
   var rows   = document.querySelectorAll('#tbl-' + tabId + ' tbody tr');
   var hasAny = Array.from(rows).some(function(r) {{
     return getSharedState('override_'  + r.dataset.id) ||
+           getSharedState('uninvite_'  + r.dataset.id) ||
            getSharedState('attended_'  + r.dataset.id);
   }});
   var btn = document.querySelector('.reset-overrides-btn[data-tab="' + tabId + '"]');
@@ -1648,9 +1633,12 @@ function resetOverrides(tabId) {{
     var cid  = row.dataset.id;
     var auto = parseInt(row.dataset.auto);
     removeSharedState('override_' + cid);
+    removeSharedState('uninvite_' + cid);
     removeSharedState('attended_' + cid);
     applyOverride(cid, auto, tabId);
-    // uninvite is in HubSpot — leave as-is; uncheck the checkbox to clear
+    row.classList.remove('uninvited');
+    var uchk = row.querySelector('.uninvite-chk');
+    if (uchk) uchk.checked = false;
     var achk = row.querySelector('.attended-chk');
     if (achk) achk.checked = false;
   }});
@@ -2425,6 +2413,45 @@ def build_scoring_html(generated_at: str) -> str:
 </html>'''
 
 
+# ─── GIST → HUBSPOT UNINVITE SYNC ────────────────────────────────────────────
+
+GIST_STATE_FILE = 'mw_rsvp_state.json'
+
+def sync_uninvites_from_gist():
+    """Read the shared Gist state and PATCH HubSpot for any uninvited contacts."""
+    try:
+        r = requests.get(
+            f'https://api.github.com/gists/{SHARED_GIST_ID}',
+            headers={'Accept': 'application/vnd.github.v3+json'},
+            timeout=10,
+        )
+        r.raise_for_status()
+        content = r.json().get('files', {}).get(GIST_STATE_FILE, {}).get('content', '{}')
+        state = json.loads(content)
+    except Exception as e:
+        print(f'Gist read skipped: {e}', file=sys.stderr)
+        return
+
+    uninvite_ids = [k[len('uninvite_'):] for k, v in state.items()
+                    if k.startswith('uninvite_') and v]
+    if not uninvite_ids:
+        return
+
+    headers = {'Authorization': f'Bearer {HUBSPOT_TOKEN}', 'Content-Type': 'application/json'}
+    for cid in uninvite_ids:
+        try:
+            resp = requests.patch(
+                f'https://api.hubapi.com/crm/v3/objects/contacts/{cid}',
+                headers=headers,
+                json={'properties': {'outbound_event_attendee_disqualified': 'Disqualified'}},
+                timeout=10,
+            )
+            status = 'OK' if resp.ok else f'HTTP {resp.status_code}'
+            print(f'  Uninvite sync {cid}: {status}')
+        except Exception as e:
+            print(f'  Uninvite sync {cid}: error {e}', file=sys.stderr)
+
+
 # ─── MAIN ─────────────────────────────────────────────────────────────────────
 
 def main():
@@ -2433,6 +2460,7 @@ def main():
     end   = today + timedelta(days=DAYS_AHEAD)
 
     _load_enrich_cache()
+    sync_uninvites_from_gist()
     print(f'Fetching RSVPs {start} → {end}  (DAYS_BACK={DAYS_BACK}, DAYS_AHEAD={DAYS_AHEAD})')
     contacts = fetch_contacts(start, end)
     print(f'Got {len(contacts)} contacts')
