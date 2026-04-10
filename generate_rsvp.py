@@ -949,8 +949,11 @@ def render_row(idx: int, c: dict) -> str:
 def render_panel(date_str: str, contacts: list, tab_id: str, active: bool) -> str:
     sorted_contacts = sorted(
         contacts,
-        key=lambda c: score_contact(c['properties'])[0],
-        reverse=True   # 5 first
+        key=lambda c: (
+            -score_contact(c['properties'])[0],                          # score DESC
+            (c['properties'].get('lastname')  or '').lower(),            # last name ASC
+            (c['properties'].get('firstname') or '').lower(),            # first name ASC
+        ),
     )
 
     rows_html = ''.join(render_row(i + 1, c) for i, c in enumerate(sorted_contacts))
