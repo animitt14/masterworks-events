@@ -946,15 +946,33 @@ def render_row(idx: int, c: dict) -> str:
         f'</tr>\n'
     )
 
+NW_RANK = {'$3M–$10M': 6, '$2M–$6M': 5, '$1M–$4M': 4, '$500K–$2M': 3, '$150K–$500K': 2, '$50K–$200K': 1}
+
+def likelihood_secondary(p: dict, flags: list) -> int:
+    """Within a score tier: higher = more likely to invest."""
+    s = 0
+    if (p.get('attended_outbound_event') or '').lower() == 'yes':
+        s += 10                                                  # attended — strongest signal
+    if email_domain(p.get('email', '')) in FINANCE_DOMAINS:
+        s += 4                                                   # finance domain email
+    nw, _ = get_nw(p)
+    s += NW_RANK.get(nw, 0)                                      # higher NW = more likely
+    if 'no_show' in flags:
+        s -= 5                                                   # penalise no-shows
+    if (p.get('state') or '').lower().strip() in TRI_STATE:
+        s += 1                                                   # local (NY/NJ/CT) slight edge
+    return s
+
 def render_panel(date_str: str, contacts: list, tab_id: str, active: bool) -> str:
-    sorted_contacts = sorted(
-        contacts,
-        key=lambda c: (
-            -score_contact(c['properties'])[0],                          # score DESC
-            (c['properties'].get('lastname')  or '').lower(),            # last name ASC
-            (c['properties'].get('firstname') or '').lower(),            # first name ASC
-        ),
-    )
+    def _sort_key(c):
+        sc, flags = score_contact(c['properties'])
+        return (
+            -sc,                                                 # score DESC
+            -likelihood_secondary(c['properties'], flags),       # likelihood DESC
+            (c['properties'].get('lastname')  or '').lower(),   # last name ASC
+            (c['properties'].get('firstname') or '').lower(),
+        )
+    sorted_contacts = sorted(contacts, key=_sort_key)
 
     rows_html = ''.join(render_row(i + 1, c) for i, c in enumerate(sorted_contacts))
 
