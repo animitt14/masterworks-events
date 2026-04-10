@@ -126,6 +126,11 @@ DOWNGRADE_TERMS = [
     # Fitness / personal training — low liquid wealth
     'personal trainer', 'fitness trainer', 'fitness instructor', 'fitness coach',
     'yoga instructor', 'pilates instructor', 'gym owner', 'fitness management',
+    # Property / asset management (RE service, not ownership)
+    'property manager', 'property management', 'asset manager', 'building manager',
+    # Analyst roles — income without significant accumulated wealth
+    'data analyst', 'business analyst', 'research analyst', 'marketing analyst',
+    'financial analyst', 'credit analyst', 'junior analyst',
 ]
 
 # Time-for-money service providers — income tied to hours worked, not scalable assets
@@ -152,7 +157,7 @@ CREATOR_TERMS = [
 
 FINANCE_COMPANIES = [
     'goldman sachs', 'morgan stanley', 'jp morgan', 'jpmorgan',
-    'blackrock', 'blackstone', 'kkr', 'carlyle group', 'apollo global',
+    'blackrock', 'blackstone', 'kkr', 'kohlberg kravis', 'carlyle group', 'apollo global',
     'citadel', 'bridgewater', 'two sigma', 'renaissance technologies',
     'pimco', 'vanguard', 'fidelity investments', 'merrill lynch',
     'ubs', 'credit suisse', 'deutsche bank', 'barclays',
@@ -166,6 +171,10 @@ FINANCE_COMPANIES = [
     'latham & watkins', 'sullivan & cromwell', 'debevoise & plimpton',
     'simpson thacher', 'cleary gottlieb', 'paul weiss', 'cravath',
     'white & case', 'proskauer', 'sidley austin', 'davis polk',
+    # Major credit / multi-strat / quant funds
+    'waterfall asset', 'schonfeld', 'sculptor capital', 'glenview capital',
+    'canyon partners', 'king street capital', 'anchorage capital',
+    'baupost', 'elliot management', 'paul singer',
 ]
 
 TRI_STATE = {'ny', 'nj', 'ct'}
@@ -411,7 +420,12 @@ def is_physician(title: str, email: str, company: str) -> bool:
         return True
     if email_domain(email) in HOSPITAL_DOMAINS:
         return True
-    if any(t in company for t in ['hospital', 'medical center', 'health system', 'northwell', 'nyu langone', 'mount sinai']):
+    hosp_terms = ['medical center', 'health system', 'northwell', 'nyu langone', 'mount sinai']
+    if any(t in company for t in hosp_terms):
+        return True
+    # 'hospital' check — must not match 'hospitality'
+    co_words = company.replace(',', ' ').split()
+    if any(w.startswith('hospital') and w not in ('hospitality', 'hospitalier') for w in co_words):
         return True
     return False
 
@@ -475,7 +489,7 @@ def score_contact(p: dict) -> tuple:
         'art dealer', 'fine art broker', 'art broker',
         'art advisor', 'art adviser', 'art consultant',
         'gallery',
-    ])
+    ]) or 'fine art' in company  # catches "Wellington Fine Art", "X Fine Art Gallery", etc.
     if is_art_world:
         return 1 if 'no_show' in flags else 2, flags
 
@@ -643,11 +657,23 @@ def get_persona(p: dict) -> str:
     ]):
         return 'Everyday Investor'
 
-    # Business Owner — founders, CEOs, owners across varied industries
-    if any(t in title for t in [
+    # Business Owner — founders, CEOs, owners of their own company
+    # Exception: CEO/President at a known large/established company → Corporate Climber
+    _is_owner_title = any(t in title for t in [
         'founder', 'co-founder', 'ceo', 'chief executive',
         'owner', 'proprietor', 'president',
-    ]):
+    ])
+    if _is_owner_title:
+        _large_co = (in_top_finance or
+                     any(fc in company for fc in FINANCE_COMPANIES) or
+                     any(tc in company for tc in [
+                         'google', 'meta', 'apple', 'amazon', 'microsoft', 'netflix',
+                         'prudential', 'jpmorgan', 'chase', 'citibank', 'bank of america',
+                         'wells fargo', 'morgan stanley', 'goldman', 'deloitte', 'mckinsey',
+                         'bain ', 'bcg ', 'boston consulting', 'accenture', 'ibm', 'oracle',
+                     ]))
+        if _large_co:
+            return 'Corporate Climber'
         return 'Business Owner'
 
     # Young Diversifier — early career, no seniority signals, product/account roles
@@ -695,12 +721,16 @@ def get_nw(p: dict) -> tuple:
 
     # Tier 1: PE/hedge fund partner/principal, elite law firm partner, bank MD → $3M–$10M
     elite_finance_title = any(t in title for t in [
-        'managing director', 'general partner', 'founding partner',
+        'managing director', 'managing member', 'managing partner',
+        'general partner', 'founding partner', 'senior partner',
         'fund manager', 'portfolio manager', 'principal',
     ])
     in_top_finance = any(fc in company for fc in FINANCE_COMPANIES)
     if elite_finance_title and in_top_finance:
         return '$3M–$10M', 'Senior role at top-tier finance firm'
+    # Managing partner / managing member at any investment/finance context → $2M–$6M
+    if any(t in title for t in ['managing partner', 'managing member', 'general partner']):
+        return '$2M–$6M', 'Fund GP / Managing Partner (assumes fund economics)'
     if 'partner' in title and any(lf in company for lf in [
         'simpson thacher', 'sullivan & cromwell', 'willkie', 'troutman', 'dorf',
         'skadden', 'kirkland', 'weil gotshal', 'latham', 'davis polk',
@@ -708,12 +738,18 @@ def get_nw(p: dict) -> tuple:
     ]):
         return '$3M–$10M', 'Partner at elite law firm'
 
-    # Tier 2: VP/Director at major finance, startup CEO, asset manager → $2M–$6M
+    # Tier 2: VP/Director/C-suite at major finance → $2M–$6M
     if any(t in title for t in ['vp', 'vice president', 'director', 'svp', 'evp', 'cfo', 'cto', 'coo', 'cio', 'ceo', 'chief']) \
             and in_top_finance:
         return '$2M–$6M', 'C-suite / VP at major finance firm'
+    # C-suite titles (any company, any chief* title) → at least $1M–$4M
+    if any(t in title for t in ['chief investment', 'chief financial', 'chief operating',
+                                 'chief technology', 'chief information', 'chief executive',
+                                 'chief marketing', 'chief revenue', 'chief people',
+                                 'chief product', 'chief data', 'chief strategy']):
+        return '$1M–$4M', 'C-suite executive'
     # CEO without top-finance context → conservative NW estimate
-    if any(t in title for t in ['ceo', 'chief executive']) and company:
+    if any(t in title for t in ['ceo']) and company:
         if is_small_biz(company):
             return '$150K–$500K', 'CEO of small / lifestyle business'
         return '$500K–$2M', 'CEO (unverified scale)'
