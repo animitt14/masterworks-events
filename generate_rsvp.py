@@ -1315,6 +1315,7 @@ header{{background:#1b3c6e;padding:16px 28px;position:sticky;top:0;z-index:100;
 var GITHUB_REPO     = '{escape(GITHUB_REPO)}';
 var GITHUB_WORKFLOW = '{GITHUB_WORKFLOW}';
 var SHARED_GIST_ID  = '{SHARED_GIST_ID}';
+var HS_TOKEN        = '{HUBSPOT_TOKEN}';
 
 function triggerRefresh() {{
   var tok = localStorage.getItem('gh_pat');
@@ -1561,24 +1562,17 @@ function applyOverride(cid, sc, tabId) {{
 }}
 
 function patchHubSpot(cid, props) {{
-  var tok = localStorage.getItem('hs_pat');
-  if (!tok) {{
-    tok = prompt('Enter your HubSpot private app token to save uninvite status to HubSpot.\\n(Saved in your browser — you only need to do this once.)');
-    if (!tok) return;
-    localStorage.setItem('hs_pat', tok.trim());
-    tok = tok.trim();
-  }}
+  if (!HS_TOKEN) {{ console.warn('HS_TOKEN not set'); return; }}
   fetch('https://api.hubapi.com/crm/v3/objects/contacts/' + cid, {{
     method: 'PATCH',
     headers: {{
-      'Authorization': 'Bearer ' + tok,
+      'Authorization': 'Bearer ' + HS_TOKEN,
       'Content-Type': 'application/json',
     }},
     body: JSON.stringify({{properties: props}}),
   }}).then(function(r) {{
-    if (r.status === 401) {{
-      localStorage.removeItem('hs_pat');
-      alert('HubSpot token invalid or expired. Please try again.');
+    if (!r.ok) {{
+      r.json().then(function(e) {{ console.error('HubSpot PATCH error', r.status, e); }});
     }}
   }}).catch(function(e) {{
     console.error('HubSpot PATCH failed:', e);
