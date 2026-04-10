@@ -1398,8 +1398,11 @@ function _writeGist() {{
   }}, 600);
 }}
 function _fetchGist(cb) {{
+  var tok = localStorage.getItem('gh_pat');
+  var hdrs = {{'Accept':'application/vnd.github.v3+json'}};
+  if (tok) hdrs['Authorization'] = 'token ' + tok;
   fetch('https://api.github.com/gists/' + _gistId, {{
-    headers: {{'Accept':'application/vnd.github.v3+json'}}, cache: 'no-store'
+    headers: hdrs, cache: 'no-store'
   }})
   .then(function(r) {{ return r.json(); }})
   .then(function(data) {{
@@ -1700,6 +1703,14 @@ document.addEventListener('click', function() {{
   }}
 
   initSharedState(function() {{
+    // Re-apply overrides for every visible tab now that Gist is loaded
+    document.querySelectorAll('.tab-panel').forEach(function(p) {{
+      if (p.style.display !== 'none') {{
+        var tid = p.id.replace('tab-', '');
+        applyStoredOverrides(tid);
+        updateResetBtn(tid);
+      }}
+    }});
     if (defaultTab) {{
       applyStoredOverrides(defaultTab);
       updateResetBtn(defaultTab);
