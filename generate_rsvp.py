@@ -365,6 +365,7 @@ def fetch_contacts(start: date, end: date) -> list:
                 'email', 'phone', 'city', 'state', 'zip',
                 'hubspot_owner_id', 'lifecyclestage', 'call_completed',
                 'outbound_rsvp_to_event', 'attended_outbound_event',
+                'outbound_event_attendee_disqualified',
                 'admin_url', 'totalamountpurchased',
                 'hs_v2_date_entered_current_stage',
             ],
@@ -675,8 +676,7 @@ def get_persona(p: dict) -> str:
         'owner', 'proprietor', 'president',
     ])
     if _is_owner_title:
-        _large_co = (in_top_finance or
-                     any(fc in company for fc in FINANCE_COMPANIES) or
+        _large_co = (any(fc in company for fc in FINANCE_COMPANIES) or
                      any(tc in company for tc in [
                          'google', 'meta', 'apple', 'amazon', 'microsoft', 'netflix',
                          'prudential', 'jpmorgan', 'chase', 'citibank', 'bank of america',
@@ -936,8 +936,11 @@ def render_row(idx: int, c: dict) -> str:
     else:
         owner_cell = f'<span style="color:#8a9fc0">{escape(owner_name)}</span>'
 
-    attended     = (p.get('attended_outbound_event') or '').strip().lower() == 'yes'
-    attended_chk = 'checked' if attended else ''
+    attended       = (p.get('attended_outbound_event') or '').strip().lower() == 'yes'
+    attended_chk   = 'checked' if attended else ''
+    disqualified   = (p.get('outbound_event_attendee_disqualified') or '').strip().lower() == 'disqualified'
+    uninvite_chk   = 'checked' if disqualified else ''
+    uninvite_class = ' uninvited' if disqualified else ''
 
     invested_badge = ('<span style="display:inline-block;background:#eaf7f0;color:#1a7a45;'
                       'border:1px solid #1a7a4555;border-radius:10px;font-size:0.62rem;'
@@ -970,7 +973,9 @@ def render_row(idx: int, c: dict) -> str:
 
     return (
         f'<tr data-id="{escape(cid)}" data-auto="{sc}" '
-        f'data-persona="{escape(per)}" data-score="{sc}">'
+        f'data-persona="{escape(per)}" data-score="{sc}" '
+        f'data-disqualified="{"1" if disqualified else "0"}" '
+        f'class="{uninvite_class.strip()}">'
         f'<td style="color:#aabcd4;text-align:center">{idx}</td>'
         f'<td>{name_cell}</td>'
         f'<td>{tc_html}</td>'
@@ -984,7 +989,7 @@ def render_row(idx: int, c: dict) -> str:
         f'<a href="{hs_url(cid)}" target="_blank" '
         f'style="color:#ff7a59;font-weight:700;text-decoration:none;font-size:0.8rem">HS↗</a></td>'
         f'<td style="text-align:center">'
-        f'<input type="checkbox" class="uninvite-chk" onchange="toggleUninvite(this)" '
+        f'<input type="checkbox" class="uninvite-chk" {uninvite_chk} onchange="toggleUninvite(this)" '
         f'style="width:16px;height:16px;cursor:pointer;accent-color:#c94040" title="Uninvite"></td>'
         f'<td style="text-align:center">'
         f'<input type="checkbox" class="attended-chk" {attended_chk} '
@@ -1555,16 +1560,41 @@ function applyOverride(cid, sc, tabId) {{
   }});
 }}
 
+function patchHubSpot(cid, props) {{
+  var tok = localStorage.getItem('hs_pat');
+  if (!tok) {{
+    tok = prompt('Enter your HubSpot private app token to save uninvite status to HubSpot.\\n(Saved in your browser — you only need to do this once.)');
+    if (!tok) return;
+    localStorage.setItem('hs_pat', tok.trim());
+    tok = tok.trim();
+  }}
+  fetch('https://api.hubapi.com/crm/v3/objects/contacts/' + cid, {{
+    method: 'PATCH',
+    headers: {{
+      'Authorization': 'Bearer ' + tok,
+      'Content-Type': 'application/json',
+    }},
+    body: JSON.stringify({{properties: props}}),
+  }}).then(function(r) {{
+    if (r.status === 401) {{
+      localStorage.removeItem('hs_pat');
+      alert('HubSpot token invalid or expired. Please try again.');
+    }}
+  }}).catch(function(e) {{
+    console.error('HubSpot PATCH failed:', e);
+  }});
+}}
+
 function toggleUninvite(chk) {{
   var row = chk.closest('tr');
   var cid = row.dataset.id;
   var tid = row.closest('.tab-panel').id.replace('tab-','');
   if (chk.checked) {{
-    saveSharedState('uninvite_' + cid, '1');
     row.classList.add('uninvited');
+    patchHubSpot(cid, {{outbound_event_attendee_disqualified: 'Disqualified'}});
   }} else {{
-    removeSharedState('uninvite_' + cid);
     row.classList.remove('uninvited');
+    patchHubSpot(cid, {{outbound_event_attendee_disqualified: ''}});
   }}
   updateResetBtn(tid);
 }}
@@ -1599,11 +1629,7 @@ function applyStoredOverrides(tabId) {{
     var cid = row.dataset.id;
     var val = getSharedState('override_' + cid);
     if (val) applyOverride(cid, parseInt(val), tabId);
-    if (getSharedState('uninvite_' + cid)) {{
-      row.classList.add('uninvited');
-      var uchk = row.querySelector('.uninvite-chk');
-      if (uchk) uchk.checked = true;
-    }}
+    // uninvite state comes from HubSpot via data-disqualified attr, already applied server-side
     if (getSharedState('attended_' + cid)) {{
       var achk = row.querySelector('.attended-chk');
       if (achk) achk.checked = true;
@@ -1616,7 +1642,6 @@ function updateResetBtn(tabId) {{
   var rows   = document.querySelectorAll('#tbl-' + tabId + ' tbody tr');
   var hasAny = Array.from(rows).some(function(r) {{
     return getSharedState('override_'  + r.dataset.id) ||
-           getSharedState('uninvite_'  + r.dataset.id) ||
            getSharedState('attended_'  + r.dataset.id);
   }});
   var btn = document.querySelector('.reset-overrides-btn[data-tab="' + tabId + '"]');
@@ -1629,12 +1654,9 @@ function resetOverrides(tabId) {{
     var cid  = row.dataset.id;
     var auto = parseInt(row.dataset.auto);
     removeSharedState('override_' + cid);
-    removeSharedState('uninvite_' + cid);
     removeSharedState('attended_' + cid);
     applyOverride(cid, auto, tabId);
-    row.classList.remove('uninvited');
-    var uchk = row.querySelector('.uninvite-chk');
-    if (uchk) uchk.checked = false;
+    // uninvite is in HubSpot — leave as-is; uncheck the checkbox to clear
     var achk = row.querySelector('.attended-chk');
     if (achk) achk.checked = false;
   }});
