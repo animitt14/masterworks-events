@@ -1589,7 +1589,7 @@ header{{background:#1b3c6e;padding:16px 28px;position:sticky;top:0;z-index:100;
 .detail-cell{{background:#fff;border:0.5px solid #e0e0e0;border-radius:8px;padding:10px 12px;
               display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
               text-align:center;gap:6px}}
-.detail-cell-label{{font-size:10px;color:#aaa;text-transform:uppercase;letter-spacing:.05em}}
+.detail-cell-label{{font-size:10px;color:#7a94b8;text-transform:uppercase;letter-spacing:.05em;font-weight:600}}
 .seg-stack{{display:flex;flex-direction:column;gap:2px;width:100%}}
 .seg-row{{display:flex;align-items:center;justify-content:center;gap:6px}}
 .seg-src{{font-size:10px;color:#aaa;width:44px;text-align:right;flex-shrink:0}}
