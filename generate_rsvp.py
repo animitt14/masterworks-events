@@ -1179,8 +1179,10 @@ def render_detail_row(p: dict, per: str, nw: str) -> str:
         prop_cell = (
             f'<div class="detail-cell">'
             f'<p class="detail-cell-label">Property</p>'
-            f'<span class="prop-value" style="font-size:13px;font-weight:600;color:#1b3c6e">{escape(pluto_val)}</span>'
+            f'<div style="display:flex;align-items:baseline;gap:6px;justify-content:center">'
+            f'<span style="font-size:13px;font-weight:600;color:#1b3c6e">{escape(pluto_val)}</span>'
             f'<span style="font-size:10px;color:#aabcd4">NYC PLUTO est.</span>'
+            f'</div>'
             f'<span class="prop-value">{escape(address)}</span>'
             f'<p class="prop-neighborhood">{escape(loc_label)}</p>'
             f'</div>'
