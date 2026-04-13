@@ -396,6 +396,9 @@ def has_high_title(title: str) -> bool:
     for term in HIGH_TITLE_TERMS:
         if (' ' + term + ' ') in t:
             return True
+    # Any "Chief X Officer" title (Chief Insurance Officer, Chief People Officer, etc.)
+    if re.search(r'\bchief\b.+\bofficer\b', tl):
+        return True
     # 'president' — only match when NOT preceded by 'vice'
     if ' president ' in t and 'vice president' not in tl:
         return True
@@ -574,13 +577,13 @@ def score_contact(p: dict) -> tuple:
         _fin_dom   = email_domain(email) in FINANCE_DOMAINS
         _phys      = is_physician(title, email, company)
         _top_fin   = any(fc in company for fc in FINANCE_COMPANIES)
-        _exec_title = any(t in title for t in [
+        _exec_title = (any(t in title for t in [
             'ceo', 'coo', 'cto', 'cfo', 'cio', 'cmo', 'cro',
             'chief executive', 'chief operating', 'chief technology',
             'chief financial', 'chief information', 'chief marketing',
             'managing director', 'managing member', 'managing partner',
             'general partner', 'president',
-        ])
+        ]) or bool(re.search(r'\bchief\b.+\bofficer\b', title)))
         if not (_fin_dom or _phys or _top_fin or _exec_title):
             sc = min(sc, 2)
 
