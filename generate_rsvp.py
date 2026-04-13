@@ -1172,18 +1172,35 @@ def render_detail_row(p: dict, per: str, nw: str) -> str:
     city         = (p.get('city')    or '').strip()
     zip_code     = (p.get('zip')     or '').strip()
     pluto_val    = (p.get('_pluto_val') or '').strip() or None
-    neighborhood = infer_nyc_neighborhood(address, city) if (address or city) else ''
-    loc_label    = neighborhood or city or '—'
+    state        = (p.get('state') or '').strip()
+
+    # Neighborhood / location label
+    neighborhood_raw = infer_nyc_neighborhood(address, city) if (address or city) else ''
+    is_nyc_hood = neighborhood_raw and neighborhood_raw.lower() != city.lower()
+    if is_nyc_hood:
+        loc_label = neighborhood_raw  # e.g. "Upper East Side"
+    else:
+        # Title-case city + uppercase state abbreviation
+        city_fmt  = ' '.join(w.capitalize() for w in city.split())  if city  else ''
+        state_fmt = state.upper() if state else ''
+        if city_fmt and state_fmt:
+            loc_label = f'{city_fmt}, {state_fmt}'
+        else:
+            loc_label = city_fmt or '—'
+
+    addr_display = escape(address) if address else '—'
 
     if pluto_val:
         prop_cell = (
             f'<div class="detail-cell">'
             f'<p class="detail-cell-label">Property</p>'
-            f'<div style="display:flex;align-items:baseline;gap:6px;justify-content:center">'
-            f'<span style="font-size:13px;font-weight:600;color:#1b3c6e">{escape(pluto_val)}</span>'
-            f'<span style="font-size:10px;color:#aabcd4">NYC PLUTO est.</span>'
+            f'<div class="seg-stack">'
+            f'<div class="seg-row">'
+            f'<span class="seg-src">PLUTO</span>'
+            f'<span class="seg-val">{escape(pluto_val)}</span>'
             f'</div>'
-            f'<span class="prop-value">{escape(address)}</span>'
+            f'</div>'
+            f'<span class="prop-value">{addr_display}</span>'
             f'<p class="prop-neighborhood">{escape(loc_label)}</p>'
             f'</div>'
         )
@@ -1191,8 +1208,13 @@ def render_detail_row(p: dict, per: str, nw: str) -> str:
         prop_cell = (
             f'<div class="detail-cell" data-zip="{escape(zip_code)}">'
             f'<p class="detail-cell-label">Property</p>'
-            f'<span class="prop-value census-value" style="color:#aabcd4;font-size:12px">Loading…</span>'
-            f'<span class="prop-value">{escape(address) if address else "—"}</span>'
+            f'<div class="seg-stack">'
+            f'<div class="seg-row">'
+            f'<span class="seg-src">Census</span>'
+            f'<span class="census-value seg-val" style="color:#aabcd4">Loading…</span>'
+            f'</div>'
+            f'</div>'
+            f'<span class="prop-value">{addr_display}</span>'
             f'<p class="prop-neighborhood">{escape(loc_label)}</p>'
             f'</div>'
         )
@@ -2071,7 +2093,7 @@ async function _fetchCensusValue(zip) {{
     var fmt = val >= 1000000
       ? '$' + (val / 1000000).toFixed(1) + 'M'
       : '$' + Math.round(val / 1000) + 'K';
-    _censusCache[zip] = 'Median in ' + zip + ': ' + fmt;
+    _censusCache[zip] = fmt + ' median';
     return _censusCache[zip];
   }} catch(e) {{ _censusCache[zip] = null; return null; }}
 }}
