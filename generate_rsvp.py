@@ -1388,7 +1388,12 @@ function removeSharedState(key) {{
 function _writeGist() {{
   if (!_gistId) return;
   var tok = localStorage.getItem('gh_pat');
-  if (!tok) return;
+  if (!tok) {{
+    tok = prompt('Enter your GitHub personal access token to save changes.\\n(Saved in your browser — you only need to do this once.)');
+    if (!tok) return;
+    localStorage.setItem('gh_pat', tok.trim());
+    tok = tok.trim();
+  }}
   clearTimeout(_writeTimer);
   _writeTimer = setTimeout(function() {{
     var files = {{}};
@@ -1570,7 +1575,7 @@ function _scheduleUninviteSync() {{
   clearTimeout(_uninviteSyncTimer);
   _uninviteSyncTimer = setTimeout(function() {{
     var tok = localStorage.getItem('gh_pat');
-    if (!tok) return;
+    if (!tok) return;  // token already prompted by _writeGist; skip silently if still missing
     fetch('https://api.github.com/repos/' + GITHUB_REPO + '/actions/workflows/' + GITHUB_WORKFLOW + '/dispatches', {{
       method: 'POST',
       headers: {{
