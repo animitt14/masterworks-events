@@ -368,6 +368,7 @@ def fetch_contacts(start: date, end: date) -> list:
                 'outbound_event_attendee_disqualified',
                 'admin_url', 'totalamountpurchased',
                 'hs_v2_date_entered_current_stage',
+                'wealth_segment', 'inferred_income', 'address',
             ],
             'limit': 200,
             'sorts': [{'propertyName': 'outbound_rsvp_to_event', 'direction': 'ASCENDING'}],
@@ -917,7 +918,140 @@ def shorten_title(title: str) -> str:
         title = re.sub(re.escape(full), abbrev, title, flags=re.IGNORECASE)
     return title
 
-def render_row(idx: int, c: dict) -> str:
+def infer_nyc_neighborhood(address: str, city: str) -> str:
+    """Return a neighborhood name for NYC addresses, or the city string otherwise."""
+    city_l = (city or '').lower().strip()
+    if not any(x in city_l for x in ('new york', 'nyc', 'manhattan')):
+        return (city or '').strip()
+    addr = (address or '').lower()
+    # Named-street lookup
+    named = [
+        (['horatio', 'jane st', 'perry st', 'charles st', 'grove st', 'barrow',
+          'bank st', 'bethune', 'leroy st', 'clarkson', 'morton st'], 'West Village'),
+        (['gansevoort', 'little w 12th', 'meatpacking'], 'Meatpacking District'),
+        (['bleecker', 'waverly', 'macdougal', 'washington sq', 'w 8th', 'w 9th',
+          'w 10th', 'w 11th', 'w 12th', 'w 13th', 'west 8th', 'west 9th',
+          'west 10th', 'west 11th', 'west 12th', 'west 13th'], 'Greenwich Village'),
+        (['ave a', 'ave b', 'ave c', 'ave d', 'st marks', 'e 1st', 'e 2nd', 'e 3rd',
+          'e 4th', 'e 5th', 'e 6th', 'e 7th', 'e 8th', 'e 9th', 'e 10th', 'e 11th',
+          'e 12th', 'e 13th', 'east 1st', 'east 2nd', 'east 3rd'], 'East Village'),
+        (['bond st', 'great jones', 'astor pl'], 'NoHo'),
+        (['spring st', 'prince st', 'broome st', 'grand st', 'mercer', 'wooster',
+          'greene st', 'west broadway', 'thompson st'], 'SoHo'),
+        (['chambers', 'warren st', 'worth st', 'reade', 'murray st', 'barclay',
+          'vesey', 'park pl'], 'TriBeCa'),
+        (['wall st', 'water st', 'fulton st', 'liberty st', 'broad st',
+          'maiden ln', 'rector', 'cedar st'], 'Financial District'),
+        (['ludlow', 'orchard', 'rivington', 'stanton', 'delancey',
+          'essex', 'allen st'], 'Lower East Side'),
+        (['mulberry', 'mott st', 'bayard', 'canal st'], 'Chinatown/Little Italy'),
+        (['w 14th', 'w 15th', 'w 16th', 'w 17th', 'w 18th', 'w 19th', 'w 20th',
+          'w 21st', 'w 22nd', 'w 23rd', 'w 24th', 'w 25th', 'w 26th',
+          'west 14th', 'west 15th', 'west 16th', 'west 17th', 'west 18th',
+          'west 19th', 'west 20th', 'west 21st', 'west 22nd', 'west 23rd',
+          'west 24th', 'west 25th', 'west 26th'], 'Chelsea'),
+        (['e 14th', 'e 15th', 'e 16th', 'e 17th', 'e 18th', 'e 19th', 'e 20th',
+          'e 21st', 'e 22nd', 'e 23rd', 'e 24th', 'e 25th', 'e 26th',
+          'east 14th', 'east 15th', 'east 16th', 'east 17th', 'east 18th',
+          'east 19th', 'east 20th', 'east 21st', 'east 22nd', 'east 23rd',
+          'gramercy', 'irving pl', 'park ave s'], 'Gramercy/Flatiron'),
+        (['w 27th', 'w 28th', 'w 29th', 'w 30th', 'w 31st', 'w 32nd', 'w 33rd',
+          'west 27th', 'west 28th', 'west 29th', 'west 30th', 'west 31st',
+          'west 32nd', 'west 33rd', 'hudson yards'], 'Chelsea/Hudson Yards'),
+        (['e 27th', 'e 28th', 'e 29th', 'e 30th', 'e 31st', 'e 32nd', 'e 33rd',
+          'east 27th', 'east 28th', 'east 29th', 'east 30th', 'east 31st',
+          'lexington ave', 'kip', 'murray hill'], 'Murray Hill/Kips Bay'),
+        (['riverside dr', 'central park w', 'riverside blvd',
+          'w 60th', 'w 61st', 'w 62nd', 'w 63rd', 'w 64th', 'w 65th', 'w 66th',
+          'w 67th', 'w 68th', 'w 69th', 'w 70th', 'w 71st', 'w 72nd', 'w 73rd',
+          'w 74th', 'w 75th', 'w 76th', 'w 77th', 'w 78th', 'w 79th', 'w 80th',
+          'w 81st', 'w 82nd', 'w 83rd', 'w 84th', 'w 85th', 'w 86th', 'w 87th',
+          'w 88th', 'w 89th', 'w 90th', 'w 91st', 'w 92nd', 'w 93rd', 'w 94th',
+          'w 95th', 'w 96th', 'west 60th', 'west 61st', 'west 72nd', 'west 79th',
+          'west 86th', 'west 96th'], 'Upper West Side'),
+        (['e 60th', 'e 61st', 'e 62nd', 'e 63rd', 'e 64th', 'e 65th', 'e 66th',
+          'e 67th', 'e 68th', 'e 69th', 'e 70th', 'e 71st', 'e 72nd', 'e 73rd',
+          'e 74th', 'e 75th', 'e 76th', 'e 77th', 'e 78th', 'e 79th', 'e 80th',
+          'e 81st', 'e 82nd', 'e 83rd', 'e 84th', 'e 85th', 'e 86th', 'e 87th',
+          'e 88th', 'e 89th', 'e 90th', 'e 91st', 'e 92nd', 'e 93rd', 'e 94th',
+          'e 95th', 'e 96th', 'east 60th', 'east 72nd', 'east 79th', 'east 86th',
+          'east 96th', 'park ave', 'madison ave', 'fifth ave', '5th ave'], 'Upper East Side'),
+        (['morningside', 'cathedral pkwy', 'w 110th', 'w 111th', 'w 112th',
+          'w 113th', 'west 110th', 'west 116th', 'claremont'], 'Morningside Heights'),
+        (['w 125th', '125th', 'lenox', 'adam clayton', 'frederick douglass blvd',
+          'malcolm x', 'harlem'], 'Harlem'),
+    ]
+    for keywords, hood in named:
+        if any(kw in addr for kw in keywords):
+            return hood
+    # Broadway block-number inference
+    if 'broadway' in addr:
+        m = re.search(r'(\d+)\s+broadway', addr)
+        if m:
+            n = int(m.group(1))
+            if n < 100:    return 'Financial District'
+            elif n < 400:  return 'TriBeCa/SoHo'
+            elif n < 900:  return 'Greenwich Village'
+            elif n < 1500: return 'Flatiron/Union Square'
+            elif n < 2000: return 'Midtown'
+            elif n < 2800: return 'Upper West Side'
+            else:          return 'Harlem'
+    # Numbered cross-street inference
+    m = re.search(r'\b(\d+)\w*\s+st(?:reet)?\b', addr)
+    if m:
+        n = int(m.group(1))
+        is_west = bool(re.search(r'\bw(?:est)?\b', addr))
+        if 34 <= n <= 59:  return 'Midtown West' if is_west else 'Midtown East'
+        elif 60 <= n <= 96: return 'Upper West Side' if is_west else 'Upper East Side'
+        elif n > 96:        return 'Morningside Heights' if is_west else 'East Harlem'
+    return 'New York, NY'
+
+
+def render_detail_row(p: dict, per: str, nw: str) -> str:
+    """Render the hidden dropdown detail row (today + future events only)."""
+    hs_wealth    = (p.get('wealth_segment')  or '').strip() or '—'
+    inferred_inc = (p.get('inferred_income') or '').strip() or '—'
+    address      = (p.get('address') or '').strip()
+    city         = (p.get('city')    or '').strip()
+    neighborhood = infer_nyc_neighborhood(address, city) if (address or city) else '—'
+    prop_display = escape(address) if address else escape(city) if city else '—'
+
+    return (
+        f'<tr class="detail-row" style="display:none">'
+        f'<td colspan="10" style="padding:0;border-bottom:1px solid #eef1f7">'
+        f'<div class="detail-inner">'
+        # Persona
+        f'<div class="detail-cell">'
+        f'<p class="detail-cell-label">Persona</p>'
+        f'<span class="persona-detail-pill">{escape(per)}</span>'
+        f'</div>'
+        # Wealth Segment
+        f'<div class="detail-cell">'
+        f'<p class="detail-cell-label">Wealth Segment</p>'
+        f'<div class="seg-stack">'
+        f'<div class="seg-row"><span class="seg-src">HS</span>'
+        f'<span class="seg-val">{escape(hs_wealth)}</span></div>'
+        f'<hr class="seg-divider">'
+        f'<div class="seg-row"><span class="seg-src">Claude</span>'
+        f'<span class="seg-val">{escape(nw)}</span></div>'
+        f'<hr class="seg-divider">'
+        f'<div class="seg-row"><span class="seg-src">Income</span>'
+        f'<span class="seg-val">{escape(inferred_inc)}</span></div>'
+        f'</div>'
+        f'</div>'
+        # Property
+        f'<div class="detail-cell">'
+        f'<p class="detail-cell-label">Property</p>'
+        f'<span class="prop-value">{prop_display}</span>'
+        f'<p class="prop-neighborhood">{escape(neighborhood)}</p>'
+        f'</div>'
+        f'</div>'
+        f'</td>'
+        f'</tr>\n'
+    )
+
+
+def render_row(idx: int, c: dict, show_dropdown: bool = False) -> str:
     p        = c['properties']
     cid      = c['id']
     fname    = p.get('firstname') or ''
@@ -974,11 +1108,16 @@ def render_row(idx: int, c: dict) -> str:
         f'{loc_html}{ns_html}'
     )
 
+    chevron_td = '<td style="text-align:center;padding:11px 4px"><span class="expand-chevron">▼</span></td>' if show_dropdown else ''
+    tr_attrs   = (f'data-contact="{escape(cid)}" style="cursor:pointer" ' if show_dropdown else '')
+    detail_row = render_detail_row(p, per, nw) if show_dropdown else ''
+
     return (
         f'<tr data-id="{escape(cid)}" data-auto="{sc}" '
         f'data-persona="{escape(per)}" data-score="{sc}" '
         f'data-disqualified="{"1" if disqualified else "0"}" '
-        f'class="{uninvite_class.strip()}">'
+        f'{tr_attrs}class="{uninvite_class.strip()}">'
+        f'{chevron_td}'
         f'<td style="color:#aabcd4;text-align:center">{idx}</td>'
         f'<td>{name_cell}</td>'
         f'<td>{tc_html}</td>'
@@ -999,6 +1138,7 @@ def render_row(idx: int, c: dict) -> str:
         f'onchange="toggleAttended(this)" '
         f'style="width:16px;height:16px;cursor:pointer;accent-color:#1a7a45"></td>'
         f'</tr>\n'
+        f'{detail_row}'
     )
 
 NW_RANK = {'$3M–$10M': 6, '$2M–$6M': 5, '$1M–$4M': 4, '$500K–$2M': 3, '$150K–$500K': 2, '$50K–$200K': 1}
@@ -1029,7 +1169,8 @@ def render_panel(date_str: str, contacts: list, tab_id: str, active: bool) -> st
         )
     sorted_contacts = sorted(contacts, key=_sort_key)
 
-    rows_html = ''.join(render_row(i + 1, c) for i, c in enumerate(sorted_contacts))
+    show_dropdown = not is_past(date_str)
+    rows_html = ''.join(render_row(i + 1, c, show_dropdown) for i, c in enumerate(sorted_contacts))
 
     counts = defaultdict(int)
     for c in contacts:
@@ -1096,6 +1237,7 @@ def render_panel(date_str: str, contacts: list, tab_id: str, active: bool) -> st
   <div class="table-scroll">
     <table class="rsvp-table" id="tbl-{tab_id}">
       <thead><tr>
+        {'<th style="width:20px"></th>' if show_dropdown else ''}
         <th style="width:34px">#</th>
         <th>Name</th>
         <th>Title / Company</th>
@@ -1241,6 +1383,26 @@ header{{background:#1b3c6e;padding:16px 28px;position:sticky;top:0;z-index:100;
                 justify-content:center;font-weight:700;font-size:0.78rem;flex-shrink:0}}
 
 .rsvp-table tbody tr.uninvited{{opacity:0.35;text-decoration:line-through}}
+
+/* ── Contact detail dropdown (today + future events only) ── */
+.expand-chevron{{font-size:9px;color:#aaa;display:inline-block;transition:transform .15s;cursor:pointer}}
+.expand-chevron.open{{transform:rotate(180deg)}}
+.rsvp-table tbody tr.detail-row{{background:#f9f9f9!important;cursor:default}}
+.rsvp-table tbody tr.detail-row:hover{{background:#f9f9f9!important}}
+.detail-inner{{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:10px 14px 10px 32px}}
+.detail-cell{{background:#fff;border:0.5px solid #e0e0e0;border-radius:8px;padding:10px 12px;
+              display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
+              text-align:center;gap:6px}}
+.detail-cell-label{{font-size:10px;color:#aaa;text-transform:uppercase;letter-spacing:.05em}}
+.seg-stack{{display:flex;flex-direction:column;gap:2px;width:100%}}
+.seg-row{{display:flex;align-items:center;justify-content:center;gap:6px}}
+.seg-src{{font-size:10px;color:#aaa;width:44px;text-align:right;flex-shrink:0}}
+.seg-val{{font-size:13px;font-weight:500;color:#1b3c6e;width:90px;text-align:left}}
+.seg-divider{{border:none;border-top:0.5px solid #e0e0e0;margin:3px 0;width:100%}}
+.prop-value{{font-size:13px;font-weight:500;color:#1b3c6e}}
+.prop-neighborhood{{font-size:12px;color:#888}}
+.persona-detail-pill{{display:inline-block;background:#f0f3f8;color:#1b3c6e;border:1px solid #c9d4e8;
+                      border-radius:10px;font-size:0.75rem;font-weight:600;padding:3px 10px}}
 
 .nav-link{{font-size:0.72rem;color:#c9a84c;text-decoration:none;letter-spacing:0.08em;
            text-transform:uppercase;opacity:0.8;white-space:nowrap}}
@@ -1723,6 +1885,20 @@ function selectPast(tid, label) {{
 document.addEventListener('click', function() {{
   var menu = document.getElementById('pastDropMenu');
   if (menu) menu.classList.remove('open');
+}});
+
+// ── Contact detail dropdown ───────────────────────────────────────────────────
+document.querySelectorAll('tr[data-contact]').forEach(function(row) {{
+  row.addEventListener('click', function(e) {{
+    // Don't expand when clicking checkboxes, links, or score badge
+    if (e.target.closest('input,a,.score-badge,.score-popover')) return;
+    var detail  = row.nextElementSibling;
+    var chevron = row.querySelector('.expand-chevron');
+    if (!detail || !chevron) return;
+    var isOpen = detail.style.display === 'table-row';
+    detail.style.display = isOpen ? 'none' : 'table-row';
+    chevron.classList.toggle('open', !isOpen);
+  }});
 }});
 
 // ── Init ──────────────────────────────────────────────────────────────────────
