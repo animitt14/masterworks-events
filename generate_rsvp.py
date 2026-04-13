@@ -1086,7 +1086,7 @@ def render_detail_row(p: dict, per: str, nw: str) -> str:
 
     return (
         f'<tr class="detail-row" style="display:none">'
-        f'<td colspan="10" style="padding:0;border-bottom:1px solid #eef1f7">'
+        f'<td colspan="8" style="padding:0;border-bottom:1px solid #eef1f7">'
         f'<div class="detail-inner">'
         # Persona
         f'<div class="detail-cell">'
@@ -1192,8 +1192,6 @@ def render_row(idx: int, c: dict, show_dropdown: bool = False) -> str:
         f'<td style="color:#aabcd4;text-align:center">{idx}</td>'
         f'<td>{name_cell}</td>'
         f'<td>{tc_html}</td>'
-        f'<td style="font-size:0.8rem">{escape(per)}</td>'
-        f'<td>{nw_cell}</td>'
         f'<td style="text-align:center" class="score-cell">{score_badge_html(sc)}</td>'
         f'<td style="text-align:center">'
         f'<a href="{li_url(name, company)}" target="_blank" '
@@ -1312,8 +1310,6 @@ def render_panel(date_str: str, contacts: list, tab_id: str, active: bool) -> st
         <th style="width:34px">#</th>
         <th>Name</th>
         <th>Title / Company</th>
-        <th>Persona</th>
-        <th>Est. Net Worth</th>
         <th>Likelihood <span style="font-size:0.6rem;opacity:0.6">(click to override)</span></th>
         <th>LinkedIn</th>
         <th>HubSpot</th>
