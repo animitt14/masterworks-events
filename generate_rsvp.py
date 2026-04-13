@@ -1565,6 +1565,24 @@ function applyOverride(cid, sc, tabId) {{
   }});
 }}
 
+var _uninviteSyncTimer = null;
+function _scheduleUninviteSync() {{
+  clearTimeout(_uninviteSyncTimer);
+  _uninviteSyncTimer = setTimeout(function() {{
+    var tok = localStorage.getItem('gh_pat');
+    if (!tok) return;
+    fetch('https://api.github.com/repos/' + GITHUB_REPO + '/actions/workflows/' + GITHUB_WORKFLOW + '/dispatches', {{
+      method: 'POST',
+      headers: {{
+        'Authorization': 'token ' + tok,
+        'Accept': 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json',
+      }},
+      body: JSON.stringify({{ref: 'main'}}),
+    }}).catch(function() {{}});
+  }}, 2000);  // 2s debounce — batch multiple quick uninvites into one trigger
+}}
+
 function toggleUninvite(chk) {{
   var row = chk.closest('tr');
   var cid = row.dataset.id;
@@ -1577,6 +1595,7 @@ function toggleUninvite(chk) {{
     row.classList.remove('uninvited');
   }}
   updateResetBtn(tid);
+  _scheduleUninviteSync();
 }}
 
 function toggleAttended(chk) {{
