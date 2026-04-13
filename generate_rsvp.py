@@ -988,6 +988,70 @@ def get_nw(p: dict) -> tuple:
 
     return '—', 'No title or company data'
 
+
+# ─── PLUTO → NW ADJUSTMENT ────────────────────────────────────────────────────
+
+_NW_TIER_ORDER = {
+    '$3M–$10M':    6,
+    '$2M–$6M':     5,
+    '$1M–$4M':     4,
+    '$500K–$2M':   3,
+    '$150K–$500K': 2,
+    '$50K–$200K':  1,
+    '—':           0,
+}
+
+def _parse_pluto_low(pluto_val: str) -> float | None:
+    """Parse the low end of a PLUTO range string e.g. '$1.4M – $2.1M' → 1_400_000."""
+    m = re.match(r'\$([0-9.]+)(M|K)', pluto_val.strip())
+    if not m:
+        return None
+    val  = float(m.group(1))
+    mult = 1_000_000 if m.group(2) == 'M' else 1_000
+    return val * mult
+
+def pluto_nw_bump(current_nw: str, pluto_val: str) -> tuple | None:
+    """Return (bumped_nw_str, reason) if PLUTO property estimate implies a higher NW
+    tier than the current Claude estimate, else None.
+
+    Logic: assume property is at most 50% of net worth (conservative).
+    So implied NW floor = PLUTO low end ÷ 0.5.
+    Only raises — never lowers — the estimate.
+    PLUTO tends to underestimate for apartments, so this floor is already conservative.
+    """
+    if not pluto_val:
+        return None
+    low = _parse_pluto_low(pluto_val)
+    if not low or low <= 0:
+        return None
+
+    # Property ≤ 50% of NW → NW ≥ 2 × property low end
+    implied_floor = low * 2.0
+
+    if implied_floor >= 3_000_000:
+        implied_tier = '$3M–$10M'
+    elif implied_floor >= 2_000_000:
+        implied_tier = '$2M–$6M'
+    elif implied_floor >= 1_000_000:
+        implied_tier = '$1M–$4M'
+    elif implied_floor >= 500_000:
+        implied_tier = '$500K–$2M'
+    elif implied_floor >= 150_000:
+        implied_tier = '$150K–$500K'
+    else:
+        return None  # too low to be informative
+
+    # Only bump up
+    if _NW_TIER_ORDER.get(implied_tier, 0) <= _NW_TIER_ORDER.get(current_nw, 0):
+        return None
+
+    def _fmt(v: float) -> str:
+        return f'${v / 1_000_000:.1f}M' if v >= 1_000_000 else f'${round(v / 1_000)}K'
+
+    reason = f'PLUTO property {pluto_val} → implied NW floor {_fmt(implied_floor)} (property ≤ 50% of NW)'
+    return implied_tier, reason
+
+
 # ─── EVENT STATS ──────────────────────────────────────────────────────────────
 
 def compute_event_stats(contacts: list) -> dict:
@@ -1266,6 +1330,11 @@ def render_row(idx: int, c: dict, show_dropdown: bool = False) -> str:
     sc, flags = score_contact(p)
     per       = get_persona(p)
     nw, nw_r  = get_nw(p)
+
+    # Bump Claude NW up if PLUTO property estimate implies a higher tier
+    pluto_bump = pluto_nw_bump(nw, p.get('_pluto_val') or '')
+    if pluto_bump:
+        nw, nw_r = pluto_bump
 
     owner_name = OWNERS.get(owner_id, owner_id or '—')
     if owner_id in INACTIVE_OWNERS:
