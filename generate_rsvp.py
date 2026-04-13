@@ -2675,7 +2675,7 @@ def build_scoring_html(generated_at: str) -> str:
 
 GIST_STATE_FILE = 'mw_rsvp_state.json'
 
-def sync_uninvites_from_gist():
+def sync_uninvites_from_gist(contacts: list):
     """Read the shared Gist state and PATCH HubSpot for any uninvited contacts."""
     try:
         r = requests.get(
@@ -2695,8 +2695,18 @@ def sync_uninvites_from_gist():
     if not uninvite_ids:
         return
 
+    # Skip contacts already marked Disqualified in HubSpot — no need to re-patch
+    already_done = {
+        c['id'] for c in contacts
+        if (c['properties'].get('outbound_event_attendee_disqualified') or '').strip().lower() == 'disqualified'
+    }
+    to_patch = [cid for cid in uninvite_ids if cid not in already_done]
+    if not to_patch:
+        print('  Uninvite sync: all already Disqualified in HubSpot, nothing to patch')
+        return
+
     headers = {'Authorization': f'Bearer {HUBSPOT_TOKEN}', 'Content-Type': 'application/json'}
-    for cid in uninvite_ids:
+    for cid in to_patch:
         try:
             resp = requests.patch(
                 f'https://api.hubapi.com/crm/v3/objects/contacts/{cid}',
@@ -2718,10 +2728,10 @@ def main():
     end   = today + timedelta(days=DAYS_AHEAD)
 
     _load_enrich_cache()
-    sync_uninvites_from_gist()
     print(f'Fetching RSVPs {start} → {end}  (DAYS_BACK={DAYS_BACK}, DAYS_AHEAD={DAYS_AHEAD})')
     contacts = fetch_contacts(start, end)
     print(f'Got {len(contacts)} contacts')
+    sync_uninvites_from_gist(contacts)
 
     # Enrich only today + future events — skip past events entirely.
     # Today's contacts go first to max out the quota on what matters most.
