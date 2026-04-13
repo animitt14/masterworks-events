@@ -1016,8 +1016,6 @@ def render_detail_row(p: dict, per: str, nw: str) -> str:
     zip_code     = (p.get('zip')     or '').strip()
     neighborhood = infer_nyc_neighborhood(address, city) if (address or city) else ''
     loc_label    = neighborhood or city or '—'
-    tenure_tag   = '<span class="prop-own-tag">Own</span>' if address else '<span class="prop-rent-tag">Rent</span>'
-
     return (
         f'<tr class="detail-row" style="display:none">'
         f'<td colspan="8" style="padding:0;border-bottom:1px solid #eef1f7">'
@@ -1041,13 +1039,11 @@ def render_detail_row(p: dict, per: str, nw: str) -> str:
         f'<span class="seg-val">{escape(inferred_inc)}</span></div>'
         f'</div>'
         f'</div>'
-        # Property — value populated client-side via Census ACS API
+        # Property — census value populated client-side
         f'<div class="detail-cell" data-zip="{escape(zip_code)}">'
         f'<p class="detail-cell-label">Property</p>'
-        f'<div style="display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap">'
         f'<span class="prop-value census-value" style="color:#aabcd4;font-size:12px">Loading…</span>'
-        f'{tenure_tag}'
-        f'</div>'
+        f'<span class="prop-value">{escape(address) if address else "—"}</span>'
         f'<p class="prop-neighborhood">{escape(loc_label)}</p>'
         f'</div>'
         f'</div>'
