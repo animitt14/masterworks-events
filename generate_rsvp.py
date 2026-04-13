@@ -382,11 +382,14 @@ def _nyc_boro(city: str, zip_code: str) -> int | None:
 def _pluto_strip_unit(address: str) -> str:
     """Strip apt/unit suffix and normalize address for PLUTO token matching."""
     addr = address.strip()
-    # Remove apt/unit/floor/# suffix
+    # Strip trailing comma and anything after (city/state)
+    addr = addr.split(',')[0].strip()
+    # Remove named unit keywords with their value: "Apt 4B", "Suite 1605", "Fl 3", "#401"
     addr = re.sub(r'[\s,]+(apt|apartment|unit|ste|suite|fl|floor|ph|penthouse|rm|room|#)\s*\S*$',
                   '', addr, flags=re.IGNORECASE)
-    # Strip trailing comma and anything after
-    addr = addr.split(',')[0].strip()
+    # Remove trailing bare number that's a unit/suite (e.g. "41 Varick Ave 401" → "41 Varick Ave")
+    # Only strip if there's already a house number at the start
+    addr = re.sub(r'^(\d+\s+\S.+\s)\d+$', r'\1', addr.strip()).strip()
     # Strip letter suffix from house number: "11a Main St" → "11 Main St"
     addr = re.sub(r'^(\d+)[a-z]\s', lambda m: m.group(1) + ' ', addr, flags=re.IGNORECASE)
     # Strip ordinal suffixes: "90th" → "90", "1st" → "1"
@@ -446,6 +449,11 @@ def fetch_pluto_value(address: str, city: str, zip_code: str) -> str | None:
         units_total = max(int(r.get('unitstotal') or 1), 1)
 
         if assess_tot <= 0:
+            _enrich_cache[cache_key] = None
+            return None
+
+        # Skip non-residential building classes (commercial, industrial, etc.)
+        if bldg_class not in ('A', 'B', 'C', 'D', 'R', 'S'):
             _enrich_cache[cache_key] = None
             return None
 
