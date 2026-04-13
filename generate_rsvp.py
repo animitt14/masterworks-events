@@ -1190,7 +1190,7 @@ def render_detail_row(p: dict, per: str, nw: str) -> str:
 
     addr_display = escape(address) if address else '—'
     loc_display  = escape(loc_label)
-    hood_label   = 'Neighborhood' if is_nyc_hood else 'City'
+    hood_label   = 'Nbhd' if is_nyc_hood else 'City'
 
     if pluto_val:
         prop_cell = (
@@ -1591,7 +1591,7 @@ header{{background:#1b3c6e;padding:16px 28px;position:sticky;top:0;z-index:100;
               text-align:center;gap:6px}}
 .detail-cell-label{{font-size:10px;color:#7a94b8;text-transform:uppercase;letter-spacing:.05em;font-weight:600}}
 .seg-stack{{display:flex;flex-direction:column;gap:2px;width:100%}}
-.seg-row{{display:flex;align-items:center;justify-content:flex-start;gap:6px}}
+.seg-row{{display:flex;align-items:center;justify-content:center;gap:6px}}
 .seg-src{{font-size:10px;color:#aaa;width:80px;text-align:right;flex-shrink:0}}
 .seg-val{{font-size:13px;font-weight:500;color:#1b3c6e;flex:1;min-width:0;text-align:left;word-break:break-word}}
 .seg-divider{{border:none;border-top:0.5px solid #e0e0e0;margin:3px 0;width:100%}}
