@@ -1227,7 +1227,7 @@ def render_detail_row(p: dict, per: str, nw: str) -> str:
 
     return (
         f'<tr class="detail-row" style="display:none">'
-        f'<td colspan="8" style="padding:0;border-bottom:1px solid #eef1f7">'
+        f'<td colspan="8" style="padding:0;border-bottom:1px solid #eef1f7;width:100%">'
         f'<div class="detail-inner">'
         f'<div class="detail-cell">'
         f'<p class="detail-cell-label">Persona</p>'
@@ -1585,7 +1585,7 @@ header{{background:#1b3c6e;padding:16px 28px;position:sticky;top:0;z-index:100;
 .expand-chevron.open{{transform:rotate(180deg)}}
 .rsvp-table tbody tr.detail-row{{background:#f9f9f9!important;cursor:default}}
 .rsvp-table tbody tr.detail-row:hover{{background:#f9f9f9!important}}
-.detail-inner{{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:10px 14px 10px 32px}}
+.detail-inner{{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:10px 14px 10px 32px;width:100%;box-sizing:border-box}}
 .detail-cell{{background:#fff;border:0.5px solid #e0e0e0;border-radius:8px;padding:10px 12px;
               display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
               text-align:center;gap:6px}}
