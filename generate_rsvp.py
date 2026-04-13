@@ -1007,14 +1007,82 @@ def infer_nyc_neighborhood(address: str, city: str) -> str:
     return 'New York, NY'
 
 
+# Estimated resale value ranges by NYC neighborhood (2025–26 market)
+_NYC_HOOD_VALUES: dict = {
+    'Financial District':       '$700K – $2.5M',
+    'TriBeCa':                  '$2.5M – $10M',
+    'TriBeCa/SoHo':             '$2M – $8M',
+    'SoHo':                     '$2M – $7M',
+    'NoHo':                     '$2M – $7M',
+    'West Village':             '$1.5M – $6M',
+    'West Village/Greenwich Village': '$1.5M – $5M',
+    'Meatpacking District':     '$2M – $7M',
+    'Greenwich Village':        '$1.5M – $5M',
+    'East Village':             '$800K – $2.5M',
+    'Lower East Side':          '$600K – $2M',
+    'Chinatown/Little Italy':   '$600K – $1.8M',
+    'Little Italy':             '$700K – $2M',
+    'Chelsea':                  '$1M – $4M',
+    'Chelsea/Hudson Yards':     '$1.2M – $5M',
+    'Gramercy/Flatiron':        '$1M – $4M',
+    'Flatiron/Union Square':    '$1M – $4M',
+    'Flatiron/Chelsea':         '$1M – $4M',
+    'Murray Hill/Kips Bay':     '$700K – $2.5M',
+    'Gramercy/Murray Hill':     '$800K – $3M',
+    'Midtown':                  '$800K – $3M',
+    'Midtown West':             '$900K – $3.5M',
+    'Midtown East':             '$900K – $3.5M',
+    'Midtown South':            '$800K – $2.8M',
+    'Chelsea/Midtown South':    '$900K – $3M',
+    'Upper West Side':          '$1M – $4.5M',
+    'Upper East Side':          '$1.2M – $6M',
+    'Morningside Heights':      '$500K – $2M',
+    'East Harlem':              '$400K – $1.5M',
+    'Harlem':                   '$400K – $1.5M',
+    'New York, NY':             '$700K – $3M',
+}
+
+# Rough ranges for other major US cities
+_CITY_VALUES: dict = {
+    'san francisco':   '$1.2M – $4M',
+    'palo alto':       '$2M – $6M',
+    'los angeles':     '$900K – $4M',
+    'santa monica':    '$1.5M – $5M',
+    'miami':           '$700K – $3M',
+    'miami beach':     '$900K – $4M',
+    'chicago':         '$400K – $1.5M',
+    'boston':          '$700K – $2.5M',
+    'cambridge':       '$900K – $2.5M',
+    'washington':      '$700K – $2M',
+    'greenwich':       '$1.5M – $6M',
+    'westport':        '$1M – $4M',
+    'darien':          '$1.5M – $5M',
+    'new canaan':      '$1.2M – $4M',
+    'short hills':     '$1M – $3.5M',
+    'hoboken':         '$600K – $1.5M',
+    'jersey city':     '$500K – $1.2M',
+}
+
+def estimate_home_value(neighborhood: str, city: str) -> str:
+    """Return an estimated home value range from neighborhood/city knowledge."""
+    if neighborhood and neighborhood in _NYC_HOOD_VALUES:
+        return _NYC_HOOD_VALUES[neighborhood]
+    city_l = (city or '').lower()
+    for key, val in _CITY_VALUES.items():
+        if key in city_l:
+            return val
+    return '—'
+
+
 def render_detail_row(p: dict, per: str, nw: str) -> str:
     """Render the hidden dropdown detail row (today + future events only)."""
     hs_wealth    = (p.get('wealth_segment')  or '').strip() or '—'
     inferred_inc = (p.get('inferred_income') or '').strip() or '—'
     address      = (p.get('address') or '').strip()
     city         = (p.get('city')    or '').strip()
-    neighborhood = infer_nyc_neighborhood(address, city) if (address or city) else '—'
-    prop_display = escape(address) if address else escape(city) if city else '—'
+    neighborhood = infer_nyc_neighborhood(address, city) if (address or city) else ''
+    home_value   = estimate_home_value(neighborhood, city) if (address or city) else '—'
+    loc_label    = neighborhood or city or '—'
 
     return (
         f'<tr class="detail-row" style="display:none">'
@@ -1042,8 +1110,11 @@ def render_detail_row(p: dict, per: str, nw: str) -> str:
         # Property
         f'<div class="detail-cell">'
         f'<p class="detail-cell-label">Property</p>'
-        f'<span class="prop-value">{prop_display}</span>'
-        f'<p class="prop-neighborhood">{escape(neighborhood)}</p>'
+        f'<div style="display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap">'
+        f'<span class="prop-value">{escape(home_value)}</span>'
+        f'<span class="prop-unknown-tag">? Own/Rent</span>'
+        f'</div>'
+        f'<p class="prop-neighborhood">{escape(loc_label)}</p>'
         f'</div>'
         f'</div>'
         f'</td>'
@@ -1401,6 +1472,7 @@ header{{background:#1b3c6e;padding:16px 28px;position:sticky;top:0;z-index:100;
 .seg-divider{{border:none;border-top:0.5px solid #e0e0e0;margin:3px 0;width:100%}}
 .prop-value{{font-size:13px;font-weight:500;color:#1b3c6e}}
 .prop-neighborhood{{font-size:12px;color:#888}}
+.prop-unknown-tag{{font-size:11px;padding:2px 6px;border-radius:4px;background:#f0f3f8;color:#7a94b8;border:1px solid #c0ccd8;font-weight:500}}
 .persona-detail-pill{{display:inline-block;background:#f0f3f8;color:#1b3c6e;border:1px solid #c9d4e8;
                       border-radius:10px;font-size:0.75rem;font-weight:600;padding:3px 10px}}
 
