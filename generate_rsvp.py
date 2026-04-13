@@ -1189,19 +1189,23 @@ def render_detail_row(p: dict, per: str, nw: str) -> str:
             loc_label = city_fmt or '—'
 
     addr_display = escape(address) if address else '—'
+    loc_display  = escape(loc_label)
+    hood_label   = 'Neighborhood' if is_nyc_hood else 'City'
 
     if pluto_val:
         prop_cell = (
             f'<div class="detail-cell">'
             f'<p class="detail-cell-label">Property</p>'
             f'<div class="seg-stack">'
-            f'<div class="seg-row">'
-            f'<span class="seg-src">PLUTO</span>'
-            f'<span class="seg-val">{escape(pluto_val)}</span>'
+            f'<div class="seg-row"><span class="seg-src">PLUTO</span>'
+            f'<span class="seg-val">{escape(pluto_val)}</span></div>'
+            f'<hr class="seg-divider">'
+            f'<div class="seg-row"><span class="seg-src">Street</span>'
+            f'<span class="seg-val">{addr_display}</span></div>'
+            f'<hr class="seg-divider">'
+            f'<div class="seg-row"><span class="seg-src">{hood_label}</span>'
+            f'<span class="seg-val">{loc_display}</span></div>'
             f'</div>'
-            f'</div>'
-            f'<span class="prop-value">{addr_display}</span>'
-            f'<p class="prop-neighborhood">{escape(loc_label)}</p>'
             f'</div>'
         )
     else:
@@ -1209,13 +1213,15 @@ def render_detail_row(p: dict, per: str, nw: str) -> str:
             f'<div class="detail-cell" data-zip="{escape(zip_code)}">'
             f'<p class="detail-cell-label">Property</p>'
             f'<div class="seg-stack">'
-            f'<div class="seg-row">'
-            f'<span class="seg-src">Census</span>'
-            f'<span class="census-value seg-val" style="color:#aabcd4">Loading…</span>'
+            f'<div class="seg-row"><span class="seg-src">Census</span>'
+            f'<span class="census-value seg-val" style="color:#aabcd4">Loading…</span></div>'
+            f'<hr class="seg-divider">'
+            f'<div class="seg-row"><span class="seg-src">Street</span>'
+            f'<span class="seg-val">{addr_display}</span></div>'
+            f'<hr class="seg-divider">'
+            f'<div class="seg-row"><span class="seg-src">{hood_label}</span>'
+            f'<span class="seg-val">{loc_display}</span></div>'
             f'</div>'
-            f'</div>'
-            f'<span class="prop-value">{addr_display}</span>'
-            f'<p class="prop-neighborhood">{escape(loc_label)}</p>'
             f'</div>'
         )
 
