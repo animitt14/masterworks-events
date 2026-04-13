@@ -203,7 +203,7 @@ def epoch_ms(d: date, end_of_day: bool = False) -> int:
 
 # ─── GOOGLE ENRICHMENT ───────────────────────────────────────────────────────
 
-ENRICH_CACHE_FILE = Path('docs/enrich_cache.json')
+ENRICH_CACHE_FILE = Path('enrich_cache.json')
 _enrich_cache: dict = {}      # loaded from file at start of main()
 _quota_exhausted: bool = False  # flip to True on first 429 — stops all further queries
 
@@ -340,6 +340,155 @@ def enrich_no_data_contacts(contacts: list) -> int:
 
     _save_enrich_cache()
     return enriched
+
+
+# ─── NYC PLUTO PROPERTY LOOKUP ────────────────────────────────────────────────
+
+PLUTO_URL = 'https://data.cityofnewyork.us/resource/64uk-42ks.json'
+
+# Zip ranges that are definitively NYC boroughs
+_NYC_ZIP_RANGES = [
+    (10001, 10282, 1),  # Manhattan
+    (10301, 10314, 5),  # Staten Island
+    (10451, 10475, 2),  # Bronx
+    (11004, 11109, 4),  # Queens (south/far)
+    (11201, 11256, 3),  # Brooklyn
+    (11351, 11697, 4),  # Queens (north/central)
+]
+
+_NYC_CITY_TO_BORO = {
+    'new york': 1, 'manhattan': 1, 'new york city': 1, 'nyc': 1,
+    'bronx': 2, 'the bronx': 2,
+    'brooklyn': 3,
+    'queens': 4, 'flushing': 4, 'astoria': 4, 'jamaica': 4, 'bayside': 4,
+    'long island city': 4, 'lic': 4, 'jackson heights': 4, 'forest hills': 4,
+    'ridgewood': 4, 'woodside': 4, 'sunnyside': 4, 'rego park': 4,
+    'staten island': 5,
+}
+
+def _nyc_boro(city: str, zip_code: str) -> int | None:
+    """Return NYC borough code (1–5) or None if not NYC."""
+    city_l = city.lower().strip() if city else ''
+    for name, code in _NYC_CITY_TO_BORO.items():
+        if name in city_l:
+            return code
+    if zip_code and zip_code.isdigit():
+        z = int(zip_code)
+        for lo, hi, code in _NYC_ZIP_RANGES:
+            if lo <= z <= hi:
+                return code
+    return None
+
+def _pluto_strip_unit(address: str) -> str:
+    """Strip apt/unit suffix and normalize address for PLUTO token matching."""
+    addr = address.strip()
+    # Remove apt/unit/floor/# suffix
+    addr = re.sub(r'[\s,]+(apt|apartment|unit|ste|suite|fl|floor|ph|penthouse|rm|room|#)\s*\S*$',
+                  '', addr, flags=re.IGNORECASE)
+    # Strip trailing comma and anything after
+    addr = addr.split(',')[0].strip()
+    # Strip letter suffix from house number: "11a Main St" → "11 Main St"
+    addr = re.sub(r'^(\d+)[a-z]\s', lambda m: m.group(1) + ' ', addr, flags=re.IGNORECASE)
+    # Strip ordinal suffixes: "90th" → "90", "1st" → "1"
+    addr = re.sub(r'\b(\d+)(st|nd|rd|th)\b', r'\1', addr, flags=re.IGNORECASE)
+    return addr.strip().upper()
+
+def fetch_pluto_value(address: str, city: str, zip_code: str) -> str | None:
+    """Query NYC Open Data PLUTO for a property value estimate.
+    Returns display string like '$1.2M – $1.8M' or None if not NYC / not found."""
+    boro = _nyc_boro(city, zip_code)
+    if not boro:
+        return None
+
+    normalized = _pluto_strip_unit(address)
+    if not normalized:
+        return None
+
+    cache_key = f'pluto:{normalized}:{zip_code or boro}'
+    if cache_key in _enrich_cache:
+        return _enrich_cache[cache_key]  # None = confirmed miss
+
+    # Parse house number for prefix search
+    m = re.match(r'^(\d+)', normalized)
+    if not m:
+        _enrich_cache[cache_key] = None
+        return None
+    house_num = m.group(1)
+
+    try:
+        where = f"zipcode='{zip_code}' AND address like '{house_num}%'" if zip_code \
+                else f"borocode='{boro}' AND address like '{house_num}%'"
+        resp = requests.get(PLUTO_URL, params={'$where': where, '$limit': 5}, timeout=10)
+        if not resp.ok:
+            print(f'  PLUTO {resp.status_code} for "{normalized}"', file=sys.stderr)
+            _enrich_cache[cache_key] = None
+            return None
+
+        rows = resp.json()
+        if not rows:
+            _enrich_cache[cache_key] = None
+            return None
+
+        # Pick best match by token overlap (handles PLUTO full words vs. abbreviations)
+        # e.g. normalized="215 W 90 ST" vs PLUTO "215 WEST 90 STREET" → tokens {"215","90"} match
+        norm_tokens = set(normalized.split())
+
+        def _addr_match_score(row_addr: str) -> int:
+            row_tokens = set(re.sub(r'\b(\d+)(ST|ND|RD|TH)\b', r'\1',
+                                    row_addr.upper().strip()).split())
+            return len(norm_tokens & row_tokens)
+
+        rows = sorted(rows, key=lambda r: _addr_match_score(r.get('address', '')), reverse=True)
+        r = rows[0]
+
+        assess_tot  = float(r.get('assesstot') or 0)
+        bldg_class  = (r.get('bldgclass') or '').upper()[:1]
+        units_total = max(int(r.get('unitstotal') or 1), 1)
+
+        if assess_tot <= 0:
+            _enrich_cache[cache_key] = None
+            return None
+
+        # NYC property tax ratios by unit count:
+        # Tax Class 1 (1–3 units): assessed ≈ 6% of market value
+        # Tax Class 2 (4+ units): assessed ≈ 45% of market value (building total)
+        if units_total <= 3:
+            market = assess_tot / 0.06
+        else:
+            building_market = assess_tot / 0.45
+            # Divide by units for a rough per-unit estimate
+            market = building_market / units_total
+
+        def _fmt(v: float) -> str:
+            return f'${v / 1_000_000:.1f}M' if v >= 1_000_000 else f'${round(v / 1_000)}K'
+
+        result = f'{_fmt(market * 0.8)} – {_fmt(market * 1.2)}'
+        _enrich_cache[cache_key] = result
+        print(f'  PLUTO {normalized}: {result} (class {bldg_class}, units {units_total}, assessed ${assess_tot:,.0f})')
+        return result
+
+    except Exception as e:
+        print(f'  PLUTO exception for "{normalized}": {e}', file=sys.stderr)
+        _enrich_cache[cache_key] = None
+        return None
+
+
+def pluto_enrich_contacts(contacts: list) -> int:
+    """Look up NYC PLUTO property values for today+future contacts with addresses."""
+    count = 0
+    for c in contacts:
+        p       = c['properties']
+        address  = (p.get('address')  or '').strip()
+        city     = (p.get('city')     or '').strip()
+        zip_code = (p.get('zip')      or '').strip()
+        if not address:
+            continue
+        val = fetch_pluto_value(address, city, zip_code)
+        if val is not None:
+            p['_pluto_val'] = val
+            count += 1
+    _save_enrich_cache()
+    return count
 
 
 def fetch_contacts(start: date, end: date) -> list:
@@ -1014,18 +1163,38 @@ def render_detail_row(p: dict, per: str, nw: str) -> str:
     address      = (p.get('address') or '').strip()
     city         = (p.get('city')    or '').strip()
     zip_code     = (p.get('zip')     or '').strip()
+    pluto_val    = (p.get('_pluto_val') or '').strip() or None
     neighborhood = infer_nyc_neighborhood(address, city) if (address or city) else ''
     loc_label    = neighborhood or city or '—'
+
+    if pluto_val:
+        prop_cell = (
+            f'<div class="detail-cell">'
+            f'<p class="detail-cell-label">Property</p>'
+            f'<span class="prop-value" style="font-size:13px;font-weight:600;color:#1b3c6e">{escape(pluto_val)}</span>'
+            f'<span style="font-size:10px;color:#aabcd4">NYC PLUTO est.</span>'
+            f'<span class="prop-value">{escape(address)}</span>'
+            f'<p class="prop-neighborhood">{escape(loc_label)}</p>'
+            f'</div>'
+        )
+    else:
+        prop_cell = (
+            f'<div class="detail-cell" data-zip="{escape(zip_code)}">'
+            f'<p class="detail-cell-label">Property</p>'
+            f'<span class="prop-value census-value" style="color:#aabcd4;font-size:12px">Loading…</span>'
+            f'<span class="prop-value">{escape(address) if address else "—"}</span>'
+            f'<p class="prop-neighborhood">{escape(loc_label)}</p>'
+            f'</div>'
+        )
+
     return (
         f'<tr class="detail-row" style="display:none">'
         f'<td colspan="8" style="padding:0;border-bottom:1px solid #eef1f7">'
         f'<div class="detail-inner">'
-        # Persona
         f'<div class="detail-cell">'
         f'<p class="detail-cell-label">Persona</p>'
         f'<span class="persona-detail-pill">{escape(per)}</span>'
         f'</div>'
-        # Wealth Segment
         f'<div class="detail-cell">'
         f'<p class="detail-cell-label">Wealth Segment</p>'
         f'<div class="seg-stack">'
@@ -1039,16 +1208,8 @@ def render_detail_row(p: dict, per: str, nw: str) -> str:
         f'<span class="seg-val">{escape(inferred_inc)}</span></div>'
         f'</div>'
         f'</div>'
-        # Property — census value populated client-side
-        f'<div class="detail-cell" data-zip="{escape(zip_code)}">'
-        f'<p class="detail-cell-label">Property</p>'
-        f'<span class="prop-value census-value" style="color:#aabcd4;font-size:12px">Loading…</span>'
-        f'<span class="prop-value">{escape(address) if address else "—"}</span>'
-        f'<p class="prop-neighborhood">{escape(loc_label)}</p>'
-        f'</div>'
-        f'</div>'
-        f'</td>'
-        f'</tr>\n'
+        + prop_cell
+        + f'</div></td></tr>\n'
     )
 
 
@@ -2745,6 +2906,10 @@ def main():
     n_enriched = enrich_no_data_contacts(contacts_to_enrich)
     if n_enriched:
         print(f'Enriched {n_enriched} no-data contacts via Google Search')
+
+    n_pluto = pluto_enrich_contacts(contacts_to_enrich)
+    if n_pluto:
+        print(f'PLUTO property values fetched for {n_pluto} NYC contacts')
 
     by_date = defaultdict(list)
     for c in contacts:
