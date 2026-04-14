@@ -210,6 +210,7 @@ def epoch_ms(d: date, end_of_day: bool = False) -> int:
 ENRICH_CACHE_FILE = Path('enrich_cache.json')
 _enrich_cache: dict = {}      # loaded from file at start of main()
 _quota_exhausted: bool = False  # flip to True on first 429 — stops all further queries
+_api_calls: int = 0           # total Google API calls this run; capped at ENRICH_LIMIT
 
 def _parse_linkedin_result(title_tag: str, snippet: str) -> tuple:
     """Return (job_title, company) from a Google/LinkedIn search result.
@@ -257,33 +258,54 @@ def _save_enrich_cache():
     ENRICH_CACHE_FILE.write_text(json.dumps(_enrich_cache, indent=2), encoding='utf-8')
 
 
-def google_enrich(name: str, company_hint: str = '') -> dict:
-    """Search LinkedIn for a person by name. Returns enriched property dict or {}.
-    company_hint: company name derived from work email domain — makes search more
-    precise for common names and avoids using a quota slot on an ambiguous result."""
-    global _quota_exhausted
+def google_enrich(name: str, company_hint: str = '', domain: str = '',
+                  email: str = '', linkedin_url: str = '') -> dict:
+    """Search for a person's title/company using multiple strategies, stopping at
+    the first successful result.  Query priority (most → least targeted):
+      1. Specific LinkedIn profile URL from Pipl/HubSpot
+      2. Name + company hint on LinkedIn (work email domain)
+      3. Generic LinkedIn name search (num=5)
+      4. Name on company's own website (work email domain)
+      5. Raw email address search (last resort)
+    """
+    global _quota_exhausted, _api_calls
     if _quota_exhausted or not GOOGLE_API_KEY or not GOOGLE_CSE_ID or not name.strip():
         return {}
     if name in _enrich_cache:
         return _enrich_cache[name]
 
-    # If we have a company hint (work email), search within that company first —
-    # more precise than a bare LinkedIn search for common names.
-    # Otherwise fall back to the generic LinkedIn search.
-    queries = (
-        [f'"{name}" "{company_hint}" site:linkedin.com',
-         f'"{name}" site:linkedin.com/in']
-        if company_hint else
-        [f'"{name}" site:linkedin.com/in']
-    )
+    queries = []
+
+    # 1. Specific LinkedIn profile — most targeted, burns only 1 call
+    if linkedin_url:
+        li_path = re.search(r'linkedin\.com(/in/[^/?#\s]+)', linkedin_url)
+        if li_path:
+            queries.append(f'site:linkedin.com{li_path.group(1)}')
+
+    # 2. Name + company on LinkedIn (work email gives us the company)
+    if company_hint:
+        queries.append(f'"{name}" "{company_hint}" site:linkedin.com')
+
+    # 3. Generic LinkedIn search
+    queries.append(f'"{name}" site:linkedin.com/in')
+
+    # 4. Name on their company's own website
+    if domain:
+        queries.append(f'"{name}" site:{domain}')
+
+    # 5. Email address — catches conference bios, company pages, etc.
+    if email:
+        queries.append(f'"{email}"')
 
     for q in queries:
-        if _quota_exhausted:
+        if _quota_exhausted or _api_calls >= ENRICH_LIMIT:
+            _quota_exhausted = True
             break
         try:
+            _api_calls += 1
             resp = requests.get(
                 GOOGLE_SEARCH_URL,
-                params={'key': GOOGLE_API_KEY, 'cx': GOOGLE_CSE_ID, 'q': q, 'num': 3},
+                params={'key': GOOGLE_API_KEY, 'cx': GOOGLE_CSE_ID, 'q': q, 'num': 5},
                 timeout=10,
             )
             if resp.status_code == 429:
@@ -353,13 +375,22 @@ def enrich_no_data_contacts(contacts: list) -> int:
                 enriched += 1
             continue   # either way, don't make an API call
 
-        # New name — use a query against our daily quota
-        if enriched >= ENRICH_LIMIT:
-            break
-        email        = p.get('email', '')
-        dom          = email_domain(email)
-        company_hint = domain_to_company(email) if dom and dom not in PERSONAL_DOMAINS else ''
-        result = google_enrich(name, company_hint=company_hint)
+        # New name — run multi-strategy enrichment (quota tracked inside google_enrich)
+        email       = p.get('email', '')
+        dom         = email_domain(email)
+        personal    = dom in PERSONAL_DOMAINS
+        co_hint     = domain_to_company(email) if not personal else ''
+        li_url_hint = (
+            p.get('pipl_linkedin') or p.get('hs_linkedin_url') or
+            p.get('outbound_team___linkedin_url') or p.get('linkedin_personal_url') or ''
+        ).strip()
+        result = google_enrich(
+            name,
+            company_hint = co_hint,
+            domain       = dom if not personal else '',
+            email        = email if not personal else '',
+            linkedin_url = li_url_hint,
+        )
         if result:
             c['properties'] = {**p, **result}
             enriched += 1
