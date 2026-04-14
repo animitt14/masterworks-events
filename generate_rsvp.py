@@ -307,6 +307,16 @@ def enrich_no_data_contacts(contacts: list) -> int:
     if not GOOGLE_API_KEY or not GOOGLE_CSE_ID:
         return 0
 
+    # Clear stale empty-miss cache entries for upcoming contacts so they're
+    # retried daily until we find data. Successful enrichments stay cached forever.
+    for c in contacts:
+        p     = c['properties']
+        fname = p.get('firstname') or ''
+        lname = p.get('lastname')  or ''
+        name  = f'{fname} {lname}'.strip()
+        if name and _enrich_cache.get(name) == {}:
+            del _enrich_cache[name]
+
     enriched = 0
     for c in contacts:
         if _quota_exhausted:
@@ -321,7 +331,7 @@ def enrich_no_data_contacts(contacts: list) -> int:
         if not name:
             continue
 
-        # Apply from cache if already looked up (hit or miss from a previous run)
+        # Apply from cache if already looked up successfully
         if name in _enrich_cache:
             cached = _enrich_cache[name]
             if cached:
