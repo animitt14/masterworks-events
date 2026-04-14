@@ -1895,6 +1895,8 @@ function _patchHubSpot(cid, properties) {{
     method: 'PATCH',
     headers: {{'Authorization': 'Bearer ' + HS_TOKEN, 'Content-Type': 'application/json'}},
     body: JSON.stringify({{properties: properties}})
+  }}).then(function(r) {{
+    if (!r.ok) {{ console.error('HubSpot PATCH ' + cid + ' returned', r.status); }}
   }}).catch(function(e) {{ console.error('HubSpot PATCH failed:', e); }});
 }}
 function initSharedState(cb) {{
