@@ -102,6 +102,9 @@ SMALL_BIZ_INDICATORS = [
     'car wash', 'auto repair', 'auto body', 'pet grooming', 'dog grooming',
     # Fitness / wellness
     'gym', 'fitness studio', 'fitness center', 'yoga studio', 'pilates', 'crossfit',
+    # Nonprofits / charities — CEOs of nonprofits have low liquid wealth
+    'nonprofit', 'non-profit', 'foundation', 'charity', 'charities',
+    '501(c)', 'ngo', 'social services', 'community organization',
 ]
 
 def is_small_biz(company: str) -> bool:
@@ -967,15 +970,18 @@ def get_nw(p: dict) -> tuple:
             and in_top_finance:
         return '$2M–$6M', 'C-suite / VP at major finance firm'
     # C-suite titles (any company, any chief* title) → at least $1M–$4M
+    # Exception: CEO / Chief Executive at a small/lifestyle or nonprofit org → conservative
+    _is_ceo = any(t in title for t in ['ceo', 'chief executive'])
+    _org_email = email_domain(p.get('email', '')).endswith('.org')
+    if _is_ceo and (is_small_biz(company) or _org_email):
+        return '$150K–$500K', 'CEO of small / nonprofit organization'
     if any(t in title for t in ['chief investment', 'chief financial', 'chief operating',
                                  'chief technology', 'chief information', 'chief executive',
                                  'chief marketing', 'chief revenue', 'chief people',
                                  'chief product', 'chief data', 'chief strategy']):
         return '$1M–$4M', 'C-suite executive'
     # CEO without top-finance context → conservative NW estimate
-    if any(t in title for t in ['ceo']) and company:
-        if is_small_biz(company):
-            return '$150K–$500K', 'CEO of small / lifestyle business'
+    if _is_ceo and company:
         return '$500K–$2M', 'CEO (unverified scale)'
     # Founder/co-founder — assume low unless finance signal already triggered above
     if any(t in title for t in ['founder', 'co-founder', 'cofounder']):
