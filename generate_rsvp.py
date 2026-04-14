@@ -1538,6 +1538,8 @@ def render_panel(date_str: str, contacts: list, tab_id: str, active: bool) -> st
         score_contact(c['properties'])[0] for c in contacts
         if (c['properties'].get('attended_outbound_event') or '').strip().lower() == 'yes'
     )
+    attended_count  = sum(1 for c in contacts if (c['properties'].get('attended_outbound_event') or '').strip().lower() == 'yes')
+    uninvite_count  = sum(1 for c in contacts if (c['properties'].get('outbound_event_attendee_disqualified') or '').strip().lower() == 'disqualified')
     attended_score_html = (
         f'<span style="font-size:0.78rem;color:#1a7a45;font-weight:700" '
         f'id="attended-score-{tab_id}">Attended score: {attended_sc}</span>'
@@ -1589,8 +1591,8 @@ def render_panel(date_str: str, contacts: list, tab_id: str, active: bool) -> st
         <th>Likelihood <span style="font-size:0.6rem;opacity:0.6">(click to override)</span></th>
         <th>LinkedIn</th>
         <th>HubSpot</th>
-        <th>Uninvite</th>
-        <th>Attended</th>
+        <th>Uninvite<br><span id="uninvite-count-{tab_id}" style="font-size:0.65rem;color:#c04040;font-weight:400">{uninvite_count if uninvite_count else ''}</span></th>
+        <th>Attended<br><span id="attended-count-{tab_id}" style="font-size:0.65rem;color:#1a7a45;font-weight:400">{attended_count if attended_count else ''}</span></th>
       </tr></thead>
       <tbody>{rows_html}</tbody>
     </table>
@@ -2115,6 +2117,7 @@ function toggleUninvite(chk) {{
     removeSharedState('uninvite_' + cid);
     row.classList.remove('uninvited');
   }}
+  refreshHeader(tid);
   updateResetBtn(tid);
   _scheduleUninviteSync();
 }}
@@ -2141,6 +2144,14 @@ function refreshHeader(tabId) {{
   }});
   el.textContent = sc > 0 ? 'Attended score: ' + sc : '';
   el.style.display = sc > 0 ? 'inline' : 'none';
+
+  var attCount = document.querySelectorAll('#tbl-' + tabId + ' .attended-chk:checked').length;
+  var attEl = document.getElementById('attended-count-' + tabId);
+  if (attEl) attEl.textContent = attCount || '';
+
+  var uninvCount = document.querySelectorAll('#tbl-' + tabId + ' .uninvite-chk:checked').length;
+  var uninvEl = document.getElementById('uninvite-count-' + tabId);
+  if (uninvEl) uninvEl.textContent = uninvCount || '';
 }}
 
 function applyStoredOverrides(tabId) {{
