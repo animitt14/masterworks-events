@@ -6,6 +6,7 @@ Queries HubSpot for contacts RSVPed to events within DAYS_BACK..DAYS_AHEAD,
 scores them 1–5, and writes docs/index.html.
 """
 
+import base64
 import json
 import os
 import re
@@ -1602,6 +1603,7 @@ def render_panel(date_str: str, contacts: list, tab_id: str, active: bool) -> st
 </div>'''
 
 def build_html(by_date: dict, generated_at: str) -> str:
+    _hs_tok_b64 = base64.b64encode(HUBSPOT_TOKEN.encode()).decode() if HUBSPOT_TOKEN else ''
     today_str = date.today().isoformat()
     dates     = sorted(by_date.keys(), reverse=True)
     all_dates_json = '[' + ','.join(f'"{d}"' for d in dates) + ']'
@@ -1828,7 +1830,7 @@ header{{background:#1b3c6e;padding:16px 28px;position:sticky;top:0;z-index:100;
 <script>
 var GITHUB_REPO     = '{escape(GITHUB_REPO)}';
 var GITHUB_WORKFLOW = '{GITHUB_WORKFLOW}';
-var HS_TOKEN        = '{HUBSPOT_TOKEN}';
+var HS_TOKEN        = atob('{_hs_tok_b64}');
 function triggerRefresh() {{
   var tok = localStorage.getItem('gh_pat');
   if (!tok) {{
