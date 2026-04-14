@@ -266,7 +266,7 @@ def google_enrich(name: str) -> dict:
         resp = requests.get(
             GOOGLE_SEARCH_URL,
             params={'key': GOOGLE_API_KEY, 'cx': GOOGLE_CSE_ID,
-                    'q': f'"{name}" "New York" site:linkedin.com/in', 'num': 3},
+                    'q': f'"{name}" site:linkedin.com/in', 'num': 3},
             timeout=10,
         )
         if resp.status_code == 429:
@@ -526,6 +526,7 @@ def fetch_contacts(start: date, end: date) -> list:
                 'admin_url', 'totalamountpurchased',
                 'hs_v2_date_entered_current_stage',
                 'wealth_segment', 'inferred_income', 'address',
+                'hs_linkedin_url', 'linkedin_personal_url', 'outbound_team___linkedin_url',
             ],
             'limit': 200,
             'sorts': [{'propertyName': 'outbound_rsvp_to_event', 'direction': 'ASCENDING'}],
@@ -547,6 +548,23 @@ def fetch_contacts(start: date, end: date) -> list:
 
 def email_domain(email: str) -> str:
     return email.split('@')[-1].lower() if email and '@' in email else ''
+
+def domain_to_company(email: str) -> str:
+    """Convert a work email domain to a readable company name.
+    Returns '' for personal/generic domains or if no email provided."""
+    dom = email_domain(email)
+    if not dom or dom in PERSONAL_DOMAINS:
+        return ''
+    # Strip TLD(s) and any leading 'mail.' / 'em.' subdomains
+    host = dom.split('.')[0]
+    if host in ('mail', 'em', 'smtp', 'send', 'info'):
+        parts = dom.split('.')
+        host = parts[1] if len(parts) > 2 else parts[0]
+    # Convert kebab/camel/run-together to title case words
+    # e.g. redballoonsecurity → Red Balloon Security, tugboatusa → Tugboat Usa
+    words = re.sub(r'([a-z])([A-Z])', r'\1 \2', host)   # camelCase split
+    words = words.replace('-', ' ').replace('_', ' ')
+    return words.title()
 
 def has_high_title(title: str) -> bool:
     tl = title.lower().strip()
@@ -1114,7 +1132,15 @@ def score_badge_html(sc: int) -> str:
             f'<span class="score-lbl" style="font-size:0.68rem;opacity:0.8">{label}</span>'
             f'</span>')
 
-def li_url(name: str, company: str) -> str:
+def li_url(name: str, company: str, p: dict | None = None) -> str:
+    if p:
+        direct = (
+            p.get('hs_linkedin_url') or
+            p.get('outbound_team___linkedin_url') or
+            p.get('linkedin_personal_url') or ''
+        ).strip()
+        if direct:
+            return direct
     return f'https://www.linkedin.com/search/results/people/?keywords={quote_plus((name + " " + company).strip())}'
 
 def hs_url(cid: str) -> str:
@@ -1365,9 +1391,20 @@ def render_row(idx: int, c: dict, show_dropdown: bool = False) -> str:
         if p.get('_enriched') else ''
     )
 
+    inferred_company = ''
+    if not company:
+        inferred_company = domain_to_company(p.get('email') or '')
+
     tc_parts = []
-    if title:   tc_parts.append(escape(title) + enriched_tag)
-    if company: tc_parts.append(f'<span style="color:#7a94b8;font-size:0.78rem">{escape(company)}</span>')
+    if title:
+        tc_parts.append(escape(title) + enriched_tag)
+    if company:
+        tc_parts.append(f'<span style="color:#7a94b8;font-size:0.78rem">{escape(company)}</span>')
+    elif inferred_company:
+        tc_parts.append(
+            f'<span style="color:#9aaac0;font-size:0.75rem;font-style:italic" '
+            f'title="Inferred from email domain">{escape(inferred_company)}</span>'
+        )
     tc_html = '<br>'.join(tc_parts) or '<span style="color:#c0ccd8">—</span>'
 
     nw_cell = f'<strong style="font-size:0.85rem">{escape(nw)}</strong>'
@@ -1392,7 +1429,7 @@ def render_row(idx: int, c: dict, show_dropdown: bool = False) -> str:
         f'<td>{tc_html}</td>'
         f'<td style="text-align:center" class="score-cell">{score_badge_html(sc)}</td>'
         f'<td style="text-align:center">'
-        f'<a href="{li_url(name, company)}" target="_blank" '
+        f'<a href="{li_url(name, company, p)}" target="_blank" '
         f'style="color:#0a66c2;font-weight:700;text-decoration:none;font-size:0.8rem">LI↗</a></td>'
         f'<td style="text-align:center">'
         f'<a href="{hs_url(cid)}" target="_blank" '
