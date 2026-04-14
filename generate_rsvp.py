@@ -347,10 +347,10 @@ def enrich_no_data_contacts(contacts: list) -> int:
             c['properties'] = {**p, **result}
             enriched += 1
             print(f'  Enriched: {name} → {result.get("jobtitle", "")} @ {result.get("company", "")}')
-            # Write back to HubSpot so the data persists on the contact record
+            # Write back to HubSpot — only fill blank fields, never overwrite
             _patch_hubspot_contact(c['id'], {
                 k: v for k, v in result.items()
-                if k in ('jobtitle', 'company') and v
+                if k in ('jobtitle', 'company') and v and not p.get(k)
             })
 
     _save_enrich_cache()
