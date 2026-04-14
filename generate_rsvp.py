@@ -1585,7 +1585,10 @@ def render_panel(date_str: str, contacts: list, tab_id: str, active: bool) -> st
             )
     pills_html = ' '.join(pills)
 
-    day_score = sum(score_contact(c['properties'])[0] for c in contacts)
+    day_score = sum(
+        score_contact(c['properties'])[0] for c in contacts
+        if (c['properties'].get('outbound_event_attendee_disqualified') or '').strip().lower() != 'disqualified'
+    )
     attended_sc = sum(
         score_contact(c['properties'])[0] for c in contacts
         if (c['properties'].get('attended_outbound_event') or '').strip().lower() == 'yes'
@@ -1615,7 +1618,7 @@ def render_panel(date_str: str, contacts: list, tab_id: str, active: bool) -> st
     <div>
       <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">
         <span class="rsvp-count">{len(contacts)} RSVPs{past_note}</span>
-        <span style="font-size:0.78rem;color:#7a94b8">Day score: <strong style="color:#1b3c6e">{day_score}</strong></span>
+        <span style="font-size:0.78rem;color:#7a94b8">Day score: <strong id="day-score-{tab_id}" style="color:#1b3c6e">{day_score}</strong></span>
         {attended_score_html}
       </div>
       <div class="score-pills" style="margin-top:6px">{pills_html}</div>
@@ -2146,6 +2149,15 @@ function refreshHeader(tabId) {{
   var uninvCount = document.querySelectorAll('#tbl-' + tabId + ' .uninvite-chk:checked').length;
   var uninvEl = document.getElementById('uninvite-count-' + tabId);
   if (uninvEl) uninvEl.textContent = uninvCount || '';
+
+  var dayScore = 0;
+  document.querySelectorAll('#tbl-' + tabId + ' tbody tr').forEach(function(row) {{
+    if (!row.querySelector('.uninvite-chk:checked')) {{
+      dayScore += parseInt(row.dataset.score) || 0;
+    }}
+  }});
+  var dsEl = document.getElementById('day-score-' + tabId);
+  if (dsEl) dsEl.textContent = dayScore;
 }}
 
 function applyStoredOverrides(tabId) {{
