@@ -347,9 +347,33 @@ def enrich_no_data_contacts(contacts: list) -> int:
             c['properties'] = {**p, **result}
             enriched += 1
             print(f'  Enriched: {name} → {result.get("jobtitle", "")} @ {result.get("company", "")}')
+            # Write back to HubSpot so the data persists on the contact record
+            _patch_hubspot_contact(c['id'], {
+                k: v for k, v in result.items()
+                if k in ('jobtitle', 'company') and v
+            })
 
     _save_enrich_cache()
     return enriched
+
+
+def _patch_hubspot_contact(contact_id: str, properties: dict):
+    """PATCH a HubSpot contact with the given properties."""
+    if not HUBSPOT_TOKEN or not properties:
+        return
+    try:
+        resp = requests.patch(
+            f'https://api.hubapi.com/crm/v3/objects/contacts/{contact_id}',
+            headers={'Authorization': f'Bearer {HUBSPOT_TOKEN}', 'Content-Type': 'application/json'},
+            json={'properties': properties},
+            timeout=10,
+        )
+        if resp.ok:
+            print(f'  HubSpot updated contact {contact_id}: {properties}')
+        else:
+            print(f'  HubSpot patch failed for {contact_id}: HTTP {resp.status_code}', file=sys.stderr)
+    except Exception as e:
+        print(f'  HubSpot patch exception for {contact_id}: {e}', file=sys.stderr)
 
 
 # ─── NYC PLUTO PROPERTY LOOKUP ────────────────────────────────────────────────
