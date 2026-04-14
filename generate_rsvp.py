@@ -1181,6 +1181,8 @@ def li_url(name: str, company: str, p: dict | None = None) -> str:
             p.get('pipl_linkedin') or ''
         ).strip()
         if direct:
+            if not direct.startswith('http'):
+                direct = 'https://' + direct
             return direct
     return f'https://www.linkedin.com/search/results/people/?keywords={quote_plus((name + " " + company).strip())}'
 
@@ -1826,7 +1828,7 @@ header{{background:#1b3c6e;padding:16px 28px;position:sticky;top:0;z-index:100;
 <script>
 var GITHUB_REPO     = '{escape(GITHUB_REPO)}';
 var GITHUB_WORKFLOW = '{GITHUB_WORKFLOW}';
-var SHARED_GIST_ID  = '{SHARED_GIST_ID}';
+var HS_TOKEN        = '{HUBSPOT_TOKEN}';
 function triggerRefresh() {{
   var tok = localStorage.getItem('gh_pat');
   if (!tok) {{
@@ -1875,68 +1877,26 @@ var SCORE_META = {{
   1: {{label:'Low',        fg:'#a83030', bg:'#fde8e8'}},
 }};
 
-// ── Shared state (GitHub Gist) ────────────────────────────────────────────────
-var GIST_FILE   = 'mw_rsvp_state.json';
-var _gistId     = null;
-var _gistState  = {{}};
-var _writeTimer = null;
-
+// ── Shared state (localStorage + direct HubSpot writes) ───────────────────────
 function getSharedState(key) {{
-  return (key in _gistState) ? String(_gistState[key]) : localStorage.getItem(key);
+  return localStorage.getItem(key);
 }}
 function saveSharedState(key, val) {{
-  _gistState[key] = val;
   localStorage.setItem(key, val);
-  _writeGist();
 }}
 function removeSharedState(key) {{
-  delete _gistState[key];
   localStorage.removeItem(key);
-  _writeGist();
 }}
-function _writeGist() {{
-  if (!_gistId) return;
-  var tok = localStorage.getItem('gh_pat');
-  if (!tok) {{
-    tok = prompt('Enter the shared team GitHub token to save changes.\\n(Ask Ani if you don\\'t have it. Saved in your browser — only needed once.)');
-    if (!tok) return;
-    localStorage.setItem('gh_pat', tok.trim());
-    tok = tok.trim();
-  }}
-  clearTimeout(_writeTimer);
-  _writeTimer = setTimeout(function() {{
-    var files = {{}};
-    files[GIST_FILE] = {{content: JSON.stringify(_gistState)}};
-    fetch('https://api.github.com/gists/' + _gistId, {{
-      method: 'PATCH',
-      headers: {{'Authorization':'token '+tok,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'}},
-      body: JSON.stringify({{files: files}})
-    }}).then(function(r) {{
-      if (r.status === 401 || r.status === 403 || r.status === 404) {{
-        localStorage.removeItem('gh_pat');
-        alert('Token rejected by GitHub (status ' + r.status + ').\\nYour change was NOT saved.\\nAsk Ani for the shared team token and check the box again.');
-      }}
-    }}).catch(function(e) {{ console.error('Gist write failed:', e); }});
-  }}, 600);
-}}
-function _fetchGist(cb) {{
-  var tok = localStorage.getItem('gh_pat');
-  var hdrs = {{'Accept':'application/vnd.github.v3+json'}};
-  if (tok) hdrs['Authorization'] = 'token ' + tok;
-  fetch('https://api.github.com/gists/' + _gistId, {{
-    headers: hdrs, cache: 'no-store'
-  }})
-  .then(function(r) {{ return r.json(); }})
-  .then(function(data) {{
-    var f = data.files && data.files[GIST_FILE];
-    if (f && f.content) {{ try {{ _gistState = JSON.parse(f.content); }} catch(e) {{}} }}
-    if (cb) cb();
-  }})
-  .catch(function() {{ if (cb) cb(); }});
+function _patchHubSpot(cid, properties) {{
+  if (!HS_TOKEN) return;
+  fetch('https://api.hubapi.com/crm/v3/objects/contacts/' + cid, {{
+    method: 'PATCH',
+    headers: {{'Authorization': 'Bearer ' + HS_TOKEN, 'Content-Type': 'application/json'}},
+    body: JSON.stringify({{properties: properties}})
+  }}).catch(function(e) {{ console.error('HubSpot PATCH failed:', e); }});
 }}
 function initSharedState(cb) {{
-  _gistId = SHARED_GIST_ID;
-  if (_gistId) {{ _fetchGist(cb); }} else {{ if (cb) cb(); }}
+  if (cb) cb();
 }}
 
 // ── Tab switching ─────────────────────────────────────────────────────────────
@@ -2084,28 +2044,6 @@ function applyOverride(cid, sc, tabId) {{
   }});
 }}
 
-var _uninviteSyncTimer = null;
-function _scheduleUninviteSync() {{
-  clearTimeout(_uninviteSyncTimer);
-  _uninviteSyncTimer = setTimeout(function() {{
-    var tok = localStorage.getItem('gh_pat');
-    if (!tok) return;  // token already prompted by _writeGist; skip silently if still missing
-    fetch('https://api.github.com/repos/' + GITHUB_REPO + '/actions/workflows/' + GITHUB_WORKFLOW + '/dispatches', {{
-      method: 'POST',
-      headers: {{
-        'Authorization': 'token ' + tok,
-        'Accept': 'application/vnd.github.v3+json',
-        'Content-Type': 'application/json',
-      }},
-      body: JSON.stringify({{ref: 'main'}}),
-    }}).then(function(r) {{
-      if (r.status !== 204) {{
-        console.warn('Workflow dispatch failed with status', r.status, '— HubSpot sync may not have triggered.');
-      }}
-    }}).catch(function(e) {{ console.error('Workflow dispatch error:', e); }});
-  }}, 2000);  // 2s debounce — batch multiple quick uninvites into one trigger
-}}
-
 function toggleUninvite(chk) {{
   var row = chk.closest('tr');
   var cid = row.dataset.id;
@@ -2113,13 +2051,14 @@ function toggleUninvite(chk) {{
   if (chk.checked) {{
     saveSharedState('uninvite_' + cid, '1');
     row.classList.add('uninvited');
+    _patchHubSpot(cid, {{outbound_event_attendee_disqualified: 'Disqualified'}});
   }} else {{
     removeSharedState('uninvite_' + cid);
     row.classList.remove('uninvited');
+    _patchHubSpot(cid, {{outbound_event_attendee_disqualified: ''}});
   }}
   refreshHeader(tid);
   updateResetBtn(tid);
-  _scheduleUninviteSync();
 }}
 
 function toggleAttended(chk) {{
@@ -2128,8 +2067,10 @@ function toggleAttended(chk) {{
   var tid = row.closest('.tab-panel').id.replace('tab-','');
   if (chk.checked) {{
     saveSharedState('attended_' + cid, '1');
+    _patchHubSpot(cid, {{attended_outbound_event: 'yes'}});
   }} else {{
     removeSharedState('attended_' + cid);
+    _patchHubSpot(cid, {{attended_outbound_event: ''}});
   }}
   refreshHeader(tid);
   updateResetBtn(tid);
@@ -2190,6 +2131,8 @@ function resetOverrides(tabId) {{
     var cid  = row.dataset.id;
     var auto = parseInt(row.dataset.auto);
     removeSharedState('override_' + cid);
+    var wasUninvited = !!getSharedState('uninvite_' + cid);
+    var wasAttended  = !!getSharedState('attended_'  + cid);
     removeSharedState('uninvite_' + cid);
     removeSharedState('attended_' + cid);
     applyOverride(cid, auto, tabId);
@@ -2198,6 +2141,8 @@ function resetOverrides(tabId) {{
     if (uchk) uchk.checked = false;
     var achk = row.querySelector('.attended-chk');
     if (achk) achk.checked = false;
+    if (wasUninvited) _patchHubSpot(cid, {{outbound_event_attendee_disqualified: ''}});
+    if (wasAttended)  _patchHubSpot(cid, {{attended_outbound_event: ''}});
   }});
   refreshHeader(tabId);
   updateResetBtn(tabId);
