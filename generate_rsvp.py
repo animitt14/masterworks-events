@@ -165,7 +165,7 @@ FINANCE_COMPANIES = [
     'pimco', 'vanguard', 'fidelity investments', 'merrill lynch',
     'ubs', 'credit suisse', 'deutsche bank', 'barclays',
     'wells fargo', 'citigroup', 'citibank', 'bank of america',
-    'neuberger berman', 'alliancebernstein', 'td securities',
+    'neuberger berman', 'alliancebernstein', 'td securities', 'scotiabank', 'royal bank of canada', 'rbc', 'cibc', 'bmo', 'bank of montreal',
     'lazard', 'evercore', 'jefferies', 'raymond james',
     'point72', 'millennium management', 'tiger global', 'coatue',
     'andreessen horowitz', 'sequoia capital', 'general atlantic',
