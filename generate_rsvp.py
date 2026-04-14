@@ -257,52 +257,62 @@ def _save_enrich_cache():
     ENRICH_CACHE_FILE.write_text(json.dumps(_enrich_cache, indent=2), encoding='utf-8')
 
 
-def google_enrich(name: str) -> dict:
+def google_enrich(name: str, company_hint: str = '') -> dict:
     """Search LinkedIn for a person by name. Returns enriched property dict or {}.
-    Returns None if quota is exhausted (caller should stop querying)."""
+    company_hint: company name derived from work email domain — makes search more
+    precise for common names and avoids using a quota slot on an ambiguous result."""
     global _quota_exhausted
     if _quota_exhausted or not GOOGLE_API_KEY or not GOOGLE_CSE_ID or not name.strip():
         return {}
     if name in _enrich_cache:
         return _enrich_cache[name]
 
-    try:
-        resp = requests.get(
-            GOOGLE_SEARCH_URL,
-            params={'key': GOOGLE_API_KEY, 'cx': GOOGLE_CSE_ID,
-                    'q': f'"{name}" site:linkedin.com/in', 'num': 3},
-            timeout=10,
-        )
-        if resp.status_code == 429:
-            print('  Google quota exhausted for today — stopping enrichment', file=sys.stderr)
-            _quota_exhausted = True
-            return {}
-        if not resp.ok:
-            print(f'  Google search error {resp.status_code} for "{name}"', file=sys.stderr)
-            _enrich_cache[name] = {}
-            return {}
+    # If we have a company hint (work email), search within that company first —
+    # more precise than a bare LinkedIn search for common names.
+    # Otherwise fall back to the generic LinkedIn search.
+    queries = (
+        [f'"{name}" "{company_hint}" site:linkedin.com',
+         f'"{name}" site:linkedin.com/in']
+        if company_hint else
+        [f'"{name}" site:linkedin.com/in']
+    )
 
-        items = resp.json().get('items', [])
-        for item in items:
-            inferred_title, inferred_company = _parse_linkedin_result(
-                item.get('title', ''), item.get('snippet', '')
+    for q in queries:
+        if _quota_exhausted:
+            break
+        try:
+            resp = requests.get(
+                GOOGLE_SEARCH_URL,
+                params={'key': GOOGLE_API_KEY, 'cx': GOOGLE_CSE_ID, 'q': q, 'num': 3},
+                timeout=10,
             )
-            if inferred_title or inferred_company:
-                result = {
-                    'jobtitle':  inferred_title,
-                    'company':   inferred_company,
-                    '_enriched': True,
-                }
-                _enrich_cache[name] = result
-                return result
+            if resp.status_code == 429:
+                print('  Google quota exhausted for today — stopping enrichment', file=sys.stderr)
+                _quota_exhausted = True
+                break
+            if not resp.ok:
+                print(f'  Google search error {resp.status_code} for "{name}"', file=sys.stderr)
+                continue
 
-        _enrich_cache[name] = {}
-        return {}
+            items = resp.json().get('items', [])
+            for item in items:
+                inferred_title, inferred_company = _parse_linkedin_result(
+                    item.get('title', ''), item.get('snippet', '')
+                )
+                if inferred_title or inferred_company:
+                    result = {
+                        'jobtitle':  inferred_title,
+                        'company':   inferred_company,
+                        '_enriched': True,
+                    }
+                    _enrich_cache[name] = result
+                    return result
 
-    except Exception as e:
-        print(f'  Google search exception for "{name}": {e}', file=sys.stderr)
-        _enrich_cache[name] = {}
-        return {}
+        except Exception as e:
+            print(f'  Google search exception for "{name}": {e}', file=sys.stderr)
+
+    _enrich_cache[name] = {}
+    return {}
 
 
 def enrich_no_data_contacts(contacts: list) -> int:
@@ -346,7 +356,10 @@ def enrich_no_data_contacts(contacts: list) -> int:
         # New name — use a query against our daily quota
         if enriched >= ENRICH_LIMIT:
             break
-        result = google_enrich(name)
+        email        = p.get('email', '')
+        dom          = email_domain(email)
+        company_hint = domain_to_company(email) if dom and dom not in PERSONAL_DOMAINS else ''
+        result = google_enrich(name, company_hint=company_hint)
         if result:
             c['properties'] = {**p, **result}
             enriched += 1
