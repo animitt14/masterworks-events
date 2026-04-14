@@ -610,7 +610,7 @@ def fetch_contacts(start: date, end: date) -> list:
                 'hubspot_owner_id', 'lifecyclestage', 'call_completed',
                 'outbound_rsvp_to_event', 'attended_outbound_event',
                 'outbound_event_attendee_disqualified',
-                'admin_url', 'totalamountpurchased',
+                'admin_url', 'totalamountpurchased', 'createdate',
                 'hs_v2_date_entered_current_stage',
                 'wealth_segment', 'inferred_income', 'address',
                 'hs_linkedin_url', 'linkedin_personal_url', 'outbound_team___linkedin_url', 'pipl_linkedin',
@@ -1179,13 +1179,17 @@ def compute_event_stats(contacts: list) -> dict:
         attended_score += sc
         if (p.get('admin_url') or '').strip():
             account_created += 1
-        try:
-            amount = float(p.get('totalamountpurchased') or 0)
-        except (ValueError, TypeError):
-            amount = 0.0
-        if amount > 0:
-            invested += 1
-            capital += amount
+        # Only count capital from contacts who created their account in 2026+
+        # (excludes pre-existing customers — attributes only new conversions)
+        acct_year = (p.get('createdate') or '')[:4]
+        if acct_year >= '2026':
+            try:
+                amount = float(p.get('totalamountpurchased') or 0)
+            except (ValueError, TypeError):
+                amount = 0.0
+            if amount > 0:
+                invested += 1
+                capital += amount
 
     return {
         'rsvps':          len(contacts),
