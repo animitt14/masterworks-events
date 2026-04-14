@@ -563,7 +563,7 @@ def fetch_contacts(start: date, end: date) -> list:
                 'admin_url', 'totalamountpurchased',
                 'hs_v2_date_entered_current_stage',
                 'wealth_segment', 'inferred_income', 'address',
-                'hs_linkedin_url', 'linkedin_personal_url', 'outbound_team___linkedin_url',
+                'hs_linkedin_url', 'linkedin_personal_url', 'outbound_team___linkedin_url', 'pipl_linkedin',
             ],
             'limit': 200,
             'sorts': [{'propertyName': 'outbound_rsvp_to_event', 'direction': 'ASCENDING'}],
@@ -1177,7 +1177,8 @@ def li_url(name: str, company: str, p: dict | None = None) -> str:
         direct = (
             p.get('hs_linkedin_url') or
             p.get('outbound_team___linkedin_url') or
-            p.get('linkedin_personal_url') or ''
+            p.get('linkedin_personal_url') or
+            p.get('pipl_linkedin') or ''
         ).strip()
         if direct:
             return direct
