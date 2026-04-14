@@ -1559,7 +1559,7 @@ def likelihood_secondary(p: dict, flags: list) -> int:
         s += 1                                                   # local (NY/NJ/CT) slight edge
     return s
 
-def render_panel(date_str: str, contacts: list, tab_id: str, active: bool) -> str:
+def render_panel(date_str: str, contacts: list, tab_id: str, active: bool, past: bool = False) -> str:
     def _sort_key(c):
         sc, flags = score_contact(c['properties'])
         return (
@@ -1569,9 +1569,6 @@ def render_panel(date_str: str, contacts: list, tab_id: str, active: bool) -> st
             (c['properties'].get('firstname') or '').lower(),
         )
     sorted_contacts = sorted(contacts, key=_sort_key)
-
-    show_dropdown = not is_past(date_str)
-    rows_html = ''.join(render_row(i + 1, c, show_dropdown) for i, c in enumerate(sorted_contacts))
 
     counts = defaultdict(int)
     for c in contacts:
@@ -1608,13 +1605,45 @@ def render_panel(date_str: str, contacts: list, tab_id: str, active: bool) -> st
     )
 
     past_note = ' <span style="font-size:0.72rem;color:#9aaac0">(past)</span>' if is_past(date_str) else ''
+    display = 'block' if active else 'none'
+
+    if past:
+        # Lazy-load past events: render header + empty tbody; JS fills rows on first view
+        return f'''
+<div id="tab-{tab_id}" class="tab-panel" data-past="1" style="display:{display}">
+  <div class="panel-header">
+    <div>
+      <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">
+        <span class="rsvp-count">{len(contacts)} RSVPs{past_note}</span>
+        <span style="font-size:0.78rem;color:#7a94b8">Day score: <strong style="color:#1b3c6e">{day_score}</strong></span>
+        {attended_score_html}
+      </div>
+      <div class="score-pills" style="margin-top:6px">{pills_html}</div>
+    </div>
+  </div>
+  <div class="table-scroll">
+    <table class="rsvp-table" id="tbl-{tab_id}">
+      <thead><tr>
+        <th style="width:34px">#</th>
+        <th>Name</th>
+        <th>Title / Company</th>
+        <th>Likelihood</th>
+        <th>LinkedIn</th>
+        <th>HubSpot</th>
+      </tr></thead>
+      <tbody id="tbody-{tab_id}"></tbody>
+    </table>
+  </div>
+</div>'''
+
+    # ── Future / today: full interactive panel ────────────────────────────────
+    show_dropdown = not is_past(date_str)
+    rows_html = ''.join(render_row(i + 1, c, show_dropdown) for i, c in enumerate(sorted_contacts))
 
     opts = '<option value="">All Scores</option>\n' + '\n'.join(
         f'<option value="{s}">{s} — {SCORE_LABELS[s]}</option>'
         for s in SCORES if counts[s]
     )
-
-    display = 'block' if active else 'none'
 
     return f'''
 <div id="tab-{tab_id}" class="tab-panel" style="display:{display}">
@@ -1713,8 +1742,40 @@ def build_html(by_date: dict, generated_at: str) -> str:
         past_menu_html = f'''<div class="past-dropdown-menu" id="pastDropMenu">
 {past_opts}</div>'''
 
+    # Build JSON data for past events (used by lazy-load JS renderer)
+    def _past_sort_key(c):
+        sc, flags = score_contact(c['properties'])
+        return (
+            -sc,
+            -likelihood_secondary(c['properties'], flags),
+            (c['properties'].get('lastname')  or '').lower(),
+            (c['properties'].get('firstname') or '').lower(),
+        )
+
+    past_events_data: dict = {}
+    for d in past_dates:
+        tid = d.replace('-', '')
+        sorted_c = sorted(by_date[d], key=_past_sort_key)
+        rows = []
+        for c in sorted_c:
+            p    = c['properties']
+            name = f"{p.get('firstname', '')} {p.get('lastname', '')}".strip()
+            sc, _ = score_contact(p)
+            rows.append({
+                'id':       c['id'],
+                'name':     name,
+                'jobtitle': p.get('jobtitle') or '',
+                'company':  p.get('company')  or '',
+                'score':    sc,
+                'li':       li_url(name, p.get('company') or '', p),
+                'hs':       hs_url(c['id']),
+            })
+        past_events_data[tid] = rows
+    past_events_json = json.dumps(past_events_data, ensure_ascii=False)
+
     panels = [
-        render_panel(d, by_date[d], d.replace('-', ''), d.replace('-', '') == default_tab)
+        render_panel(d, by_date[d], d.replace('-', ''), d.replace('-', '') == default_tab,
+                     past=d in past_dates)
         for d in dates
     ]
 
@@ -1884,9 +1945,10 @@ header{{background:#1b3c6e;padding:16px 28px;position:sticky;top:0;z-index:100;
 </div>
 
 <script>
-var GITHUB_REPO     = '{escape(GITHUB_REPO)}';
-var GITHUB_WORKFLOW = '{GITHUB_WORKFLOW}';
-var HS_TOKEN        = atob('{_hs_tok_b64}');
+var GITHUB_REPO       = '{escape(GITHUB_REPO)}';
+var GITHUB_WORKFLOW   = '{GITHUB_WORKFLOW}';
+var HS_TOKEN          = atob('{_hs_tok_b64}');
+var PAST_EVENTS_DATA  = {past_events_json};
 function triggerRefresh() {{
   var tok = localStorage.getItem('gh_pat');
   if (!tok) {{
@@ -1959,6 +2021,43 @@ function initSharedState(cb) {{
   if (cb) cb();
 }}
 
+// ── HTML escaping helper ──────────────────────────────────────────────────────
+function escHtml(s) {{
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}}
+
+// ── Lazy-load past event rows ─────────────────────────────────────────────────
+var _renderedPast = {{}};
+function renderPastTab(tabId) {{
+  if (_renderedPast[tabId]) return;
+  var contacts = PAST_EVENTS_DATA[tabId];
+  if (!contacts) return;
+  _renderedPast[tabId] = true;
+  var tbody = document.getElementById('tbody-' + tabId);
+  if (!tbody) return;
+  var html = '';
+  for (var i = 0; i < contacts.length; i++) {{
+    var c = contacts[i];
+    var m = SCORE_META[c.score] || {{label:'—', fg:'#666', bg:'#eee'}};
+    var titleHtml = (c.jobtitle ? '<div style="font-size:0.82rem">' + escHtml(c.jobtitle) + '</div>' : '') +
+                    (c.company  ? '<div style="font-size:0.75rem;color:#7a94b8">' + escHtml(c.company) + '</div>' : '');
+    var badge = '<span style="background:' + m.bg + ';color:' + m.fg + ';border:1px solid ' + m.fg + '55;' +
+                'padding:4px 11px;border-radius:12px;font-size:0.78rem;font-weight:700">' +
+                c.score + ' \u2014 ' + m.label + '</span>';
+    var liCell = c.li ? '<a href="' + escHtml(c.li) + '" target="_blank" rel="noopener" style="color:#0077b5;font-size:0.78rem">LinkedIn</a>' : '\u2014';
+    var hsCell = '<a href="' + escHtml(c.hs) + '" target="_blank" rel="noopener" style="font-size:0.78rem;color:#c9a84c">HS</a>';
+    html += '<tr>' +
+      '<td style="color:#9aaac0;font-size:0.78rem">' + (i + 1) + '</td>' +
+      '<td style="text-align:left;font-weight:600">' + escHtml(c.name) + '</td>' +
+      '<td style="text-align:left">' + titleHtml + '</td>' +
+      '<td>' + badge + '</td>' +
+      '<td>' + liCell + '</td>' +
+      '<td>' + hsCell + '</td>' +
+    '</tr>';
+  }}
+  tbody.innerHTML = html;
+}}
+
 // ── Tab switching ─────────────────────────────────────────────────────────────
 function switchTab(id) {{
   document.querySelectorAll('.tab-panel').forEach(p => p.style.display = 'none');
@@ -1971,6 +2070,7 @@ function switchTab(id) {{
   }});
   var el = document.getElementById('tab-' + id);
   if (el) el.style.display = 'block';
+  renderPastTab(id);
   applyStoredOverrides(id);
   updateResetBtn(id);
 }}
@@ -2319,6 +2419,9 @@ document.querySelectorAll('tr[data-contact]').forEach(function(row) {{
     switchTab(todayTid);
     defaultTab = todayTid;
   }}
+
+  // Render past tab rows if default tab is a past event
+  renderPastTab(defaultTab);
 
   initSharedState(function() {{
     // Re-apply overrides for every visible tab now that Gist is loaded
