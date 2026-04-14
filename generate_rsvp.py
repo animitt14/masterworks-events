@@ -373,6 +373,11 @@ def enrich_no_data_contacts(contacts: list) -> int:
             if cached:
                 c['properties'] = {**p, **cached}
                 enriched += 1
+                # Write to HubSpot if fields are still blank (handles failed/missed prior writes)
+                _patch_hubspot_contact(c['id'], {
+                    k: v for k, v in cached.items()
+                    if k in ('jobtitle', 'company') and v and not p.get(k)
+                })
             continue   # either way, don't make an API call
 
         # New name — run multi-strategy enrichment (quota tracked inside google_enrich)
