@@ -2057,8 +2057,8 @@ function renderPastTab(tabId) {{
     var hsCell = '<a href="' + escHtml(c.hs) + '" target="_blank" rel="noopener" style="font-size:0.78rem;color:#c9a84c">HS</a>';
     html += '<tr>' +
       '<td style="color:#9aaac0;font-size:0.78rem">' + (i + 1) + '</td>' +
-      '<td style="text-align:left;font-weight:600">' + escHtml(c.name) + '</td>' +
-      '<td style="text-align:left">' + titleHtml + '</td>' +
+      '<td style="font-weight:600">' + escHtml(c.name) + '</td>' +
+      '<td>' + titleHtml + '</td>' +
       '<td>' + badge + '</td>' +
       '<td>' + liCell + '</td>' +
       '<td>' + hsCell + '</td>' +
