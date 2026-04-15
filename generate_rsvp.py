@@ -3215,6 +3215,20 @@ def sync_uninvites_from_gist(contacts: list):
         except Exception as e:
             print(f'  Uninvite sync {cid}: error {e}', file=sys.stderr)
 
+    # Clear the Gist — HubSpot is the source of truth once written
+    try:
+        gh_token = os.environ.get('GITHUB_TOKEN', '')
+        if gh_token:
+            requests.patch(
+                f'https://api.github.com/gists/{SHARED_GIST_ID}',
+                headers={'Authorization': f'token {gh_token}', 'Accept': 'application/vnd.github.v3+json'},
+                json={'files': {GIST_STATE_FILE: {'content': '{}'}}},
+                timeout=10,
+            )
+            print('  Uninvite sync: Gist cleared')
+    except Exception as e:
+        print(f'  Gist clear skipped: {e}', file=sys.stderr)
+
 
 # ─── MAIN ─────────────────────────────────────────────────────────────────────
 
