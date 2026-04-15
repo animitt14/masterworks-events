@@ -1969,14 +1969,28 @@ function triggerRefresh() {{
   var btn = document.getElementById('refreshBtn');
   btn.disabled = true;
   btn.textContent = 'Updating…';
-  fetch('https://api.github.com/repos/' + GITHUB_REPO + '/actions/workflows/' + GITHUB_WORKFLOW + '/dispatches', {{
-    method: 'POST',
-    headers: {{
-      'Authorization': 'token ' + tok,
-      'Accept': 'application/vnd.github.v3+json',
-      'Content-Type': 'application/json'
-    }},
-    body: JSON.stringify({{ref: 'main'}})
+  _flushUninvitesAndRefresh(tok, btn);
+}}
+
+function _flushUninvitesAndRefresh(tok, btn) {{
+  var state = {{}};
+  for (var i = 0; i < localStorage.length; i++) {{
+    var k = localStorage.key(i);
+    if (k && k.startsWith('uninvite_')) state[k] = localStorage.getItem(k);
+  }}
+  var gistPromise = Object.keys(state).length
+    ? fetch('https://api.github.com/gists/{SHARED_GIST_ID}', {{
+        method: 'PATCH',
+        headers: {{'Authorization': 'token ' + tok, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json'}},
+        body: JSON.stringify({{ files: {{ '{GIST_STATE_FILE}': {{ content: JSON.stringify(state) }} }} }})
+      }})
+    : Promise.resolve();
+  return gistPromise.then(function() {{
+    return fetch('https://api.github.com/repos/' + GITHUB_REPO + '/actions/workflows/' + GITHUB_WORKFLOW + '/dispatches', {{
+      method: 'POST',
+      headers: {{'Authorization': 'token ' + tok, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json'}},
+      body: JSON.stringify({{ref: 'main'}})
+    }});
   }}).then(function(r) {{
     if (r.status === 204) {{
       btn.textContent = 'Updating… (~45s)';
@@ -2849,31 +2863,7 @@ function triggerRefresh() {{
   var btn = document.getElementById('refreshBtn');
   btn.disabled = true;
   btn.textContent = 'Updating…';
-  fetch('https://api.github.com/repos/' + GITHUB_REPO + '/actions/workflows/' + GITHUB_WORKFLOW + '/dispatches', {{
-    method: 'POST',
-    headers: {{
-      'Authorization': 'token ' + tok,
-      'Accept': 'application/vnd.github.v3+json',
-      'Content-Type': 'application/json'
-    }},
-    body: JSON.stringify({{ref: 'main'}})
-  }}).then(function(r) {{
-    if (r.status === 204) {{
-      btn.textContent = 'Updating… (~45s)';
-      setTimeout(function(){{ location.reload(); }}, 45000);
-    }} else if (r.status === 401) {{
-      localStorage.removeItem('gh_pat');
-      btn.disabled = false;
-      btn.textContent = '↻ Refresh';
-      alert('Token invalid or expired. Click Refresh to enter a new one.');
-    }} else {{
-      btn.disabled = false;
-      btn.textContent = '↻ Refresh';
-    }}
-  }}).catch(function() {{
-    btn.disabled = false;
-    btn.textContent = '↻ Refresh';
-  }});
+  _flushUninvitesAndRefresh(tok, btn);
 }}
 
 document.getElementById('asOfDate').textContent =
