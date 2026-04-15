@@ -183,6 +183,13 @@ FINANCE_COMPANIES = [
 
 TRI_STATE = {'ny', 'nj', 'ct'}
 
+# Manual score overrides — map contact ID (string) → score (1–5).
+# Applied at render time; data-auto still reflects the computed score.
+SCORE_OVERRIDES: dict[str, int] = {
+    '108755993716': 3,   # Anthony Rodriguez (ARC Excess & Surplus) — 4/15 override
+    '129030882905': 3,   # Mark D'Alonzo — 4/15 override
+}
+
 # 5 = highest, 1 = lowest
 SCORES = [5, 4, 3, 2, 1]
 SCORE_LABELS = {5: 'High', 4: 'Medium-High', 3: 'Medium', 2: 'Low-Medium', 1: 'Low'}
@@ -1451,6 +1458,8 @@ def render_row(idx: int, c: dict, show_dropdown: bool = False) -> str:
     state    = p.get('state') or ''
 
     sc, flags = score_contact(p)
+    if cid in SCORE_OVERRIDES:
+        sc = SCORE_OVERRIDES[cid]
     per       = get_persona(p)
     nw, nw_r  = get_nw(p)
 
