@@ -2017,14 +2017,28 @@ function removeSharedState(key) {{
   localStorage.removeItem(key);
 }}
 function _patchHubSpot(cid, properties) {{
-  if (!HS_TOKEN) return;
-  fetch('https://api.hubapi.com/crm/v3/objects/contacts/' + cid, {{
+  // HubSpot private app tokens don't support CORS — browser fetch will be blocked.
+  // Uninvites are synced via Gist → Python daily run instead (_syncUninvitesToGist).
+}}
+function _syncUninvitesToGist() {{
+  var tok = localStorage.getItem('gh_pat');
+  if (!tok) return;
+  var state = {{}};
+  for (var i = 0; i < localStorage.length; i++) {{
+    var k = localStorage.key(i);
+    if (k && k.startsWith('uninvite_')) state[k] = localStorage.getItem(k);
+  }}
+  fetch('https://api.github.com/gists/{SHARED_GIST_ID}', {{
     method: 'PATCH',
-    headers: {{'Authorization': 'Bearer ' + HS_TOKEN, 'Content-Type': 'application/json'}},
-    body: JSON.stringify({{properties: properties}})
+    headers: {{
+      'Authorization': 'token ' + tok,
+      'Accept': 'application/vnd.github.v3+json',
+      'Content-Type': 'application/json'
+    }},
+    body: JSON.stringify({{ files: {{ '{GIST_STATE_FILE}': {{ content: JSON.stringify(state) }} }} }})
   }}).then(function(r) {{
-    if (!r.ok) {{ console.error('HubSpot PATCH ' + cid + ' returned', r.status); }}
-  }}).catch(function(e) {{ console.error('HubSpot PATCH failed:', e); }});
+    if (!r.ok) {{ console.error('Gist write returned', r.status); }}
+  }}).catch(function(e) {{ console.error('Gist write failed:', e); }});
 }}
 function initSharedState(cb) {{
   if (cb) cb();
@@ -2220,12 +2234,11 @@ function toggleUninvite(chk) {{
   if (chk.checked) {{
     saveSharedState('uninvite_' + cid, '1');
     row.classList.add('uninvited');
-    _patchHubSpot(cid, {{outbound_event_attendee_disqualified: 'Disqualified'}});
   }} else {{
     removeSharedState('uninvite_' + cid);
     row.classList.remove('uninvited');
-    _patchHubSpot(cid, {{outbound_event_attendee_disqualified: ''}});
   }}
+  _syncUninvitesToGist();
   refreshHeader(tid);
   updateResetBtn(tid);
 }}
