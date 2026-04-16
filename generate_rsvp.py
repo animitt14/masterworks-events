@@ -2231,13 +2231,45 @@ function applyOverride(cid, sc, tabId) {{
     row.classList.remove('overridden');
   }}
 
-  // Re-sort tbody
-  var tbody = row.closest('tbody');
-  var rows  = Array.from(tbody.rows);
-  rows.sort(function(a,b){{ return parseInt(b.dataset.score) - parseInt(a.dataset.score); }});
-  rows.forEach(function(r, i) {{
+  reorderTab(tabId);
+}}
+
+function reorderTab(tabId) {{
+  var tbody = document.querySelector('#tbl-' + tabId + ' tbody');
+  if (!tbody) return;
+
+  // Collect [contactRow, detailRow|null] pairs — contact rows have data-id
+  var pairs = [];
+  var rows = Array.from(tbody.rows);
+  var i = 0;
+  while (i < rows.length) {{
+    var r = rows[i];
+    if (r.dataset.id) {{
+      var next   = rows[i + 1];
+      var detail = (next && !next.dataset.id) ? next : null;
+      pairs.push([r, detail]);
+      i += detail ? 2 : 1;
+    }} else {{
+      i++;
+    }}
+  }}
+
+  // Sort: uninvited → bottom, then score descending
+  pairs.sort(function(a, b) {{
+    var aU = a[0].classList.contains('uninvited') ? 1 : 0;
+    var bU = b[0].classList.contains('uninvited') ? 1 : 0;
+    if (aU !== bU) return aU - bU;
+    return parseInt(b[0].dataset.score) - parseInt(a[0].dataset.score);
+  }});
+
+  // Re-insert and renumber (# cell is cells[1] when chevron is present, else cells[0])
+  pairs.forEach(function(pair, idx) {{
+    var r      = pair[0];
+    var hasChevron = r.cells[0] && r.cells[0].querySelector('.expand-chevron');
+    var numCell    = r.cells[hasChevron ? 1 : 0];
+    if (numCell) numCell.textContent = idx + 1;
     tbody.appendChild(r);
-    r.cells[0].textContent = i + 1;
+    if (pair[1]) tbody.appendChild(pair[1]);
   }});
 }}
 
@@ -2253,6 +2285,7 @@ function toggleUninvite(chk) {{
     row.classList.remove('uninvited');
   }}
   _syncUninvitesToGist();
+  reorderTab(tid);
   refreshHeader(tid);
   updateResetBtn(tid);
 }}
