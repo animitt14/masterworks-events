@@ -616,7 +616,7 @@ def fetch_contacts(start: date, end: date) -> list:
                 'email', 'phone', 'city', 'state', 'zip',
                 'hubspot_owner_id', 'lifecyclestage', 'call_completed',
                 'outbound_rsvp_to_event', 'attended_outbound_event',
-                'outbound_event_attendee_disqualified',
+                'outbound_event_attendee_disqualified', 'unknown_rsvp',
                 'admin_url', 'totalamountpurchased', 'createdate',
                 'hs_v2_date_entered_current_stage',
                 'wealth_segment', 'inferred_income', 'address',
@@ -1445,7 +1445,7 @@ def render_detail_row(p: dict, per: str, nw: str) -> str:
     )
 
 
-def render_row(idx: int, c: dict, show_dropdown: bool = False) -> str:
+def render_row(idx: int, c: dict, show_dropdown: bool = False, show_unk: bool = False) -> str:
     p        = c['properties']
     cid      = c['id']
     fname    = p.get('firstname') or ''
@@ -1485,6 +1485,11 @@ def render_row(idx: int, c: dict, show_dropdown: bool = False) -> str:
                       'font-weight:700;padding:1px 7px;letter-spacing:0.04em;'
                       'vertical-align:middle;margin-right:5px">INV</span>'
                       if 'invested' in flags else '')
+    unknown_badge = ('<span style="display:inline-block;background:#f0f1f5;color:#7a88a0;'
+                     'border:1px solid #aab0c055;border-radius:10px;font-size:0.62rem;'
+                     'font-weight:700;padding:1px 7px;letter-spacing:0.04em;'
+                     'vertical-align:middle;margin-left:4px">?</span>'
+                     if show_unk and (p.get('unknown_rsvp') or '').strip().lower() == 'unknown' else '')
     opp_star = ''
 
     loc_html = ''
@@ -1516,7 +1521,7 @@ def render_row(idx: int, c: dict, show_dropdown: bool = False) -> str:
     nw_cell = f'<strong style="font-size:0.85rem">{escape(nw)}</strong>'
 
     name_cell = (
-        f'{opp_star}<strong>{escape(name)}</strong>{invested_badge}'
+        f'{opp_star}<strong>{escape(name)}</strong>{invested_badge}{unknown_badge}'
         f'{loc_html}{ns_html}'
     )
 
@@ -1647,7 +1652,8 @@ def render_panel(date_str: str, contacts: list, tab_id: str, active: bool, past:
 
     # ── Future / today: full interactive panel ────────────────────────────────
     show_dropdown = not is_past(date_str)
-    rows_html = ''.join(render_row(i + 1, c, show_dropdown) for i, c in enumerate(sorted_contacts))
+    show_unk = date_str >= '2026-04-21'
+    rows_html = ''.join(render_row(i + 1, c, show_dropdown, show_unk) for i, c in enumerate(sorted_contacts))
 
     opts = '<option value="">All Scores</option>\n' + '\n'.join(
         f'<option value="{s}">{s} — {SCORE_LABELS[s]}</option>'
