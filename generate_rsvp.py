@@ -1652,7 +1652,7 @@ def render_panel(date_str: str, contacts: list, tab_id: str, active: bool, past:
 
     # ── Future / today: full interactive panel ────────────────────────────────
     show_dropdown = not is_past(date_str)
-    show_unk = date_str >= '2026-04-21'
+    show_unk = date_str >= '2026-04-20'
     rows_html = ''.join(render_row(i + 1, c, show_dropdown, show_unk) for i, c in enumerate(sorted_contacts))
 
     opts = '<option value="">All Scores</option>\n' + '\n'.join(
