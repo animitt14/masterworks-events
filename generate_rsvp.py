@@ -114,11 +114,26 @@ def is_small_biz(company: str) -> bool:
 
 # These override HIGH signals — wealth advisors refer clients but don't invest personally
 WEALTH_ADVISOR_TERMS = [
-    'wealth advisor', 'wealth management advisor', 'wealth management',
+    'wealth advisor', 'wealth management advisor', 'wealth management', 'wealth manager',
     'private banker', 'private client', 'private wealth',
     'financial advisor', 'financial planner',
     'investment advisor', 'personal banking advisor',
 ]
+
+# Wealth-management firms we actively want to recruit as channel partners.
+# Wealth advisor / financial planner titles AT these firms flip from DQ to HIGH —
+# we want them at events as referral sources, not as direct investors.
+TARGET_WEALTH_FIRMS = [
+    'lpl financial',
+    'raymond james',
+    'jp morgan', 'jpmorgan',
+    'morgan stanley',
+]
+def is_target_wealth_firm(company: str) -> bool:
+    c = (company or '').lower()
+    if any(f in c for f in TARGET_WEALTH_FIRMS):
+        return True
+    return bool(re.search(r'\blpl\b', c))
 
 # These are auto-Low or Low-Medium
 DOWNGRADE_TERMS = [
@@ -748,8 +763,13 @@ def score_contact(p: dict) -> tuple:
         return 1, flags
 
     # ── Wealth advisors / financial advisors (refer clients, don't invest) ────
+    # Exception: at target wealth-management firms (LPL, Raymond James, JPM, MS),
+    # flip the DQ — we recruit these as channel partners.
     is_wealth_adv = any(t in combined for t in WEALTH_ADVISOR_TERMS)
     if is_wealth_adv:
+        if is_target_wealth_firm(company):
+            flags.append('target_wealth_firm')
+            return 5, flags
         return 1, flags
 
     # ── Real estate agents / brokers ──────────────────────────────────────────
@@ -3154,10 +3174,14 @@ def build_scoring_html(generated_at: str) -> str:
     finance_cos_sample = sorted(FINANCE_COMPANIES)[:24]
 
     # Pre-compute tier card bodies to avoid nested f-strings (Python < 3.12 limitation)
+    target_wm_chips = ['LPL Financial', 'Raymond James', 'JP Morgan', 'Morgan Stanley']
     card5 = tier_card(5, 'High', '#1a7a45', '#eaf7f0',
         section('Auto-High: lifecycle / call status') +
         rule('Already invested (Order Completed call outcome)') +
         rule('Warm pipeline (lifecyclestage = Opportunity)') +
+        section('Auto-High: target wealth-management firms (channel partners)') +
+        chip_row(target_wm_chips, '#1a7a45', '#d4f0e0') +
+        rule('Wealth advisor / financial planner titles at these firms &rarr; HIGH (flips the wealth-advisor DQ &mdash; we want them at events as referral sources)') +
         section('Auto-High: elite email domains') +
         chip_row(sorted(FINANCE_DOMAINS), '#1a7a45', '#d4f0e0') +
         section('Auto-High: title signals') +
@@ -3200,7 +3224,7 @@ def build_scoring_html(generated_at: str) -> str:
 
     card1 = tier_card(1, 'Low', '#a83030', '#fde8e8',
         rule('Previously said Not Interested') +
-        rule('Wealth advisors / financial advisors / private bankers &mdash; they refer clients, they don\'t invest personally') +
+        rule('Wealth advisors / financial advisors / private bankers &mdash; they refer clients, they don\'t invest personally <em style="color:#8a9ab8">(except at target firms above &mdash; LPL, Raymond James, JPM, MS &mdash; where they flip to HIGH)</em>') +
         chip_row(wealth_terms_fmt, '#a83030', '#fde0e0') +
         rule('Personal trainers, fitness coaches, yoga / pilates instructors, gym owners') +
         rule('No Show + other disqualifying signals (low title, art world, etc.)')
