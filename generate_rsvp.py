@@ -1891,7 +1891,7 @@ def render_detail_row(p: dict, per: str, nw: str, sc: int = 0, flags: list = Non
         f'<p class="detail-cell-label">Persona</p>'
         f'<span class="persona-detail-pill">{escape(per)}</span>'
         + (
-            f'<p class="detail-cell-label" style="margin-top:10px">Why score {sc}</p>'
+            f'<p class="detail-cell-label" style="margin-top:10px">Score Logic</p>'
             f'<div style="font-size:0.78rem;color:#3a5070;line-height:1.4">{escape(explain_score(p, sc, flags or []))}</div>'
             if sc else ''
         )
