@@ -242,6 +242,157 @@ _enrich_cache: dict = {}      # loaded from file at start of main()
 _quota_exhausted: bool = False  # flip to True on first 429 — stops all further queries
 _api_calls: int = 0           # total Google API calls this run; capped at ENRICH_LIMIT
 
+# ─── COMPANY SCALE CLASSIFIER ────────────────────────────────────────────────
+# Replaces a hardcoded MAJOR_EMPLOYERS list with a cascading lookup:
+#   B. Yahoo Finance market cap (public companies)
+#   A. LinkedIn snippet employee count (any company surfaced by Google CSE)
+#   C. (TODO) LLM classification when ANTHROPIC_API_KEY is configured
+# Verdict + source cached in company_scale_cache.json keyed by lowercase name.
+
+COMPANY_SCALE_CACHE_FILE = Path('company_scale_cache.json')
+_company_scale_cache: dict = {}
+
+def _load_company_scale_cache():
+    global _company_scale_cache
+    if COMPANY_SCALE_CACHE_FILE.exists():
+        try:
+            _company_scale_cache = json.loads(COMPANY_SCALE_CACHE_FILE.read_text(encoding='utf-8'))
+        except Exception:
+            _company_scale_cache = {}
+
+def _save_company_scale_cache():
+    COMPANY_SCALE_CACHE_FILE.write_text(
+        json.dumps(_company_scale_cache, indent=2, sort_keys=True),
+        encoding='utf-8',
+    )
+
+_US_EXCHANGES = {'NMS', 'NYQ', 'NCM', 'NGM', 'PCX', 'BTS', 'ASE'}
+
+def _yahoo_market_cap(company: str):
+    """Resolve company name → market cap (USD int) via yfinance.
+    Returns None if no US ticker found, name doesn't match, or API fails.
+    Uses yfinance which handles Yahoo's crumb-auth dance internally."""
+    try:
+        import yfinance as yf
+    except ImportError:
+        return None
+    try:
+        results = yf.Search(company, max_results=10, news_count=0).quotes
+    except Exception:
+        return None
+    target = company.lower().strip()
+    for q in results or []:
+        if q.get('quoteType') != 'EQUITY':
+            continue
+        # Prefer US-listed equities — foreign listings of delisted US companies
+        # often surface first but lack market-cap data.
+        if q.get('exchange') not in _US_EXCHANGES:
+            continue
+        symbol = q.get('symbol')
+        if not symbol:
+            continue
+        short = (q.get('shortname') or '').lower()
+        long_ = (q.get('longname')  or '').lower()
+        if target not in short and target not in long_ \
+                and short not in target and long_ not in target:
+            continue
+        try:
+            mc = yf.Ticker(symbol).info.get('marketCap', 0)
+        except Exception:
+            continue
+        if mc:
+            return int(mc)
+    return None
+
+def _classify_market_cap(mc: int) -> str:
+    if mc >= 10_000_000_000: return 'large'   # ≥ $10B
+    if mc >=  1_000_000_000: return 'mid'     # $1B – $10B
+    return 'small'
+
+def _extract_company_size(text: str) -> str:
+    """LinkedIn snippet → 'large' / 'mid' / 'small' / '' based on employee count.
+    Patterns: '10,001+ employees', '1,001-5,000 employees', '201-500 employees'."""
+    text = text or ''
+    m = re.search(r'(\d[\d,]*)\+?\s*[-–]?\s*(\d[\d,]*)?\s*employees', text, re.IGNORECASE)
+    if not m:
+        return ''
+    # Prefer the upper bound if it's a range; otherwise the single number
+    upper = (m.group(2) or m.group(1)).replace(',', '')
+    try:
+        n = int(upper)
+    except ValueError:
+        return ''
+    if n >= 10_000: return 'large'
+    if n >=  1_000: return 'mid'
+    return 'small'
+
+def classify_company_scale(company: str, prior_size: str = '') -> str:
+    """Cascade: cache → Yahoo (yfinance) → LinkedIn-extracted size → 'unknown'.
+    Caches verdict + source. Returns 'large' / 'mid' / 'small' / 'unknown'.
+
+    `prior_size` may be:
+      - a verdict already extracted by enrichment ('large'/'mid'/'small'), used as A-fallback, or
+      - a raw snippet blob to extract from (handled via _extract_company_size).
+    """
+    if not company or not company.strip():
+        return 'unknown'
+    key = company.lower().strip()
+    cached = _company_scale_cache.get(key)
+    # Return a cached real verdict immediately. If cached='unknown' but the caller
+    # now has prior_size info we didn't have before, fall through and re-evaluate.
+    if cached and cached.get('scale') and cached['scale'] != 'unknown':
+        return cached['scale']
+    if cached and cached.get('scale') == 'unknown' and not prior_size:
+        return 'unknown'
+
+    # B: Yahoo Finance market cap (US-listed public companies)
+    if not cached:  # don't re-hit Yahoo if we already failed once
+        mc = _yahoo_market_cap(company)
+        if mc:
+            scale = _classify_market_cap(mc)
+            _company_scale_cache[key] = {'scale': scale, 'source': 'yahoo', 'market_cap': mc}
+            return scale
+
+    # A: LinkedIn employee-count fallback (private firms, delisted, foreign-only)
+    li_scale = ''
+    if prior_size in ('large', 'mid', 'small'):
+        li_scale = prior_size
+    elif prior_size:
+        li_scale = _extract_company_size(prior_size)
+    if li_scale:
+        _company_scale_cache[key] = {'scale': li_scale, 'source': 'linkedin'}
+        return li_scale
+
+    # C: TODO — LLM classification (requires ANTHROPIC_API_KEY)
+    _company_scale_cache[key] = {'scale': 'unknown', 'source': 'none'}
+    return 'unknown'
+
+def _extract_grad_year(text: str) -> str:
+    """Best-effort grad-year extraction from a LinkedIn search snippet.
+    Returns 'YYYY' or '' if not found."""
+    text = text or ''
+    m = re.search(r'class\s+of\s+(\d{4})', text, re.IGNORECASE)
+    if m: return m.group(1)
+    m = re.search(r'(?:university|college|institute|school|academy)\b[^.|·]{0,80}?(\d{4})\s*[-–]\s*(\d{4})', text, re.IGNORECASE)
+    if m: return m.group(2)
+    m = re.search(r'(\d{4})\s*[-–]\s*(\d{4})\s+(?:university|college|institute|school|academy)', text, re.IGNORECASE)
+    if m: return m.group(2)
+    return ''
+
+def _extract_role_start(text: str) -> str:
+    """Best-effort current-role start date from a LinkedIn search snippet.
+    Returns 'YYYY-MM' or 'YYYY' or '' if not found."""
+    text = text or ''
+    months = r'(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)'
+    m = re.search(rf'\b{months}[a-z]*\s+(\d{{4}})\s*[-–]\s*present', text, re.IGNORECASE)
+    if m:
+        mmap = {'jan':'01','feb':'02','mar':'03','apr':'04','may':'05','jun':'06',
+                'jul':'07','aug':'08','sep':'09','oct':'10','nov':'11','dec':'12'}
+        return f"{m.group(2)}-{mmap[m.group(1).lower()]}"
+    m = re.search(r'\b(\d{4})\s*[-–]\s*present', text, re.IGNORECASE)
+    if m: return m.group(1)
+    return ''
+
 def _parse_linkedin_result(title_tag: str, snippet: str) -> tuple:
     """Return (job_title, company) from a Google/LinkedIn search result.
 
@@ -347,18 +498,37 @@ def google_enrich(name: str, company_hint: str = '', domain: str = '',
                 continue
 
             items = resp.json().get('items', [])
+            # Accumulate fields across all hits — title/company comes from the
+            # best parse, grad year + role start + company size may live in a
+            # sibling snippet.
+            acc = {'jobtitle': '', 'company': '',
+                   'linkedin_grad_year': '', 'linkedin_current_role_started': '',
+                   'linkedin_company_size': ''}
+            full_blob = ''
             for item in items:
-                inferred_title, inferred_company = _parse_linkedin_result(
-                    item.get('title', ''), item.get('snippet', '')
-                )
-                if inferred_title or inferred_company:
-                    result = {
-                        'jobtitle':  inferred_title,
-                        'company':   inferred_company,
-                        '_enriched': True,
-                    }
-                    _enrich_cache[name] = result
-                    return result
+                title_tag = item.get('title', '')
+                snippet   = item.get('snippet', '')
+                inferred_title, inferred_company = _parse_linkedin_result(title_tag, snippet)
+                blob = title_tag + ' ' + snippet
+                full_blob += ' ' + blob
+                if inferred_title  and not acc['jobtitle']: acc['jobtitle']  = inferred_title
+                if inferred_company and not acc['company']: acc['company']  = inferred_company
+                if not acc['linkedin_grad_year']:
+                    acc['linkedin_grad_year'] = _extract_grad_year(blob)
+                if not acc['linkedin_current_role_started']:
+                    acc['linkedin_current_role_started'] = _extract_role_start(blob)
+                if not acc['linkedin_company_size']:
+                    acc['linkedin_company_size'] = _extract_company_size(blob)
+            if acc['jobtitle'] or acc['company']:
+                result = {k: v for k, v in acc.items() if v}
+                result['_enriched'] = True
+                # Seed the company-scale cache from the snippet blob —
+                # cheaper than a Yahoo lookup for known LinkedIn-surfaced firms.
+                co = acc['company'] or acc.get('jobtitle', '')
+                if acc['company']:
+                    classify_company_scale(acc['company'], full_blob)
+                _enrich_cache[name] = result
+                return result
 
         except Exception as e:
             print(f'  Google search exception for "{name}": {e}', file=sys.stderr)
@@ -406,7 +576,8 @@ def enrich_no_data_contacts(contacts: list) -> int:
                 # Write to HubSpot if fields are still blank (handles failed/missed prior writes)
                 _patch_hubspot_contact(c['id'], {
                     k: v for k, v in cached.items()
-                    if k in ('jobtitle', 'company') and v and not p.get(k)
+                    if k in ('jobtitle', 'company')
+                       and v and not p.get(k)
                 })
             continue   # either way, don't make an API call
 
@@ -433,10 +604,12 @@ def enrich_no_data_contacts(contacts: list) -> int:
             # Write back to HubSpot — only fill blank fields, never overwrite
             _patch_hubspot_contact(c['id'], {
                 k: v for k, v in result.items()
-                if k in ('jobtitle', 'company') and v and not p.get(k)
+                if k in ('jobtitle', 'company', 'linkedin_grad_year', 'linkedin_current_role_started', 'linkedin_company_size')
+                   and v and not p.get(k)
             })
 
     _save_enrich_cache()
+    _save_company_scale_cache()
     return enriched
 
 
@@ -891,11 +1064,47 @@ def score_contact(p: dict) -> tuple:
     # investable wealth. HIGH requires title + at least one firm-quality corroboration:
     # finance-domain email, confirmed physician, or named top-tier finance company.
     if sc == 5 and 'invested' not in flags and 'opportunity' not in flags:
+        # Company scale via cascading classifier (Yahoo market cap → LinkedIn
+        # employee count → unknown). 'large' counts as firm-corroboration.
+        scale = classify_company_scale(company, p.get('linkedin_company_size', ''))
         _firm_signal = (email_domain(email) in FINANCE_DOMAINS
                         or is_physician(title, email, company)
-                        or any(fc in company for fc in FINANCE_COMPANIES))
+                        or any(fc in company for fc in FINANCE_COMPANIES)
+                        or scale in ('large', 'mid'))
+        # "Partner" is its own firm-signal only at large/mid firms — a Partner at
+        # a 5-person LLC isn't earning $1M+, but at any recognized large/mid firm
+        # the title implies carry/equity/profit-share at the $1M+ income tier.
+        if not _firm_signal and scale in ('large', 'mid'):
+            _t = title.strip()
+            if _t == 'partner' or _t.endswith(' partner'):
+                prefix = _t[:-len(' partner')].strip() if ' partner' in _t else ''
+                if prefix not in _PARTNER_EXCLUSIONS:
+                    _firm_signal = True
         if not _firm_signal:
             sc = 4
+
+    # ── LinkedIn-derived caps & floors ────────────────────────────────────────
+    # Tenure floor: 10+ years in current role → at least Medium (3)
+    role_start = (p.get('linkedin_current_role_started') or '').strip()
+    if role_start and 'invested' not in flags and 'opportunity' not in flags:
+        try:
+            if date.today().year - int(role_start[:4]) >= 10:
+                sc = max(sc, 3)
+                flags.append('tenure_10plus')
+        except ValueError:
+            pass
+    # Age cap: under 30 (4-yr undergrad → graduated in last 8 years) → Low-Medium (2)
+    # Exception: finance-domain emails (gs.com, jpmorgan.com, etc.) are exempt —
+    # young finance employees still get the auto-HIGH treatment via firm signal.
+    grad_year = (p.get('linkedin_grad_year') or '').strip()
+    if grad_year and 'invested' not in flags and 'opportunity' not in flags \
+            and email_domain(email) not in FINANCE_DOMAINS:
+        try:
+            if int(grad_year) >= date.today().year - 8:
+                sc = min(sc, 2)
+                flags.append('under_30')
+        except ValueError:
+            pass
 
     # ── NW cap — applied to all except finance-domain and physician hits ───────
     # Finance domain (@gs.com etc.) and physicians are reliable HIGH signals
@@ -1135,11 +1344,23 @@ def get_nw(p: dict) -> tuple:
         'cleary', 'paul weiss', 'cravath', 'debevoise', 'proskauer',
     ]):
         return '$3M–$10M', 'Partner at elite law firm'
+    # Plain "Partner" (equity partner / consulting partner / PE partner) →
+    # typically $1M+ annual income via carry, profit share, or equity stake.
+    # Excludes account/channel/operating/marketing/etc. partners — those are
+    # sales / biz-dev roles, not equity partnerships.
+    _t_clean = title.strip()
+    if (_t_clean == 'partner' or _t_clean.endswith(' partner')) and not _t_clean.endswith(' vice partner'):
+        prefix = _t_clean[:-len(' partner')].strip() if ' partner' in _t_clean else ''
+        if prefix not in _PARTNER_EXCLUSIONS:
+            return '$1M–$4M', 'Partner-level role — typically $1M+ annual income (carry / equity / profit share)'
 
-    # Tier 2: VP/Director/C-suite at major finance → $2M–$6M
+    _scale = classify_company_scale(company, p.get('linkedin_company_size', ''))
+    in_major_employer = _scale in ('large', 'mid')
+    # Tier 2: VP/Director/C-suite at major finance OR large public co → $2M–$6M
     if any(t in title for t in ['vp', 'vice president', 'director', 'svp', 'evp', 'cfo', 'cto', 'coo', 'cio', 'ceo', 'chief']) \
-            and in_top_finance:
-        return '$2M–$6M', 'C-suite / VP at major finance firm'
+            and (in_top_finance or in_major_employer):
+        which = 'top-tier finance firm' if in_top_finance else 'large company (≥$10B mcap or ≥10K employees)'
+        return '$2M–$6M', f'C-suite / VP at {which}'
     # C-suite titles (any company, any chief* title) → at least $1M–$4M
     # Exception: CEO / Chief Executive at a small/lifestyle or nonprofit org → conservative
     _is_ceo = any(t in title for t in ['ceo', 'chief executive'])
@@ -1851,7 +2072,7 @@ def render_panel(date_str: str, contacts: list, tab_id: str, active: bool, past:
         <th>Name</th>
         <th>Title / Company</th>
         <th>Likelihood <span style="font-size:0.6rem;opacity:0.6">(click to override)</span></th>
-        <th>Status</th>
+        <th>Linna</th>
         <th>LinkedIn</th>
         <th>HubSpot</th>
         <th>Uninvite<br><span id="uninvite-count-{tab_id}" style="font-size:0.65rem;color:#c04040;font-weight:400">{uninvite_count if uninvite_count else ''}</span></th>
@@ -3284,8 +3505,13 @@ def build_scoring_html(generated_at: str) -> str:
         section('Auto-High: company signals (sample)') +
         chip_row(finance_cos_sample, '#1a7a45', '#d4f0e0') +
         rule('+ PE firms, hedge funds, major banks, top law firms, VC firms') +
+        section('Auto-High: large companies (programmatic, no hardcoded list)') +
+        rule('Companies are classified at runtime via cascading lookup: <strong>Yahoo Finance market cap</strong> (public companies) &rarr; <strong>LinkedIn employee count from search snippets</strong> (private) &rarr; <em>unknown</em>. Verdict cached in <code>company_scale_cache.json</code>.') +
+        rule('Tiers: <strong>large</strong> = mcap &ge; $10B or &ge; 10K employees, <strong>mid</strong> = $1B–$10B mcap or 1K–10K employees, <strong>small</strong> = below. CEO / President / MD / Chief* titles at <em>large or mid</em> firms count as firm-corroboration &mdash; no downgrade by the title-only HIGH cap.') +
         section('Auto-High: profession') +
-        rule('Physicians, surgeons, MDs (pitched on MMFC K-1 angle)')
+        rule('Physicians, surgeons, MDs (pitched on MMFC K-1 angle)') +
+        section('Auto-High: title alone (with firm signal)') +
+        rule('<strong>Partner</strong> at a large or mid-scale firm &mdash; assumed $1M+ annual income via carry, profit share, or equity stake. Firm scale is detected programmatically (Yahoo market cap or LinkedIn employee count). Excludes <em>Account / Channel / Strategic / Operating / Marketing</em> Partner &mdash; those are sales / biz-dev roles')
     )
 
     card4 = tier_card(4, 'Medium-High', '#1a5fa8', '#e8f0fb',
@@ -3299,10 +3525,12 @@ def build_scoring_html(generated_at: str) -> str:
     card3 = tier_card(3, 'Medium', '#8a6800', '#fdf6e3',
         rule('Solo practitioners / small law firm attorneys') +
         rule('Senior Manager at non-finance company') +
+        rule('<strong>10+ years in current role</strong> (per LinkedIn) &mdash; floors the score at Medium even if other signals are weaker') +
         rule('No data + NYC zip code (assume local)')
     )
 
     card2 = tier_card(2, 'Low-Medium', '#b85a00', '#fdf0e8',
+        rule('<strong>Under 30</strong> (graduated college in the last 8 years per LinkedIn) &mdash; caps the score even if title is senior. <em>Exception: finance-domain emails (gs.com, jpmorgan.com, etc.) override this cap &mdash; young finance employees still score HIGH.</em>') +
         rule('Founder / Co-Founder &mdash; <strong>default Low-Medium unless finance domain, physician, or named top-tier finance firm</strong>') +
         rule('CEO / Owner without verifiable scale (no press, no funding, no recognizable company)') +
         rule('Real estate agents / realtors (commission-based, low liquid wealth)') +
@@ -3588,9 +3816,32 @@ def main():
     end   = today + timedelta(days=DAYS_AHEAD)
 
     _load_enrich_cache()
+    _load_company_scale_cache()
     print(f'Fetching RSVPs {start} → {end}  (DAYS_BACK={DAYS_BACK}, DAYS_AHEAD={DAYS_AHEAD})')
     contacts = fetch_contacts(start, end)
     print(f'Got {len(contacts)} contacts')
+
+    # Merge LinkedIn-derived fields from enrich_cache.json into each contact's
+    # properties dict. These fields (linkedin_grad_year, linkedin_current_role_started,
+    # linkedin_company_size) live only in the cache, not in HubSpot — overlay them
+    # so score_contact() can read them directly.
+    _LINKEDIN_FIELDS = ('linkedin_grad_year', 'linkedin_current_role_started', 'linkedin_company_size')
+    _merged = 0
+    for c in contacts:
+        p = c.get('properties') or {}
+        fname = p.get('firstname') or ''
+        lname = p.get('lastname')  or ''
+        name  = f'{fname} {lname}'.strip()
+        cached = _enrich_cache.get(name) if name else None
+        if cached:
+            for k in _LINKEDIN_FIELDS:
+                if cached.get(k) and not p.get(k):
+                    p[k] = cached[k]
+                    _merged += 1
+            c['properties'] = p
+    if _merged:
+        print(f'Merged {_merged} cached LinkedIn fields into contact properties')
+
     sync_uninvites_from_gist(contacts)
 
     # Enrich only today + future events — skip past events entirely.
