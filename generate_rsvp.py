@@ -863,6 +863,45 @@ def fetch_contacts(start: date, end: date) -> list:
 
     return contacts
 
+
+def fetch_all_contacts_with_rsvp() -> list:
+    """Lifetime fetch — every contact who has ever had outbound_rsvp_to_event
+    set, regardless of date. For the all-contacts roster page."""
+    if not HUBSPOT_TOKEN:
+        print('ERROR: HUBSPOT_API_KEY not set', file=sys.stderr)
+        sys.exit(1)
+    headers = {'Authorization': f'Bearer {HUBSPOT_TOKEN}', 'Content-Type': 'application/json'}
+    contacts, after = [], None
+    while True:
+        payload = {
+            'filterGroups': [{
+                'filters': [{'propertyName': 'outbound_rsvp_to_event', 'operator': 'HAS_PROPERTY'}]
+            }],
+            'properties': [
+                'firstname', 'lastname', 'jobtitle', 'company',
+                'email', 'city', 'state', 'zip',
+                'lifecyclestage', 'call_completed',
+                'outbound_rsvp_to_event', 'attended_outbound_event',
+                'outbound_event_attendee_disqualified',
+                'wealth_segment', 'inferred_income', 'address',
+                'hs_linkedin_url', 'linkedin_personal_url', 'outbound_team___linkedin_url', 'pipl_linkedin',
+                'hs_v2_date_entered_current_stage',
+            ],
+            'limit': 200,
+            'sorts': [{'propertyName': 'outbound_rsvp_to_event', 'direction': 'DESCENDING'}],
+        }
+        if after:
+            payload['after'] = after
+        resp = requests.post(SEARCH_URL, headers=headers, json=payload, timeout=30)
+        resp.raise_for_status()
+        data = resp.json()
+        contacts.extend(data.get('results', []))
+        after = data.get('paging', {}).get('next', {}).get('after')
+        if not after:
+            break
+    return contacts
+
+
 # ─── SCORING ──────────────────────────────────────────────────────────────────
 
 def email_domain(email: str) -> str:
@@ -2478,9 +2517,10 @@ header{{background:#1b3c6e;padding:16px 28px;position:sticky;top:0;z-index:100;
     </div>
   </div>
   <div class="page-tabs">
-    <a href="index.html"   class="page-tab active-tab">RSVP Dashboard</a>
-    <a href="events.html"  class="page-tab">Event Dashboard</a>
-    <a href="scoring.html" class="page-tab">Scoring Logic</a>
+    <a href="index.html"    class="page-tab active-tab">RSVP Dashboard</a>
+    <a href="events.html"   class="page-tab">Event Dashboard</a>
+    <a href="contacts.html" class="page-tab">Contacts</a>
+    <a href="scoring.html"  class="page-tab">Scoring Logic</a>
   </div>
 </header>
 
@@ -3228,9 +3268,10 @@ def build_events_html(by_date: dict, generated_at: str) -> str:
     </div>
   </div>
   <div class="page-tabs">
-    <a href="index.html"   class="page-tab">RSVP Dashboard</a>
-    <a href="events.html"  class="page-tab active-tab">Event Dashboard</a>
-    <a href="scoring.html" class="page-tab">Scoring Logic</a>
+    <a href="index.html"    class="page-tab">RSVP Dashboard</a>
+    <a href="events.html"   class="page-tab active-tab">Event Dashboard</a>
+    <a href="contacts.html" class="page-tab">Contacts</a>
+    <a href="scoring.html"  class="page-tab">Scoring Logic</a>
   </div>
 </header>
 
@@ -3614,6 +3655,387 @@ render();
 </body>
 </html>'''
 
+# ─── CONTACTS PAGE ────────────────────────────────────────────────────────────
+
+def build_contacts_html(contacts: list, generated_at: str) -> str:
+    """Flat lifetime-roster page — one row per contact, all cached + computed
+    fields, sortable / filterable. Replaces the per-event past-tab flow."""
+
+    today_str = date.today().isoformat()
+
+    def _tenure_years(role_start: str) -> str:
+        if not role_start:
+            return ''
+        try:
+            yr = int(role_start[:4])
+            n = date.today().year - yr
+            return f'{n} yr' if n else ''
+        except Exception:
+            return ''
+
+    # Build rows: compute everything per-contact
+    rows = []
+    for c in contacts:
+        p = c['properties']
+        cid = c['id']
+        fname = p.get('firstname') or ''
+        lname = p.get('lastname')  or ''
+        name  = f'{fname} {lname}'.strip() or '(no name)'
+        title = p.get('jobtitle') or ''
+        company = p.get('company') or ''
+        sc, flags = score_contact(p)
+        per       = get_persona(p)
+        nw, _     = get_nw(p)
+        pluto_bump = pluto_nw_bump(nw, p.get('_pluto_val') or '')
+        if pluto_bump:
+            nw, _ = pluto_bump
+        why = explain_score(p, sc, flags)
+        invested = ('invested' in flags) or ('opportunity' in flags)
+        scale = classify_company_scale(company, p.get('linkedin_company_size', ''))
+        grad  = (p.get('linkedin_grad_year') or '').strip()
+        tenure = _tenure_years(p.get('linkedin_current_role_started') or '')
+        exit_flag  = (p.get('linkedin_has_exit')  or '').lower() == 'true'
+        board_flag = (p.get('linkedin_has_board') or '').lower() == 'true'
+        pluto_val  = (p.get('_pluto_val') or '').strip()
+        last_event = (p.get('outbound_rsvp_to_event') or '')[:10]
+        attended = (p.get('attended_outbound_event') or '').strip().lower() == 'yes'
+        disqualified = (p.get('outbound_event_attendee_disqualified') or '').strip().lower() == 'disqualified'
+        rows.append({
+            'id': cid, 'name': name, 'title': title, 'company': company,
+            'sc': sc, 'why': why, 'persona': per, 'nw': nw,
+            'hs_wealth': (p.get('wealth_segment')  or '').strip() or '—',
+            'hs_income': (p.get('inferred_income') or '').strip() or '—',
+            'grad': grad or '—',
+            'tenure': tenure or '—',
+            'scale': scale,
+            'exit': exit_flag, 'board': board_flag,
+            'pluto': pluto_val or '—',
+            'last_event': last_event or '—',
+            'attended': attended, 'dq': disqualified,
+            'invested': invested,
+        })
+
+    # Sort: invested → score desc → last_event desc
+    rows.sort(key=lambda r: (
+        0 if r['invested'] else 1,
+        -r['sc'],
+        '' if r['last_event'] == '—' else r['last_event'],
+    ), reverse=False)
+    # Note: last_event is descending — simulate by negating via tuple inversion
+    rows.sort(key=lambda r: (
+        0 if r['invested'] else 1,
+        -r['sc'],
+        '0000-00-00' if r['last_event'] == '—' else r['last_event'],
+    ))
+    # We want last_event DESC within tier. Stable-sort then reverse last-event manually:
+    rows.sort(key=lambda r: (
+        0 if r['invested'] else 1,
+        -r['sc'],
+    ))
+    # Within each (invested, sc) bucket the order is whatever above gave us.
+    # For real DESC by last_event within bucket, sort once with composite key.
+    rows.sort(key=lambda r: (
+        0 if r['invested'] else 1,
+        -r['sc'],
+        # negative-style: for desc sort on string, use a transform
+        # python's sorted is stable, so doing date sort separately works — but cleanest:
+    ))
+    # Cleanest: explicit composite sort with a string-inverted date proxy
+    def _date_sort_key(d):
+        # Higher dates → smaller string (so ascending order = desc by date)
+        if d == '—': return 'ZZZZZZZZZ'
+        return ''.join(chr(255 - ord(ch)) for ch in d)
+    rows.sort(key=lambda r: (
+        0 if r['invested'] else 1,
+        -r['sc'],
+        _date_sort_key(r['last_event']),
+    ))
+
+    # Stats tiles
+    total = len(rows)
+    invested_n = sum(1 for r in rows if r['invested'])
+    high_n     = sum(1 for r in rows if r['sc'] == 5)
+    dq_n       = sum(1 for r in rows if r['dq'])
+    attended_n = sum(1 for r in rows if r['attended'])
+
+    # Persona dropdown options (unique non-blank)
+    personas_seen = sorted({r['persona'] for r in rows if r['persona'] and r['persona'] != 'Unknown'})
+
+    # Build tbody
+    tbody_rows = []
+    for r in rows:
+        sc = r['sc']
+        score_color_fg, score_color_bg = SCORE_COLORS[sc]
+        score_label = SCORE_LABELS[sc]
+        score_cell = (
+            f'<span class="score-pill" style="background:{score_color_bg};color:{score_color_fg};'
+            f'border:1px solid {score_color_fg}55;padding:2px 8px;border-radius:10px;'
+            f'font-size:0.72rem;font-weight:700">{sc} · {score_label}</span>'
+        )
+        invested_badge = (
+            '<span style="background:#eaf7f0;color:#1a7a45;border:1px solid #1a7a4555;'
+            'border-radius:10px;font-size:0.6rem;font-weight:700;padding:1px 6px;'
+            'letter-spacing:0.04em;margin-left:5px">INV</span>' if r['invested'] else ''
+        )
+        hs_link = (
+            f' <a href="{hs_url(r["id"])}" target="_blank" rel="noopener" '
+            f'style="color:#ff7a59;font-weight:700;text-decoration:none;font-size:0.78rem">↗</a>'
+        )
+        title_co = ''
+        if r['title']:   title_co += f'<div>{escape(r["title"])}</div>'
+        if r['company']: title_co += f'<div style="color:#7a94b8;font-size:0.78rem">{escape(r["company"])}</div>'
+        if not title_co: title_co = '<span style="color:#c0ccd8">—</span>'
+
+        scale_pill = ''
+        if r['scale'] == 'large':  scale_pill = '<span style="background:#eaf0fb;color:#1a3b7a;padding:1px 7px;border-radius:9px;font-size:0.66rem;font-weight:700">LARGE</span>'
+        elif r['scale'] == 'mid':  scale_pill = '<span style="background:#eaf7f0;color:#1a7a45;padding:1px 7px;border-radius:9px;font-size:0.66rem;font-weight:700">MID</span>'
+        elif r['scale'] == 'small':scale_pill = '<span style="background:#faf3e0;color:#8a6800;padding:1px 7px;border-radius:9px;font-size:0.66rem;font-weight:700">SMALL</span>'
+        elif r['scale'] == 'tiny': scale_pill = '<span style="background:#fdecec;color:#a83030;padding:1px 7px;border-radius:9px;font-size:0.66rem;font-weight:700">TINY</span>'
+        else:                      scale_pill = '<span style="color:#c0ccd8">—</span>'
+
+        exit_cell  = '<span style="color:#1a7a45;font-weight:700">✓</span>' if r['exit']  else '<span style="color:#c0ccd8">?</span>'
+        board_cell = '<span style="color:#1a7a45;font-weight:700">✓</span>' if r['board'] else '<span style="color:#c0ccd8">?</span>'
+        att_cell   = '<span style="color:#1a7a45;font-weight:700">✓</span>' if r['attended'] else '<span style="color:#c0ccd8">—</span>'
+        dq_cell    = '<span style="color:#a83030;font-weight:700">✓</span>' if r['dq']      else '<span style="color:#c0ccd8">—</span>'
+
+        tbody_rows.append(
+            f'<tr data-invested="{1 if r["invested"] else 0}" data-score="{sc}" '
+            f'data-persona="{escape(r["persona"])}" data-scale="{escape(r["scale"])}" '
+            f'data-exit="{"1" if r["exit"] else "0"}" data-board="{"1" if r["board"] else "0"}" '
+            f'data-attended="{"1" if r["attended"] else "0"}" data-dq="{"1" if r["dq"] else "0"}" '
+            f'data-event="{escape(r["last_event"])}">'
+            f'<td><strong>{escape(r["name"])}</strong>{invested_badge}{hs_link}</td>'
+            f'<td>{title_co}</td>'
+            f'<td style="text-align:center">{score_cell}</td>'
+            f'<td style="font-size:0.78rem;color:#5a7090;max-width:240px">{escape(r["why"])}</td>'
+            f'<td style="font-size:0.78rem">{escape(r["persona"]) if r["persona"]!="Unknown" else "—"}</td>'
+            f'<td style="font-size:0.78rem">{escape(r["nw"])}</td>'
+            f'<td style="font-size:0.78rem;color:#5a7090">{escape(r["hs_wealth"])}</td>'
+            f'<td style="font-size:0.78rem;color:#5a7090">{escape(r["hs_income"])}</td>'
+            f'<td style="text-align:center;font-size:0.78rem">{escape(r["grad"])}</td>'
+            f'<td style="text-align:center;font-size:0.78rem">{escape(r["tenure"])}</td>'
+            f'<td style="text-align:center">{scale_pill}</td>'
+            f'<td style="text-align:center">{exit_cell}</td>'
+            f'<td style="text-align:center">{board_cell}</td>'
+            f'<td style="font-size:0.78rem;color:#5a7090">{escape(r["pluto"])}</td>'
+            f'<td style="text-align:center;font-size:0.78rem;font-variant-numeric:tabular-nums">{escape(r["last_event"])}</td>'
+            f'<td style="text-align:center">{att_cell}</td>'
+            f'<td style="text-align:center">{dq_cell}</td>'
+            f'</tr>'
+        )
+
+    tbody_html = '\n'.join(tbody_rows)
+
+    persona_opts = '<option value="">All</option>' + ''.join(
+        f'<option value="{escape(p_)}">{escape(p_)}</option>' for p_ in personas_seen
+    )
+
+    return '''<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Masterworks — All Contacts</title>
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+         background:#f4f6fa; color:#2a3a52; min-height:100vh; }
+  header { background:linear-gradient(135deg,#1b3c6e 0%,#2a5298 100%);
+           padding:18px 32px; color:#fff; }
+  .header-row { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; }
+  .brand { font-size:0.7rem; letter-spacing:0.18em; text-transform:uppercase; opacity:0.55; margin-bottom:2px; }
+  .title { font-size:1.35rem; font-weight:700; letter-spacing:0.01em; }
+  .meta  { font-size:0.65rem; color:rgba(255,255,255,0.4); margin-top:2px; }
+  .page-tabs { display:flex; margin-top:6px; border-top:1px solid rgba(255,255,255,0.1); }
+  .page-tab { padding:10px 22px; font-size:0.7rem; letter-spacing:0.09em; text-transform:uppercase;
+              text-decoration:none; color:rgba(255,255,255,0.42); border-bottom:2px solid transparent;
+              transition:all 0.15s; }
+  .page-tab:hover { color:rgba(255,255,255,0.8); border-bottom-color:rgba(255,255,255,0.25); }
+  .page-tab.active-tab { color:#fff; border-bottom-color:#c9a84c; font-weight:700; }
+  .stats { display:grid; grid-template-columns:repeat(5,1fr); gap:0;
+           background:#fff; border-bottom:1px solid #e0e6ee; }
+  .stat-tile { padding:14px 24px; text-align:center; border-right:1px solid #eef1f7; }
+  .stat-tile:last-child { border-right:none; }
+  .stat-value { font-size:1.45rem; font-weight:700; color:#1b3c6e; line-height:1; }
+  .stat-label { font-size:0.62rem; color:#7a94b8; text-transform:uppercase; letter-spacing:0.13em; margin-top:4px; }
+  .controls { padding:12px 24px; background:#eaf0f9; border-bottom:1px solid #c6d4e8;
+              display:flex; gap:8px; flex-wrap:wrap; align-items:center; font-size:0.78rem; color:#3a4e68; }
+  .controls input, .controls select {
+    padding:6px 10px; border:1px solid #c6d4e8; border-radius:4px;
+    background:#fff; color:#1b3c6e; font-family:inherit; font-size:0.78rem; outline:none; }
+  .controls input:focus, .controls select:focus { border-color:#1b3c6e; box-shadow:0 0 0 2px rgba(27,60,110,0.15); }
+  .controls button { background:#1b3c6e; color:#fff; border:none; border-radius:4px;
+    padding:7px 13px; font-family:inherit; font-size:0.74rem; cursor:pointer; }
+  .controls button:hover { background:#2a5298; }
+  .vcount { margin-left:auto; font-size:0.72rem; color:#7a94b8; }
+  .table-wrap { padding:14px 24px 60px; overflow-x:auto; }
+  table.contacts { width:100%; border-collapse:separate; border-spacing:0; background:#fff;
+                   border-radius:6px; box-shadow:0 1px 4px rgba(27,60,110,0.08); overflow:hidden; }
+  thead.sticky { position:sticky; top:0; z-index:5; }
+  thead th { background:#1b3c6e; color:#e8f0fc; font-size:0.66rem; text-transform:uppercase;
+             letter-spacing:0.08em; font-weight:700; padding:9px 10px; text-align:left;
+             cursor:pointer; user-select:none; white-space:nowrap; border-bottom:2px solid #142d54; }
+  thead th:hover { background:#22508a; }
+  thead th.sort-asc::after  { content:" ▲"; opacity:0.85; font-size:0.65rem; }
+  thead th.sort-desc::after { content:" ▼"; opacity:0.85; font-size:0.65rem; }
+  tbody tr { border-bottom:1px solid #eef1f7; transition:background 0.1s; }
+  tbody tr:nth-child(even) { background:#fafbfd; }
+  tbody tr:hover { background:#eef4fb; }
+  tbody tr.row-hidden { display:none; }
+  tbody tr[data-invested="1"] td:first-child { border-left:3px solid #1a7a45; }
+  td { padding:9px 10px; font-size:0.82rem; color:#3a4e68; vertical-align:top; }
+  td strong { color:#1b3c6e; }
+  footer { padding:18px; text-align:center; font-size:0.66rem; color:#6a90be;
+           letter-spacing:0.1em; text-transform:uppercase; background:#1b3c6e; color:#9bb4d4; }
+</style></head><body>
+<header>
+  <div class="header-row">
+    <div>
+      <div class="brand">Masterworks · Outbound</div>
+      <div class="title">All Contacts</div>
+      <div class="meta">''' + escape(generated_at) + ''' · ''' + str(total) + ''' contacts (lifetime)</div>
+    </div>
+  </div>
+  <div class="page-tabs">
+    <a href="index.html"    class="page-tab">RSVP Dashboard</a>
+    <a href="events.html"   class="page-tab">Event Dashboard</a>
+    <a href="contacts.html" class="page-tab active-tab">Contacts</a>
+    <a href="scoring.html"  class="page-tab">Scoring Logic</a>
+  </div>
+</header>
+
+<div class="stats">
+  <div class="stat-tile"><div class="stat-value">''' + str(total) + '''</div><div class="stat-label">Total contacts</div></div>
+  <div class="stat-tile"><div class="stat-value" style="color:#1a7a45">''' + str(invested_n) + '''</div><div class="stat-label">Invested / Opp</div></div>
+  <div class="stat-tile"><div class="stat-value" style="color:#1a7a45">''' + str(high_n) + '''</div><div class="stat-label">Score 5 (HIGH)</div></div>
+  <div class="stat-tile"><div class="stat-value" style="color:#1a7a45">''' + str(attended_n) + '''</div><div class="stat-label">Attended ≥ 1</div></div>
+  <div class="stat-tile"><div class="stat-value" style="color:#a83030">''' + str(dq_n) + '''</div><div class="stat-label">Disqualified</div></div>
+</div>
+
+<div class="controls">
+  <input id="f-name"    type="text" placeholder="filter name…" oninput="applyFilters()">
+  <input id="f-company" type="text" placeholder="filter company…" oninput="applyFilters()">
+  <select id="f-score" onchange="applyFilters()">
+    <option value="">All scores</option>
+    <option value="5">5 — High</option><option value="4">4 — Medium-High</option>
+    <option value="3">3 — Medium</option><option value="2">2 — Low-Medium</option><option value="1">1 — Low</option>
+  </select>
+  <select id="f-persona" onchange="applyFilters()">''' + persona_opts + '''</select>
+  <select id="f-scale" onchange="applyFilters()">
+    <option value="">All sizes</option>
+    <option value="large">Large (10K+)</option><option value="mid">Mid (1K–10K)</option>
+    <option value="small">Small (51–999)</option><option value="tiny">Tiny (1–50)</option>
+    <option value="unknown">Unknown</option>
+  </select>
+  <select id="f-attended" onchange="applyFilters()">
+    <option value="">Attended: all</option><option value="1">Attended ✓</option><option value="0">Not attended</option>
+  </select>
+  <select id="f-dq" onchange="applyFilters()">
+    <option value="">DQ: all</option><option value="1">Disqualified</option><option value="0">Not DQ</option>
+  </select>
+  <button onclick="clearFilters()">Clear</button>
+  <span class="vcount">Showing <strong id="vcount">''' + str(total) + '''</strong> of ''' + str(total) + '''</span>
+</div>
+
+<div class="table-wrap">
+<table class="contacts" id="t">
+  <thead class="sticky"><tr>
+    <th data-col="name"     data-type="text" onclick="sortBy(this)">Name</th>
+    <th data-col="title"    data-type="text" onclick="sortBy(this)">Title / Company</th>
+    <th data-col="score"    data-type="num"  onclick="sortBy(this)" class="sort-desc">Score</th>
+    <th data-col="why"      data-type="text" onclick="sortBy(this)">Score Logic</th>
+    <th data-col="persona"  data-type="text" onclick="sortBy(this)">Persona</th>
+    <th data-col="nw"       data-type="text" onclick="sortBy(this)">NW</th>
+    <th data-col="hsw"      data-type="text" onclick="sortBy(this)">HS Wealth</th>
+    <th data-col="hsi"      data-type="text" onclick="sortBy(this)">HS Income</th>
+    <th data-col="grad"     data-type="num"  onclick="sortBy(this)">Grad</th>
+    <th data-col="tenure"   data-type="num"  onclick="sortBy(this)">Tenure</th>
+    <th data-col="scale"    data-type="text" onclick="sortBy(this)">Co Scale</th>
+    <th data-col="exit"     data-type="num"  onclick="sortBy(this)">Exit?</th>
+    <th data-col="board"    data-type="num"  onclick="sortBy(this)">Board?</th>
+    <th data-col="pluto"    data-type="text" onclick="sortBy(this)">Property</th>
+    <th data-col="event"    data-type="text" onclick="sortBy(this)">Last Event</th>
+    <th data-col="attended" data-type="num"  onclick="sortBy(this)">Attended</th>
+    <th data-col="dq"       data-type="num"  onclick="sortBy(this)">DQ?</th>
+  </tr></thead>
+  <tbody id="tb">
+''' + tbody_html + '''
+  </tbody>
+</table>
+</div>
+<footer>Masterworks Internal · Lifetime contact roster · Updated ''' + escape(generated_at) + '''</footer>
+
+<script>
+function applyFilters() {
+  var fn = (document.getElementById('f-name').value||'').toLowerCase();
+  var fc = (document.getElementById('f-company').value||'').toLowerCase();
+  var fs = document.getElementById('f-score').value;
+  var fp = document.getElementById('f-persona').value;
+  var fsc= document.getElementById('f-scale').value;
+  var fa = document.getElementById('f-attended').value;
+  var fd = document.getElementById('f-dq').value;
+  var rows = document.querySelectorAll('#tb tr');
+  var visible = 0;
+  rows.forEach(function(tr) {
+    var name = tr.children[0].textContent.toLowerCase();
+    var co   = tr.children[1].textContent.toLowerCase();
+    var sc   = tr.dataset.score;
+    var per  = tr.dataset.persona;
+    var scl  = tr.dataset.scale;
+    var att  = tr.dataset.attended;
+    var dq   = tr.dataset.dq;
+    var ok = true;
+    if (fn  && name.indexOf(fn) < 0) ok = false;
+    if (ok && fc  && co.indexOf(fc)  < 0) ok = false;
+    if (ok && fs  && sc !== fs) ok = false;
+    if (ok && fp  && per !== fp) ok = false;
+    if (ok && fsc && scl !== fsc) ok = false;
+    if (ok && fa  && att !== fa) ok = false;
+    if (ok && fd  && dq  !== fd) ok = false;
+    tr.classList.toggle('row-hidden', !ok);
+    if (ok) visible++;
+  });
+  document.getElementById('vcount').textContent = visible;
+}
+function clearFilters() {
+  ['f-name','f-company','f-score','f-persona','f-scale','f-attended','f-dq'].forEach(function(id){
+    document.getElementById(id).value = '';
+  });
+  applyFilters();
+}
+var sortDir = 'desc', sortCol = 'score';
+function sortBy(th) {
+  var col = th.dataset.col, type = th.dataset.type;
+  if (sortCol === col) sortDir = (sortDir === 'asc' ? 'desc' : 'asc');
+  else { sortCol = col; sortDir = 'asc'; }
+  document.querySelectorAll('thead th').forEach(function(h){ h.classList.remove('sort-asc','sort-desc'); });
+  th.classList.add(sortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+  var tb = document.getElementById('tb');
+  var rows = Array.from(tb.querySelectorAll('tr'));
+  var idx = { name:0, title:1, score:2, why:3, persona:4, nw:5, hsw:6, hsi:7, grad:8,
+              tenure:9, scale:10, exit:11, board:12, pluto:13, event:14, attended:15, dq:16 };
+  var i = idx[col];
+  rows.sort(function(a,b) {
+    var av, bv;
+    if (col === 'score')    { av = parseInt(a.dataset.score); bv = parseInt(b.dataset.score); }
+    else if (col === 'exit')    { av = parseInt(a.dataset.exit);     bv = parseInt(b.dataset.exit); }
+    else if (col === 'board')   { av = parseInt(a.dataset.board);    bv = parseInt(b.dataset.board); }
+    else if (col === 'attended'){ av = parseInt(a.dataset.attended); bv = parseInt(b.dataset.attended); }
+    else if (col === 'dq')      { av = parseInt(a.dataset.dq);       bv = parseInt(b.dataset.dq); }
+    else if (col === 'event')   { av = a.dataset.event; bv = b.dataset.event; }
+    else if (col === 'grad' || col === 'tenure') {
+      av = parseInt((a.children[i].textContent||'').replace(/[^0-9]/g,'')) || 0;
+      bv = parseInt((b.children[i].textContent||'').replace(/[^0-9]/g,'')) || 0;
+    }
+    else { av = (a.children[i].textContent||'').toLowerCase(); bv = (b.children[i].textContent||'').toLowerCase(); }
+    if (av < bv) return sortDir === 'asc' ? -1 : 1;
+    if (av > bv) return sortDir === 'asc' ? 1 : -1;
+    return 0;
+  });
+  rows.forEach(function(r) { tb.appendChild(r); });
+}
+</script>
+</body></html>'''
+
+
 # ─── SCORING PAGE ─────────────────────────────────────────────────────────────
 
 def build_scoring_html(generated_at: str) -> str:
@@ -3778,9 +4200,10 @@ def build_scoring_html(generated_at: str) -> str:
     </div>
   </div>
   <div class="page-tabs">
-    <a href="index.html"   class="page-tab">RSVP Dashboard</a>
-    <a href="events.html"  class="page-tab">Event Dashboard</a>
-    <a href="scoring.html" class="page-tab active-tab">Scoring Logic</a>
+    <a href="index.html"    class="page-tab">RSVP Dashboard</a>
+    <a href="events.html"   class="page-tab">Event Dashboard</a>
+    <a href="contacts.html" class="page-tab">Contacts</a>
+    <a href="scoring.html"  class="page-tab active-tab">Scoring Logic</a>
   </div>
 </header>
 
@@ -4054,6 +4477,26 @@ def main():
     scoring_html = build_scoring_html(now_str)
     (docs / 'scoring.html').write_text(scoring_html, encoding='utf-8')
     print(f'Written → docs/scoring.html  ({len(scoring_html):,} bytes)')
+
+    # Lifetime contact roster — separate fetch (HAS_PROPERTY filter, no date window)
+    print('Fetching lifetime contacts for roster page…')
+    all_contacts = fetch_all_contacts_with_rsvp()
+    print(f'Got {len(all_contacts)} lifetime contacts')
+    # Same LinkedIn-cache merge as the dashboard
+    _LIFETIME_LI_FIELDS = ('linkedin_grad_year', 'linkedin_current_role_started',
+                           'linkedin_company_size', 'linkedin_has_exit', 'linkedin_has_board')
+    for c in all_contacts:
+        p = c.get('properties') or {}
+        nm = f"{p.get('firstname') or ''} {p.get('lastname') or ''}".strip()
+        cached = _enrich_cache.get(nm) if nm else None
+        if cached:
+            for k in _LIFETIME_LI_FIELDS:
+                if cached.get(k) and not p.get(k):
+                    p[k] = cached[k]
+            c['properties'] = p
+    contacts_html = build_contacts_html(all_contacts, now_str)
+    (docs / 'contacts.html').write_text(contacts_html, encoding='utf-8')
+    print(f'Written → docs/contacts.html  ({len(contacts_html):,} bytes)')
 
     # Persist the company-scale cache regardless of whether enrichment ran —
     # scoring populates it in-memory via classify_company_scale, and we want
