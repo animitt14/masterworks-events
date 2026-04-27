@@ -216,6 +216,14 @@ SCORE_COLORS = {
     1: ('#a83030', '#fde8e8'),   # red
 }
 
+# DQ / QP tag colors — applied to future-event RSVPs in addition to the score pill.
+# QP = Qualified Person, DQ = should be Disqualified, UNCERTAIN = manual-review needed.
+TAG_STYLES = {
+    'QP':        ('#1a7a45', '#eaf7f0'),  # green
+    'DQ':        ('#a83030', '#fde8e8'),  # red
+    'UNCERTAIN': ('#8a6800', '#fdf6e3'),  # amber
+}
+
 PERSONA_LIST = [
     'Finance Bro', 'Tech Wealth Builder', 'Business Owner', 'Corporate Climber',
     'Medical Pro', 'Young Diversifier', 'Everyday Investor', 'Cautious Retiree', 'Unknown',
@@ -904,6 +912,91 @@ def score_contact(p: dict) -> tuple:
             sc = min(sc, 4)   # straddles $1M — cap at Medium-High, not High
 
     return sc, flags
+
+
+# ─── DQ / QP TAG ──────────────────────────────────────────────────────────────
+# Mirrors the disqualification framework used on the historical disqualified-
+# attendee cohort. Applied to contacts RSVPed to FUTURE events.
+# Returns 'QP' (qualified), 'DQ' (correctly disqualified), or 'UNCERTAIN'.
+
+def _wealth_segment_low(ws: str):
+    """Parse low end of a wealth-segment range like '$2M-$5M' or '$500K-$1M'."""
+    if not ws:
+        return None
+    s = ws.upper().replace(' ', '').replace('$', '').replace('MM', 'M').replace('+TO', '-').replace('+', '')
+    m = re.match(r'([\d.]+)([KM])?', s.split('-')[0])
+    if not m:
+        return None
+    val = float(m.group(1))
+    if m.group(2) == 'K':
+        val *= 1_000
+    elif m.group(2) == 'M':
+        val *= 1_000_000
+    return val
+
+
+def _income_low(inc: str):
+    """Parse low end of an inferred-income range — same format as wealth segment."""
+    return _wealth_segment_low(inc)
+
+
+def dq_qp_tag(p: dict) -> str:
+    """Returns 'QP', 'DQ', or 'UNCERTAIN' for a contact's properties dict.
+
+    QP triggers (any one is sufficient):
+      - Wealth-segment low end >= $1M (accredited territory)
+      - Inferred-income low end  >= $200K (accredited income)
+      - Email at a finance domain (FINANCE_DOMAINS)
+      - C-suite / Founder / Owner / President role at an identifiable company
+    DQ triggers:
+      - Junk first-name (email-as-name) OR no title/company/wealth/income at all
+    Otherwise: UNCERTAIN.
+    """
+    title   = (p.get('jobtitle') or '').lower()
+    company = (p.get('company')  or '').lower()
+    email   = (p.get('email')    or '').lower()
+    ws_low  = _wealth_segment_low(p.get('wealth_segment') or '')
+    inc_low = _income_low(p.get('inferred_income') or '')
+
+    # QP triggers — any one is sufficient
+    if ws_low and ws_low >= 1_000_000:
+        return 'QP'
+    if inc_low and inc_low >= 200_000:
+        return 'QP'
+    if email_domain(email) in FINANCE_DOMAINS:
+        return 'QP'
+    if company.strip() and any(t in title for t in [
+        'ceo', 'chief executive', 'founder', 'co-founder', 'cofounder',
+        'owner', 'president', 'managing director', 'managing partner',
+        'general partner',
+    ]) and 'vice president' not in title:
+        return 'QP'
+
+    # DQ — junk records or zero meaningful signal
+    fname = (p.get('firstname') or '').strip()
+    is_junk_name = '@' in fname or not fname
+    has_nothing = (not title.strip() and not company.strip()
+                   and not ws_low and not inc_low)
+    if is_junk_name or has_nothing:
+        return 'DQ'
+
+    return 'UNCERTAIN'
+
+
+def dq_qp_tag_html(p: dict) -> str:
+    """Renders the DQ/QP/UNCERTAIN pill — empty string if no tag applies."""
+    tag = dq_qp_tag(p)
+    if not tag:
+        return ''
+    fg, bg = TAG_STYLES[tag]
+    return (
+        f'<span class="dq-qp-tag" data-tag="{tag}" '
+        f'style="display:inline-block;margin-left:6px;padding:2px 7px;'
+        f'border-radius:10px;font-size:0.66rem;font-weight:700;'
+        f'letter-spacing:0.04em;color:{fg};background:{bg};'
+        f'border:1px solid {fg}55;vertical-align:middle">{tag}</span>'
+    )
+
 
 def get_persona(p: dict) -> str:
     title   = (p.get('jobtitle') or '').lower()
@@ -1603,7 +1696,7 @@ def render_row(idx: int, c: dict, show_dropdown: bool = False, show_unk: bool = 
         f'<td style="color:#aabcd4;text-align:center">{idx}</td>'
         f'<td>{name_cell}</td>'
         f'<td>{tc_html}</td>'
-        f'<td style="text-align:center" class="score-cell">{score_badge_html(sc)}</td>'
+        f'<td style="text-align:center" class="score-cell">{score_badge_html(sc)}{dq_qp_tag_html(p) if show_dropdown else ""}</td>'
         f'<td style="text-align:center">'
         f'<a href="{li_url(name, company, p)}" target="_blank" '
         f'style="color:#0a66c2;font-weight:700;text-decoration:none;font-size:0.8rem">LI↗</a></td>'
