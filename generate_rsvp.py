@@ -368,6 +368,28 @@ def classify_company_scale(company: str, prior_size: str = '') -> str:
     _company_scale_cache[key] = {'scale': 'unknown', 'source': 'none'}
     return 'unknown'
 
+_EXIT_RE  = re.compile(
+    r'\b(acquired by|sold (?:my company |the company |startup |it )?to|'
+    r"ipo'?d|went public|founded and exited|exited successfully|post[\- ]exit|"
+    r'after exiting)\b',
+    re.IGNORECASE,
+)
+_BOARD_RE = re.compile(
+    r'\b(board (?:member|director|seat|chair)|non[\- ]executive director|'
+    r'chairman of (?:the )?board|chairperson of (?:the )?board|'
+    r'sits on (?:the )?board|advisory board|board observer)\b',
+    re.IGNORECASE,
+)
+
+def _extract_exit_signal(text: str) -> bool:
+    """Detect founder/startup exit mentions in a LinkedIn snippet
+    (acquired by X, sold to Y, IPO'd, exited successfully)."""
+    return bool(_EXIT_RE.search(text or ''))
+
+def _extract_board_signal(text: str) -> bool:
+    """Detect board / advisory-board memberships in a LinkedIn snippet."""
+    return bool(_BOARD_RE.search(text or ''))
+
 def _extract_grad_year(text: str) -> str:
     """Best-effort grad-year extraction from a LinkedIn search snippet.
     Returns 'YYYY' or '' if not found."""
@@ -504,7 +526,8 @@ def google_enrich(name: str, company_hint: str = '', domain: str = '',
             # sibling snippet.
             acc = {'jobtitle': '', 'company': '',
                    'linkedin_grad_year': '', 'linkedin_current_role_started': '',
-                   'linkedin_company_size': ''}
+                   'linkedin_company_size': '',
+                   'linkedin_has_exit': '', 'linkedin_has_board': ''}
             full_blob = ''
             for item in items:
                 title_tag = item.get('title', '')
@@ -520,6 +543,10 @@ def google_enrich(name: str, company_hint: str = '', domain: str = '',
                     acc['linkedin_current_role_started'] = _extract_role_start(blob)
                 if not acc['linkedin_company_size']:
                     acc['linkedin_company_size'] = _extract_company_size(blob)
+            # Run exit / board detection over the full blob (signal can live in
+            # any snippet of the result set)
+            if _extract_exit_signal(full_blob):  acc['linkedin_has_exit']  = 'true'
+            if _extract_board_signal(full_blob): acc['linkedin_has_board'] = 'true'
             if acc['jobtitle'] or acc['company']:
                 result = {k: v for k, v in acc.items() if v}
                 result['_enriched'] = True
@@ -944,6 +971,24 @@ def score_contact(p: dict) -> tuple:
     if 'no_show' in flags and any(t in combined for t in DOWNGRADE_TERMS):
         return 1, flags
 
+    # ── Real-estate ≥ $3M (PLUTO) → auto-HIGH ─────────────────────────────────
+    # Property ≥ $3M implies real owned wealth that overrides subjective DQs
+    # (wealth advisor, art world, etc.) — they have investable assets even if
+    # their day job suggests otherwise.
+    pluto_val = (p.get('_pluto_val') or '').strip()
+    if pluto_val:
+        _pluto_low = _parse_pluto_low(pluto_val)
+        if _pluto_low and _pluto_low >= 3_000_000:
+            flags.append('property_3m_plus')
+            return 5, flags
+
+    # ── Founder / startup with prior exit (LinkedIn) → auto-HIGH ──────────────
+    # Acquired / sold / IPO mentions in the LinkedIn snippet imply they cashed
+    # out a venture — strong wealth signal regardless of current title.
+    if (p.get('linkedin_has_exit') or '').lower() == 'true':
+        flags.append('founder_with_exit')
+        return 5, flags
+
     # ── Wealth advisors / financial advisors (refer clients, don't invest) ────
     # Exception: at target wealth-management firms (LPL, Raymond James, JPM, MS),
     # flip the DQ — we recruit these as channel partners.
@@ -1098,6 +1143,13 @@ def score_contact(p: dict) -> tuple:
             sc = 4
 
     # ── LinkedIn-derived caps & floors ────────────────────────────────────────
+    # Board memberships: floor at Medium-High (4) — sitting on a board signals
+    # network depth and ownership-class wealth.
+    if (p.get('linkedin_has_board') or '').lower() == 'true' \
+            and 'invested' not in flags and 'opportunity' not in flags:
+        sc = max(sc, 4)
+        flags.append('board_member')
+
     # Tenure floor: 10+ years in current role → at least Medium (3)
     role_start = (p.get('linkedin_current_role_started') or '').strip()
     if role_start and 'invested' not in flags and 'opportunity' not in flags:
@@ -1152,10 +1204,13 @@ def explain_score(p: dict, sc: int, flags: list) -> str:
     if 'invested' in flags:           return 'Already invested'
     if 'opportunity' in flags:        return 'Warm pipeline — Opportunity stage'
     if 'not_interested' in flags:     return 'Said not interested on prior call'
+    if 'property_3m_plus' in flags:   return 'Real estate ≥ $3M (PLUTO) — verified wealth'
+    if 'founder_with_exit' in flags:  return 'Founder with prior startup exit'
     if 'target_wealth_firm' in flags: return 'Wealth advisor at target firm — channel partner'
 
     # LinkedIn-derived caps / floors
     if 'under_30' in flags:           return 'Under 30 — recent grad cap'
+    if 'board_member' in flags and sc == 4: return 'Board membership — ownership-class signal'
     if 'tenure_10plus' in flags and sc == 3:
         return '10+ year tenure floor'
     if 'founder_50plus' in flags:     return 'Founder of 50+ employee company'
@@ -3618,12 +3673,16 @@ def build_scoring_html(generated_at: str) -> str:
         rule('Tiers: <strong>large</strong> = mcap &ge; $10B or &ge; 10K employees, <strong>mid</strong> = $1B–$10B mcap or 1K–10K employees, <strong>small</strong> = below. CEO / President / MD / Chief* titles at <em>large or mid</em> firms count as firm-corroboration &mdash; no downgrade by the title-only HIGH cap.') +
         section('Auto-High: profession') +
         rule('Physicians, surgeons, MDs (pitched on MMFC K-1 angle)') +
+        section('Auto-High: verified wealth') +
+        rule('<strong>Real estate &ge; $3M</strong> (PLUTO low-end estimate) &mdash; implies ownership-class assets that override subjective DQs') +
+        rule('<strong>Founder with prior exit</strong> (LinkedIn mentions <em>acquired by</em> / <em>sold to</em> / <em>IPO</em> / <em>exited</em>) &mdash; cashed-out venture wealth') +
         section('Auto-High: title alone (with firm signal)') +
         rule('<strong>Partner</strong> at a large or mid-scale firm &mdash; assumed $1M+ annual income via carry, profit share, or equity stake. Firm scale is detected programmatically (Yahoo market cap or LinkedIn employee count). Excludes <em>Account / Channel / Strategic / Operating / Marketing</em> Partner &mdash; those are sales / biz-dev roles')
     )
 
     card4 = tier_card(4, 'Medium-High', '#1a5fa8', '#e8f0fb',
         rule('VP, Director, SVP, EVP, AVP, Senior Director, Associate Director at any company') +
+        rule('<strong>Board / advisory-board member</strong> (per LinkedIn) &mdash; ownership-class signal floors at Medium-High') +
         rule('<strong>Founder / Co-Founder of a company with &ge;1,000 LinkedIn employees</strong> &mdash; running a real org. (51&ndash;999 employees lifts to Medium / 3; &lt;50 stays at 2.)') +
         rule('Real estate executives (SVP at Extell, Related, Brookfield, etc.)') +
         rule('Senior engineers at FAANG (RSU hedge angle)') +
@@ -3934,7 +3993,8 @@ def main():
     # properties dict. These fields (linkedin_grad_year, linkedin_current_role_started,
     # linkedin_company_size) live only in the cache, not in HubSpot — overlay them
     # so score_contact() can read them directly.
-    _LINKEDIN_FIELDS = ('linkedin_grad_year', 'linkedin_current_role_started', 'linkedin_company_size')
+    _LINKEDIN_FIELDS = ('linkedin_grad_year', 'linkedin_current_role_started',
+                        'linkedin_company_size', 'linkedin_has_exit', 'linkedin_has_board')
     _merged = 0
     for c in contacts:
         p = c.get('properties') or {}
