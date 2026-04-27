@@ -1058,12 +1058,17 @@ def score_contact(p: dict) -> tuple:
             'general partner', 'president',
         ]) or bool(re.search(r'\bchief\b.+\bofficer\b', title)))
         if not (_fin_dom or _phys or _top_fin or _exec_title):
-            # If LinkedIn says the company has >50 employees (i.e. not 'tiny'
-            # or 'unknown'), founder gets Medium-High (4) — running a real
-            # team, not a solo shop. Otherwise stay conservative at 2.
+            # Founder at a recognizable-scale company lifts above the
+            # conservative default. Tiered by LinkedIn employee count:
+            #   large/mid (≥1K)  → Medium-High (4)
+            #   small    (51–999) → Medium      (3)
+            #   tiny / unknown    → Low-Medium  (2) — stay conservative
             _scale = classify_company_scale(company, p.get('linkedin_company_size', ''))
-            if _scale in ('large', 'mid', 'small'):
+            if _scale in ('large', 'mid'):
                 sc = 4
+                flags.append('founder_50plus')
+            elif _scale == 'small':
+                sc = 3
                 flags.append('founder_50plus')
             else:
                 sc = min(sc, 2)
@@ -3619,7 +3624,7 @@ def build_scoring_html(generated_at: str) -> str:
 
     card4 = tier_card(4, 'Medium-High', '#1a5fa8', '#e8f0fb',
         rule('VP, Director, SVP, EVP, AVP, Senior Director, Associate Director at any company') +
-        rule('<strong>Founder / Co-Founder of a company with &gt;50 LinkedIn employees</strong> &mdash; running a real team, not a solo shop') +
+        rule('<strong>Founder / Co-Founder of a company with &ge;1,000 LinkedIn employees</strong> &mdash; running a real org. (51&ndash;999 employees lifts to Medium / 3; &lt;50 stays at 2.)') +
         rule('Real estate executives (SVP at Extell, Related, Brookfield, etc.)') +
         rule('Senior engineers at FAANG (RSU hedge angle)') +
         rule('Principal Engineer / Analyst / Developer (not High &mdash; technical, not investment-focused)') +
@@ -3635,7 +3640,7 @@ def build_scoring_html(generated_at: str) -> str:
 
     card2 = tier_card(2, 'Low-Medium', '#b85a00', '#fdf0e8',
         rule('<strong>Under 30</strong> (graduated college in the last 8 years per LinkedIn) &mdash; caps the score even if title is senior. <em>Exception: finance-domain emails (gs.com, jpmorgan.com, etc.) override this cap &mdash; young finance employees still score HIGH.</em>') +
-        rule('Founder / Co-Founder &mdash; <strong>default Low-Medium unless finance domain, physician, named top-tier finance firm, or LinkedIn shows &gt;50 employees</strong> (in which case lifts to Medium-High)') +
+        rule('Founder / Co-Founder &mdash; <strong>default Low-Medium</strong> unless finance domain, physician, named top-tier finance firm, or LinkedIn shows scale (51&ndash;999 employees lifts to Medium / 3; &ge;1K lifts to Medium-High / 4)') +
         rule('CEO / Owner without verifiable scale (no press, no funding, no recognizable company)') +
         rule('Real estate agents / realtors (commission-based, low liquid wealth)') +
         rule('Art world: dealers, brokers, advisors, consultants, all gallery staff &mdash; no exceptions') +
