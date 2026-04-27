@@ -4466,10 +4466,13 @@ def main():
     docs = Path('docs')
     docs.mkdir(parents=True, exist_ok=True)
 
-    rsvp_html = build_html(dict(by_date), now_str)
+    # Dashboard shows today + future only — past events live on the contacts page
+    by_date_future = {d: contacts for d, contacts in by_date.items() if d[:10] >= today_iso}
+    rsvp_html = build_html(by_date_future, now_str)
     (docs / 'index.html').write_text(rsvp_html, encoding='utf-8')
     print(f'Written → docs/index.html  ({len(rsvp_html):,} bytes)')
 
+    # Events page keeps the full window so the chronological summary stays useful
     events_html = build_events_html(dict(by_date), now_str)
     (docs / 'events.html').write_text(events_html, encoding='utf-8')
     print(f'Written → docs/events.html  ({len(events_html):,} bytes)')
