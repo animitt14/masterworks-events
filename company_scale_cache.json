@@ -1,7 +1,4295 @@
 {
+  "\"\"": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "\"albert moy\"": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "\"wolters kluwer\"": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "100 miles north": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "101 broadway realty": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "2048 ventures": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "20th century fox": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "257": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "2com group": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "7   days": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "a&o shearman": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "aaf management ltd.": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "aarp": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "abbott": {
+    "market_cap": 161256980480,
+    "scale": "large",
+    "source": "yahoo"
+  },
+  "abbvie": {
+    "market_cap": 349118332928,
+    "scale": "large",
+    "source": "yahoo"
+  },
+  "abs associates": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "acceleration community of companies": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "accenture": {
+    "market_cap": 108907405312,
+    "scale": "large",
+    "source": "yahoo"
+  },
+  "activaire": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "ad talks": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "addigence": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "adet it solutions": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "aeae group": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "aecom": {
+    "market_cap": 10600374272,
+    "scale": "large",
+    "source": "yahoo"
+  },
+  "aegisgroup.io": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "afficiency inc": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "agavi juice": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "agga media group": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "ahoy! insurance": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "aj melino & associates": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "akam": {
+    "market_cap": 14123106304,
+    "scale": "large",
+    "source": "yahoo"
+  },
+  "albert": {
+    "market_cap": 8394579456,
+    "scale": "mid",
+    "source": "yahoo"
+  },
+  "aleria": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "aleria research corporation": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "alexander a grasso esq": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "all access social": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "alleycorp companies": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "alliance facade services": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "alliance for international exchange": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "alliance global partners": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "alliancebernstein": {
+    "market_cap": 3513265920,
+    "scale": "mid",
+    "source": "yahoo"
+  },
+  "ally corporate finance": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "alpha pr pro": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "alpha square group": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "alphasprouts": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "alpine grove partners": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "alta summit capital": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "alternative funding solutions": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "altitude fitness management group": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "alvotech": {
+    "market_cap": 1029759360,
+    "scale": "mid",
+    "source": "yahoo"
+  },
+  "amaze": {
+    "market_cap": 6026460,
+    "scale": "small",
+    "source": "yahoo"
+  },
+  "amazon": {
+    "market_cap": 2808150228992,
+    "scale": "large",
+    "source": "yahoo"
+  },
+  "amazon tv": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "american alliance for theatre and education": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "american board of hair restoration surgery": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "american museum of natural history": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "amigo": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "amobee": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "anaya offering": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "andaz 5th avenue": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "angi": {
+    "market_cap": 301988768,
+    "scale": "small",
+    "source": "yahoo"
+  },
+  "anibar group": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "anita shapolsky art foundation": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "antidote": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "antler": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "ao asset management": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "apex group": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "apple": {
+    "market_cap": 3928819761152,
+    "scale": "large",
+    "source": "yahoo"
+  },
+  "arc excess & surplus": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "arcana labs": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "argent ventures llc": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "argentum peak": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "artsy magazine llc": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "association of independent commercial producers": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "astound business solutions": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "aterian (nasdaq: ater)": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "athos legal funding llc": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "atlantic health system": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "atlantic pr": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "attaquercyclingcom": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "attentive mobile": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "aurate": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "aurify brands": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "authentic": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "avalere health group": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "avangrid": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "avid realty partners": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "awakenings foundation center and gallery": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "azeera": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "bader media group": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "bandwidth productions": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "bank of america": {
+    "market_cap": 375247077376,
+    "scale": "large",
+    "source": "yahoo"
+  },
+  "barnard college": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "barry mctiernan & moore": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "base beauty creative agency": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "bathtub creative": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "bayou energy": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "beach enclave": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "bean box": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "beauteers llc": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "bed vyne brew": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "benjamin brown - placeholder company": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "benrus watch": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "bera": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "berkshire global advisors": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "berman consulting group": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "beth morrison projects": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "bethesda elite care": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "better breastfeeding llc": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "bettina equities": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "beyond property management": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "bgc group": {
+    "market_cap": 5411330048,
+    "scale": "mid",
+    "source": "yahoo"
+  },
+  "biblio holdings": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "bibliotheque": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "big drop": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "bin partners llc": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "biodesign challenge": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "blabel llc": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "blackbird.ai": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "blackrock": {
+    "market_cap": 164199006208,
+    "scale": "large",
+    "source": "yahoo"
+  },
+  "blackstock & weber": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "bleecker street playhouse": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "blew & associates": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "block party films": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "bloom tree partners": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "bloomberg": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "bloomberg philanthropies": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "bmo wealth management - u.s.": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "board": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "bobrow": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "bonhams": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "bonobos": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "books are magic": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "bookstr": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "boost my school": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "boost payment solutions": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "bottleneck gallery": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "brenton wolf": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "brian dorsey studios": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "bridgeman images": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "bridger": {
+    "market_cap": 117998200,
+    "scale": "small",
+    "source": "yahoo"
+  },
+  "brit + co": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "broadriver asset management": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "broadway realty": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "brooklyn cannery": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "brooklyn navy yard development corporation": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "brown harris stevens": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "brown tings": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "browsi": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "btig": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "buchwald": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "buhler duggal & henry llp": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "building intelligence inc.": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "bulc club": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "bullish inc.": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "burning wood emporium": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "bushwick country club": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "butter payments": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "butterfield market": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "by any means": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "cabinet": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "cadence": {
+    "market_cap": 92916023296,
+    "scale": "large",
+    "source": "yahoo"
+  },
+  "cafe sabor": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "caliber corporate advisers": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "cambrian biopharma": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "camp six labs": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "campoamor & sons": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "campus": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "cancer research and biostatistics": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "capital art advisory llc": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "capital counsel llc": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "capital one": {
+    "market_cap": 123103764480,
+    "scale": "large",
+    "source": "yahoo"
+  },
+  "cardo ai": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "carefirst cdpap": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "cartier": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "casabella": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "cassvita": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "catalist group": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "catalyst capital advisors llc": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "cause effect agency": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "cb insights": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "cd&r": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "cei ventures": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "centerview partners": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "central park summerstage": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "cetraruddy": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "chapter": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "chargeblast": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "charles schwab": {
+    "market_cap": 159030624256,
+    "scale": "large",
+    "source": "yahoo"
+  },
+  "charney research": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "charter communications": {
+    "market_cap": 24651155456,
+    "scale": "large",
+    "source": "yahoo"
+  },
+  "chase": {
+    "market_cap": 835012591616,
+    "scale": "large",
+    "source": "yahoo"
+  },
+  "chatham financial": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "checkedup": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "cheesehead tv": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "chemtob moss & forman": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "chief executive air": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "children's products": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "choosing therapy": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "choreografx": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "christian cultural center": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "cieri media international": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "citi": {
+    "market_cap": 225907064832,
+    "scale": "large",
+    "source": "yahoo"
+  },
+  "cities for financial empowerment fund": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "citigroup": {
+    "market_cap": 225907064832,
+    "scale": "large",
+    "source": "yahoo"
+  },
+  "citigroup, inc.": {
+    "market_cap": 225907064832,
+    "scale": "large",
+    "source": "yahoo"
+  },
+  "citizens": {
+    "market_cap": 27597807616,
+    "scale": "large",
+    "source": "yahoo"
+  },
+  "city parks foundation": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "cityarts": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "clarion capital partners": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "class technologies": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "clayman rosenberg kirshner  linder": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "clear street": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "click therapeutics": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "climate fund managers": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "climate refugees": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "clootrack": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "cloudlex": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "coach": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "cocc": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "codetribe": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "collibra": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "columbia university": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "compass": {
+    "market_cap": 322357376,
+    "scale": "small",
+    "source": "yahoo"
+  },
+  "complyadvantage": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "comtech capital": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "concept": {
+    "market_cap": 14185514,
+    "scale": "small",
+    "source": "yahoo"
+  },
+  "concept louis": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "concertiv": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "considine search": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "convo": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "cooley": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "corcoran": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "cordoba advisory partners": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "correlated": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "cortec group": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "covenant": {
+    "market_cap": 876971584,
+    "scale": "small",
+    "source": "yahoo"
+  },
+  "coverforce": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "craft & capital": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "cre finance council": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "cre8ive house adv": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "create tech group": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "creative intelligence": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "creative landscaping by cow bay": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "creative riff": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "crewai": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "crm copilot": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "curbcut urban partners": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "curiam capital": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "curvature": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "cycode | complete aspm": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "d+r lathian": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "da media": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "daily mail online": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "dandy in the bronx": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "daniel j vasquez productions": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "darien wellness": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "darrow": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "dastur venture": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "data axle usa": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "david harris - placeholder company": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "davidson kempner": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "dead flowers productions": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "deepintent": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "dembitzer & dembitzer": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "dentons": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "depirro/garrone": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "dfcm productions llc": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "dg capital management": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "diamonds by rob": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "diaton inc": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "digital pomegranate": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "dimension capital": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "dispersive technologies": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "disqo": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "divino global holdings": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "dmg investments": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "dna brand mechanics": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "dnes marketing": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "docgo": {
+    "market_cap": 67939792,
+    "scale": "small",
+    "source": "yahoo"
+  },
+  "doordash": {
+    "market_cap": 75846017024,
+    "scale": "large",
+    "source": "yahoo"
+  },
+  "dorf nelson  zauderer": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "dotcomweavers": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "doug argue studios": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "douglas dubler": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "dow venture capital": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "dpaa": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "dragon global": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "drink n style corp": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "ds education alliance": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "dth capital": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "duncan quinn": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "dune security": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "duolingo": {
+    "market_cap": 4832583680,
+    "scale": "mid",
+    "source": "yahoo"
+  },
+  "duro electrical contracting": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "duscany investment services": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "east west integration": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "easy star records": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "echo3d": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "edelman": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "edtech founders club": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "educolor": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "edward h rosenthal": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "efface": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "effectual": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "eh & ah properties": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "ehe health": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "eiger agency": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "einstein healthcare network": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "eisneramper": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "elevate group": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "elo visual art": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "eluxr": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "energy impact partners": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "enfusion": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "epiq": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "epistemic ai": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "equalshuman": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "equiteq": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "era / remarkable ventures": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "ergoteles capital": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "espn": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "estabrook capital management": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "estate five media": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "ethena foundation": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "eunoia group": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "eureka ai": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "everest tutoring": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "everyrealm inc.": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "executive it forums": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "exemplar companies": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "exny studio": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "extell development company": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "extend": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "factset": {
+    "market_cap": 8209026048,
+    "scale": "mid",
+    "source": "yahoo"
+  },
+  "farient advisors": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "farmtogether": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "feed to succeed": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "fei creative": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "fintech leaders": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "firebird management": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "first": {
+    "market_cap": 259518768,
+    "scale": "small",
+    "source": "yahoo"
+  },
+  "first colonial group": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "firstpoint equity": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "fjk dance": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "flex": {
+    "market_cap": 33120067584,
+    "scale": "large",
+    "source": "yahoo"
+  },
+  "flow": {
+    "market_cap": 242809392,
+    "scale": "small",
+    "source": "yahoo"
+  },
+  "flushing bank": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "fly alliance": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "fnw": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "forbes human resources council": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "fordham school of business": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "forte": {
+    "market_cap": 525162176,
+    "scale": "small",
+    "source": "yahoo"
+  },
+  "fortress investment group": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "forum for life": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "founder collective": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "fovea central": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "fox": {
+    "market_cap": 24298622976,
+    "scale": "large",
+    "source": "yahoo"
+  },
+  "fractionl": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "frank popp consulting": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "freelance": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "friedman sanchez llp": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "friends seminary": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "frisch's restaurants": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "front row nyc": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "frt": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "fti consulting": {
+    "market_cap": 5571920384,
+    "scale": "mid",
+    "source": "yahoo"
+  },
+  "fundwell": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "furniture village": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "fuse analytics": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "g2 investment partners": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "gagosian gallery": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "garden capital management": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "gauthier architect": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "gigink": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "glassnote records": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "global citizen": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "global ocean exploration inc": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "global taxes llc": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "go express": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "gold star jewellery ltd": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "golden east investors": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "goldman sachs": {
+    "market_cap": 278297870336,
+    "scale": "large",
+    "source": "yahoo"
+  },
+  "golub capital": {
+    "market_cap": 3527257344,
+    "scale": "mid",
+    "source": "yahoo"
+  },
+  "good find records": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "google": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "gotapeless productions": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "gotham artists": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "gotham organization": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "graphictherapy": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "greek xpress": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "gridwise": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "groverton": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "grubs rp": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "gthq llc": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "gtm guild": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "h2 architects": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "h2sho fitness": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "haideh hirmand, md pc": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "haining hairui investment management": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "halstead management": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "hampton": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "hamrah": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "harlem capital": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "harlem film center": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "harlem school of the arts": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "harmonycity": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "harold hunter foundation": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "hartford healthcare": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "harvard university": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "healthclicks": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "hedgeserv": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "heidrick & struggles": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "hello data": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "hercules new york": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "highlands health": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "hiv experience resources organization": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "hok": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "home rent listings": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "homerun pr": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "hotel theta": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "houlihan lokey": {
+    "market_cap": 11145410560,
+    "scale": "large",
+    "source": "yahoo"
+  },
+  "hsbc": {
+    "market_cap": 311698554880,
+    "scale": "large",
+    "source": "yahoo"
+  },
+  "hsi investors": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "hudson bay capital management": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "hudson re": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "hudson river": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "hudson valley community college": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "hudson venture partners": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "humane society of north texas": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "humanitru": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "humanscale": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "humble crew": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "hustle butter": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "ibdea": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "ibo": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "icap at columbia university": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "ice": {
+    "market_cap": 23071536,
+    "scale": "small",
+    "source": "yahoo"
+  },
+  "icnclst": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "idst projects": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "ieee communications society": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "ifm investors": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "ignite innovations": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "iheartmedia": {
+    "market_cap": 793245824,
+    "scale": "small",
+    "source": "yahoo"
+  },
+  "iheartmedia inc": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "impel group": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "impilo": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "in creative company": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "in de goot entertainment": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "inclusiv": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "indago capital": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "indigo productions": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "indochino": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "industrial metals international": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "inflexion": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "infosys": {
+    "market_cap": 49632026624,
+    "scale": "large",
+    "source": "yahoo"
+  },
+  "ink games": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "ink stories": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "inkwire": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "intercept pharmaceuticals": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "intersection co.": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "intertek": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "invariant": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "invisible technologies": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "irolls": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "isilaycabuk": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "island capital group": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "ithink financial credit union": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "ivywise": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "j costantin architecture": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "j landress brass": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "j merullo imports": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "j&p": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "jason winocour - placeholder company": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "jet.ai": {
+    "market_cap": 4314236,
+    "scale": "small",
+    "source": "yahoo"
+  },
+  "jewish council for public affairs": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "jfkiat": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "jilleba cpa": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "joan creative": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "johannes leonardo": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "john duval sr": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "jorge delgado": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "jp morgan": {
+    "market_cap": 835012591616,
+    "scale": "large",
+    "source": "yahoo"
+  },
+  "jp morgan & co": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "jp morgan chase": {
+    "market_cap": 835012591616,
+    "scale": "large",
+    "source": "yahoo"
+  },
+  "jp morgan india private": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "jp morgan private bank": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "jpmorgan chase": {
+    "market_cap": 835012591616,
+    "scale": "large",
+    "source": "yahoo"
+  },
+  "jpmorgan private bank": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "juice plus": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "kaleidoscope": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "kaller & hirsch associates": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "kanda software": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "katz kane": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "keller williams elite realty": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "keller williams nyc": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "ki smith gallery": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "kids of ukraine": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "kindthread": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "kirei media": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "klocke estate distillery": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "knowledgehook": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "kohlberg kravis roberts": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "korrus workpido": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "kroll": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "ksny": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "kuberon capital": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "kucker & bruh": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "kyndryl": {
+    "market_cap": 3063827456,
+    "scale": "mid",
+    "source": "yahoo"
+  },
+  "l&l holding company": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "la cit? development": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "lab records": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "ladles of hope": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "lakey wolff": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "lane anthony productions gryphon development": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "langan engineering & environmental services": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "launch live now": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "lauretti new york": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "layer 7 data solutions": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "leading pharma": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "leandro justen": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "lee & associates nyc": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "legal aid bureau of buffalo": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "legion m": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "lendiq": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "lgt capital partners": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "lifestyle salon nyc": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "lifetime brands": {
+    "market_cap": 159712176,
+    "scale": "small",
+    "source": "yahoo"
+  },
+  "like an angel": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "line by line productions": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "link homecare": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "linkedin": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "liquid holdings group": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "littlejohn & co": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "littler mendelson": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "liveworld": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "livi beauty": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "living spaces": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "lola bar": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "long term stock exchange": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "lotte new york palace": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "lowe's companies, inc.": {
+    "market_cap": 135843258368,
+    "scale": "large",
+    "source": "yahoo"
+  },
+  "lower manhattan cultural council": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "lunchbox technologies": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "macandrews & forbes": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "macktez": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "magellan wind": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "magen financial": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "magis industries": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "magnet communications  kig": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "majestyk": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "major league hacking": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "manhattan childrens center": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "marex group": {
+    "market_cap": 3820967936,
+    "scale": "mid",
+    "source": "yahoo"
+  },
+  "mark seliger studio": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "marketplace": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "marlabs": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "marriage pact": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "maschinenmensch": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "mask arts": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "masood textile mills": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "match fit performance": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "maven clinic": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "maxim group, llc": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "maxus group": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "mc": {
+    "market_cap": 206289289216,
+    "scale": "large",
+    "source": "yahoo"
+  },
+  "mccabes wine  spirits": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "mccarthy & kelly": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "med dimensions llc": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "medex finance": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "media nova": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "melty cone": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "mermaid's garden": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "messapps": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "meta": {
+    "market_cap": 1722624770048,
+    "scale": "large",
+    "source": "yahoo"
+  },
+  "metamural": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "metropolitan museum of art": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "metropolitan transportation authority": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "metta movement yoga and meditation": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "mgm+ / screenpix": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "mi casa creative": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "millennium management": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "ming's": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "minute media": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "miren": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "misguided spirits": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "mission control marketing": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "missoni": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "mixing it up productions": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "monarch holdings": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "monroe capital": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "montana datacom": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "montefiore medical center": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "moodbit": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "moody's analytics": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "morgan lewis": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "morgan stanley": {
+    "market_cap": 301979238400,
+    "scale": "large",
+    "source": "yahoo"
+  },
+  "moritz glik": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "mount sinai health system": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "mouseroar llc": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "mov37": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "msnbc": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "msq ventures": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "mufg": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "mufg investor services (mitsubishi bank)": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "muse collection": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "mvp ventures": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "mwny llc": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "mycoworks": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "nabis": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "nana & pop": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "nandita das initiatives": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "nanobionic": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "nayya": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "nbcuniversal": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "ncsolutions": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "nearwater capital": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "neiman marcus group": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "nelson management group": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "neuberger berman": {
+    "market_cap": 189451872,
+    "scale": "small",
+    "source": "yahoo"
+  },
+  "new breed w": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "new media iv holdings": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "new york islanders": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "new york models": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "new york pathways": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "newman real estate services": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "newmark": {
+    "market_cap": 6403384832,
+    "scale": "mid",
+    "source": "yahoo"
+  },
+  "newmark advisory group": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "newristics": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "newtonx": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "nivelle nyc": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "noa sha": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "noodle": {
+    "market_cap": 67655680,
+    "scale": "small",
+    "source": "yahoo"
+  },
+  "norinchukin bank": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "north american thought combine": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "northwestern university": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "number 1 business broker": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "numerix": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "nxc": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "nyc autism charter schools": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "nyc department of environmental protection": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "nyca partners": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "nycadsco": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "ocrolus": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "odynn": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "odyssey house": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "ogc solutions": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "ogury": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "ohm spa": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "olea consultants llc": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "omarworks": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "omelink": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "omnicom media group": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "omnishelf": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "omniti computer consulting, inc.": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "one love community fridge": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "oneeye capital": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "open box software": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "openfin": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "openigloo": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "opti-harvest, inc.": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "oracle": {
+    "market_cap": 497440948224,
+    "scale": "large",
+    "source": "yahoo"
+  },
+  "orange bike brewing": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "orpheo": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "oskar martinez": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "outpost club": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "outstanding mining peru sac": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "ovationmr": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "ownyour media": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "palladium property group": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "palombo photography": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "pamal broadcasting": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "pamela barsky wholesale": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "paramount": {
+    "market_cap": 11773337600,
+    "scale": "large",
+    "source": "yahoo"
+  },
+  "partners + alchemy": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "paulson": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "paypal": {
+    "market_cap": 44776775680,
+    "scale": "large",
+    "source": "yahoo"
+  },
+  "peachy": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "pearlstein mccullough": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "penelope": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "people's television": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "pepsico": {
+    "market_cap": 210645598208,
+    "scale": "large",
+    "source": "yahoo"
+  },
+  "perspective ai": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "peta": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "petabloc": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "pgim real estate": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "phillips capital": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "pickholz consulting and advisory": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "pilot wave holdings": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "pimco": {
+    "market_cap": 7638146048,
+    "scale": "mid",
+    "source": "yahoo"
+  },
+  "pineapple co": {
+    "market_cap": 306972512,
+    "scale": "small",
+    "source": "yahoo"
+  },
+  "pioneer fund": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "pitney bowes": {
+    "market_cap": 2353185792,
+    "scale": "mid",
+    "source": "yahoo"
+  },
+  "pixacore": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "plagood": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "playground entertainment": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "plover parametrics": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "plural": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "poder healing": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "point72": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "polly park capital": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "pontera": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "popp rock shop": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "posh": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "post road partners": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "postgraduate center for mental health": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "pr week": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "practice in balance dental spa": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "practising law institute (pli)": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "pratt institute": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "praxis": {
+    "market_cap": 9218347008,
+    "scale": "mid",
+    "source": "yahoo"
+  },
+  "prelude research": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "pretium partners": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "prime manhattan development": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "prime studio": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "princeton theological seminary": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "printicon": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "priority investors": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "prognosis data": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "prominis medical services": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "prove": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "prudential": {
+    "market_cap": 33265317888,
+    "scale": "large",
+    "source": "yahoo"
+  },
+  "prudential financial": {
+    "market_cap": 33265317888,
+    "scale": "large",
+    "source": "yahoo"
+  },
+  "psxdanielle": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "publicis sapient": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "pugpig": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "pwc": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "qmedic": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "quantxt": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "quentasia studios": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "quilt software": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "rac services": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "radancy": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "radian capital": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "rapchr": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "raycon": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "rbc capital markets": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "red phone box media llc    rpbmedia": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "redding futures": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "reflexgroup": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "refresh": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "regeneron": {
+    "market_cap": 78702051328,
+    "scale": "large",
+    "source": "yahoo"
+  },
+  "regis high school": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "relier": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "remade": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "research results": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "resobox": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "restore nyc": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "reva capital holdings, llc": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "revbits": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "reveal design group": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "revenue solutions, inc.": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "rhythm wellness mental health counseling pllc": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "ricardo steak house": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "rideplanet.com": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "riskcast solutions": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "rithum": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "rlm pr inc": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "road": {
+    "market_cap": 116309416,
+    "scale": "small",
+    "source": "yahoo"
+  },
+  "roadway transport": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "roc nation": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "rockefeller capital management": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "rockerbox": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "rolling stone": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "romancing manhattan tours": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "roschmann group": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "rosebud productions": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "rosewood hotel group": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "rover diagnostics": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "rrr creative": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "rujuta sheth": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "ryder mgmt": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "s2 studio llc": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "salamander sauce": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "salmagundi club": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "salted": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "samson management": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "santas knights": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "sap": {
+    "market_cap": 204474023936,
+    "scale": "large",
+    "source": "yahoo"
+  },
+  "sapient capital management": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "saraghina bakery": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "saul ewing": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "schonfeld strategic advisors": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "scotiabank": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "screenvision media": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "sculptor capital": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "seagate technology": {
+    "market_cap": 133487755264,
+    "scale": "large",
+    "source": "yahoo"
+  },
+  "seapath group": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "seawall capital": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "sekita ekrek luxury travel marketing": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "self-employed": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "semafor": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "sembly ai": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "sentinel builders": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "serena nicole skincare": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "seton hall university": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "shakir entertainment management": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "sharper sense": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "shipyard": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "shockwave audio productions": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "shoe-inn": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "showbiz411": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "showman fabricators": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "shuttlerock": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "signal corps recording": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "signature aviation": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "silicon ranch corporation": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "silverwing travel": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "simpleman creations": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "simpson thacher & bartlett": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "simulmedia": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "sinvin realty": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "siriusxm": {
+    "market_cap": 8935410688,
+    "scale": "mid",
+    "source": "yahoo"
+  },
+  "sistah rogers llc": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "sixfold": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "sk life science labs": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "sk studio": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "skedans systems": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "skift": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "skipp": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "sky it group": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "slalom": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "sleeveless": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "sliced bread promotions inc": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "slusa productions": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "smartling": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "smbc nikko securities america, inc.": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "smorgasburg": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "snowbridge advisors": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "snowdance associates": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "soap health": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "socialix": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "socket managed services": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "soilair selection": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "sol de janeiro usa inc": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "sotheby's": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "southwest sports and fitness alliance": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "spark street advisors": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "specter hall": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "sperry commercial inc": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "spodek law group p.c.": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "spotify": {
+    "market_cap": 102080577536,
+    "scale": "large",
+    "source": "yahoo"
+  },
+  "srs investment management": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "ss entertainment": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "ssj hardwood flooring": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "st. martin's press": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "stackline": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "stan cohen attorney at law": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "starwood capital group": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "state street": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "state street corporation": {
+    "market_cap": 42929721344,
+    "scale": "large",
+    "source": "yahoo"
+  },
+  "staunton capital": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "stealth digital healthtech": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "stealth mode startup": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "steel partners holdings l.p.": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "stella point capital": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "sterling holdings, inc.": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "stern consulting": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "stickles pr": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "stone x spade": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "stonecourt capital lp": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "stonex": {
+    "market_cap": 8352684544,
+    "scale": "mid",
+    "source": "yahoo"
+  },
+  "stony brook university hospital": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "stoops cannabis dispensary": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "strategic mechanical inc": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "stratonex": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "stratos labs inc": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "strawberryfrog": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "street of walls": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "street soccer usa": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "stride": {
+    "market_cap": 4163926528,
+    "scale": "mid",
+    "source": "yahoo"
+  },
+  "strike audio": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "studio 404": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "studio libeskind": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "studio valerius": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "studiomda": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "style gem": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "sub-genre": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "sugar wood": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "sullivan & cromwell llp": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "sumitomo mitsui banking": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "summit rock advisors": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "supersmile": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "supportive housing network of new york": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "sycamore": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "sync construction": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "synfutures": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "syska hennessy group": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "taconic capital advisors": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "tactical capital advisors": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "talea beer co": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "talkiatry": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "tamir investments": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "tavern on the green": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "td securities": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "tech recipes": {
+    "scale": "unknown",
+    "source": "none"
+  },
   "tegna": {
     "note": "delisted from US exchanges; ~6K employees per LinkedIn",
     "scale": "mid",
     "source": "manual"
+  },
+  "teksystems": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "televisaunivision": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "televis\u00e3o sul de minas": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "tellus products": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "terracrg": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "the a team": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "the adsomo": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "the associates": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "the beacons": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "the bliss group": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "the borden group": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "the bridge": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "the cocktail architect": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "the corcoran group": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "the daily beast": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "the dalton school": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "the danesh group": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "the design impact": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "the directors lab": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "the doe fund": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "the fgw group": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "the fifth labor": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "the gotham hotel": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "the international society for the performing arts": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "the journey group": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "the judge group, inc.": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "the living city project": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "the media image": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "the mjs groupe": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "the music playground": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "the new school": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "the new york times": {
+    "market_cap": 12890209280,
+    "scale": "large",
+    "source": "yahoo"
+  },
+  "the shed": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "the sultzer law group": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "the university club ny": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "the veritas forum": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "the vip list": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "the walt disney company": {
+    "market_cap": 181315059712,
+    "scale": "large",
+    "source": "yahoo"
+  },
+  "the yard": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "threetwelve media": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "thursday boot": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "tier ii landscape design": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "tiger global management": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "timber pharmaceuticals": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "tocqueville asset management": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "together ai": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "tommy boy entertainment": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "toronto dominion bank group": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "track with ease": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "trackforce": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "trademark talent ny": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "transact payments limited": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "trestle partners": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "triller": {
+    "market_cap": 34009676,
+    "scale": "small",
+    "source": "yahoo"
+  },
+  "troutman pepper": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "true crime fashion and passion podcast": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "true to size": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "truefort": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "turner": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "tuxedo hospitality": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "tvb": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "two : minds": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "tyr partners lp": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "ubs": {
+    "market_cap": 130376949760,
+    "scale": "large",
+    "source": "yahoo"
+  },
+  "ucla health": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "uge labs": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "uig management": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "uipath": {
+    "market_cap": 5480222720,
+    "scale": "mid",
+    "source": "yahoo"
+  },
+  "united nations": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "united overseas bank": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "united states attorneys'\u200b offices": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "united therapeutics": {
+    "market_cap": 24849860608,
+    "scale": "large",
+    "source": "yahoo"
+  },
+  "university of illinois at urbanachampaign": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "university of pennsylvania": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "upgrad.com": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "urban arts partnership": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "urbn playground": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "usi insurance services": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "van west media": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "vantage point consultants": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "vector ml analytics": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "vegamour": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "velour medical": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "veritas capital": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "verizon": {
+    "market_cap": 196836196352,
+    "scale": "large",
+    "source": "yahoo"
+  },
+  "very asian / apologue group": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "vevo": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "vf global insurance brokerage": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "via della pace": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "videoamp": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "vineyard brands": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "vinson & elkins": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "vintro": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "vipp": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "virtagon": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "visual artist": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "vitesse psp limited": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "vogue fabrics": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "vonage": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "vontobel": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "vowtailors": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "wallace corporate counsel": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "walmart": {
+    "market_cap": 1017018646528,
+    "scale": "large",
+    "source": "yahoo"
+  },
+  "walter wickiser gallery": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "warner bros. discovery": {
+    "market_cap": 67231526912,
+    "scale": "large",
+    "source": "yahoo"
+  },
+  "water tower research": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "waterfall asset management": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "waterhouse & dodd": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "waxman lawson financial": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "waysmeet consulting": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "we are spartners": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "wealthspire advisors": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "webbank": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "wellful": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "wellington fine art": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "wells fargo": {
+    "market_cap": 246863216640,
+    "scale": "large",
+    "source": "yahoo"
+  },
+  "west biofuels": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "west side montessori school": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "whalar": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "whitecrow research": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "wiip": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "wilk auslander llp": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "william gottlieb mgmt co": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "willkie farr & gallagher llp": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "wilmington trust": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "wilson sonsini goodrich & rosati": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "windowswear": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "winmore": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "wishi": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "witbe": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "with clarity": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "wollman rink nyc": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "wolters kluwer elm solutions": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "woodbridge stereovideo": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "workshop design + architecture, pllc": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "world spa": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "world wrestling entertainment": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "worth charting": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "wrist aficionado": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "wsk management": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "wulf casting": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "wythe hotel": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "yabla": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "yadestiny treasure chest": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "yellowhook capital": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "yeshiva university": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "yk law": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "ymca retirement fund": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "zero acre farms": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "zittman family office": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "zmode": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "zoe marks": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "zoomin software": {
+    "scale": "unknown",
+    "source": "none"
+  },
+  "zrg partners, llc": {
+    "scale": "unknown",
+    "source": "none"
   }
 }
