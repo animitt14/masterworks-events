@@ -310,13 +310,13 @@ def _classify_market_cap(mc: int) -> str:
     return 'small'
 
 def _extract_company_size(text: str) -> str:
-    """LinkedIn snippet → 'large' / 'mid' / 'small' / '' based on employee count.
-    Patterns: '10,001+ employees', '1,001-5,000 employees', '201-500 employees'."""
+    """LinkedIn snippet → 'large' / 'mid' / 'small' / 'tiny' / '' from employee count.
+    Patterns: '10,001+ employees', '1,001-5,000 employees', '11-50 employees'.
+    Tiers: large ≥10K, mid 1K–10K, small 51–999, tiny ≤50."""
     text = text or ''
     m = re.search(r'(\d[\d,]*)\+?\s*[-–]?\s*(\d[\d,]*)?\s*employees', text, re.IGNORECASE)
     if not m:
         return ''
-    # Prefer the upper bound if it's a range; otherwise the single number
     upper = (m.group(2) or m.group(1)).replace(',', '')
     try:
         n = int(upper)
@@ -324,7 +324,8 @@ def _extract_company_size(text: str) -> str:
         return ''
     if n >= 10_000: return 'large'
     if n >=  1_000: return 'mid'
-    return 'small'
+    if n >       50: return 'small'
+    return 'tiny'
 
 def classify_company_scale(company: str, prior_size: str = '') -> str:
     """Cascade: cache → Yahoo (yfinance) → LinkedIn-extracted size → 'unknown'.
@@ -355,7 +356,7 @@ def classify_company_scale(company: str, prior_size: str = '') -> str:
 
     # A: LinkedIn employee-count fallback (private firms, delisted, foreign-only)
     li_scale = ''
-    if prior_size in ('large', 'mid', 'small'):
+    if prior_size in ('large', 'mid', 'small', 'tiny'):
         li_scale = prior_size
     elif prior_size:
         li_scale = _extract_company_size(prior_size)
@@ -1057,7 +1058,15 @@ def score_contact(p: dict) -> tuple:
             'general partner', 'president',
         ]) or bool(re.search(r'\bchief\b.+\bofficer\b', title)))
         if not (_fin_dom or _phys or _top_fin or _exec_title):
-            sc = min(sc, 2)
+            # If LinkedIn says the company has >50 employees (i.e. not 'tiny'
+            # or 'unknown'), founder gets Medium-High (4) — running a real
+            # team, not a solo shop. Otherwise stay conservative at 2.
+            _scale = classify_company_scale(company, p.get('linkedin_company_size', ''))
+            if _scale in ('large', 'mid', 'small'):
+                sc = 4
+                flags.append('founder_50plus')
+            else:
+                sc = min(sc, 2)
 
     # ── Title-only HIGH → cap at Medium-High without a firm-quality signal ──────
     # A strong title (MD, President, CEO) at an unknown firm doesn't reliably mean
@@ -1144,6 +1153,7 @@ def explain_score(p: dict, sc: int, flags: list) -> str:
     if 'under_30' in flags:           return 'Under 30 — recent grad cap'
     if 'tenure_10plus' in flags and sc == 3:
         return '10+ year tenure floor'
+    if 'founder_50plus' in flags:     return 'Founder of 50+ employee company'
 
     # Low tier (1-2) drivers
     if sc <= 2:
@@ -1466,6 +1476,13 @@ def get_nw(p: dict) -> tuple:
             return '$150K–$500K', 'Founder with no company listed'
         if is_small_biz(company):
             return '$150K–$500K', 'Founder of small / lifestyle business'
+        # If LinkedIn confirms >50 employees, founder NW lifts above the
+        # conservative default — running a real team implies real revenue.
+        _scale = classify_company_scale(company, p.get('linkedin_company_size', ''))
+        if _scale in ('large', 'mid'):
+            return '$1M–$4M', 'Founder of mid/large-scale company (LinkedIn ≥1K employees)'
+        if _scale == 'small':
+            return '$500K–$2M', 'Founder of 50+ employee company (LinkedIn)'
         return '$150K–$500K', 'Founder (unverified scale — assume conservative)'
 
     # Attorney / CPA (non-finance firm) → $500K–$2M (associate) or $1M–$4M (partner)
@@ -3602,6 +3619,7 @@ def build_scoring_html(generated_at: str) -> str:
 
     card4 = tier_card(4, 'Medium-High', '#1a5fa8', '#e8f0fb',
         rule('VP, Director, SVP, EVP, AVP, Senior Director, Associate Director at any company') +
+        rule('<strong>Founder / Co-Founder of a company with &gt;50 LinkedIn employees</strong> &mdash; running a real team, not a solo shop') +
         rule('Real estate executives (SVP at Extell, Related, Brookfield, etc.)') +
         rule('Senior engineers at FAANG (RSU hedge angle)') +
         rule('Principal Engineer / Analyst / Developer (not High &mdash; technical, not investment-focused)') +
@@ -3617,7 +3635,7 @@ def build_scoring_html(generated_at: str) -> str:
 
     card2 = tier_card(2, 'Low-Medium', '#b85a00', '#fdf0e8',
         rule('<strong>Under 30</strong> (graduated college in the last 8 years per LinkedIn) &mdash; caps the score even if title is senior. <em>Exception: finance-domain emails (gs.com, jpmorgan.com, etc.) override this cap &mdash; young finance employees still score HIGH.</em>') +
-        rule('Founder / Co-Founder &mdash; <strong>default Low-Medium unless finance domain, physician, or named top-tier finance firm</strong>') +
+        rule('Founder / Co-Founder &mdash; <strong>default Low-Medium unless finance domain, physician, named top-tier finance firm, or LinkedIn shows &gt;50 employees</strong> (in which case lifts to Medium-High)') +
         rule('CEO / Owner without verifiable scale (no press, no funding, no recognizable company)') +
         rule('Real estate agents / realtors (commission-based, low liquid wealth)') +
         rule('Art world: dealers, brokers, advisors, consultants, all gallery staff &mdash; no exceptions') +
