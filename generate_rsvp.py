@@ -1135,15 +1135,15 @@ def explain_score(p: dict, sc: int, flags: list) -> str:
     combined = title + ' ' + company
 
     # Lifecycle / call signals (always win)
-    if 'invested' in flags:           return 'Already invested (auto-HIGH)'
+    if 'invested' in flags:           return 'Already invested'
     if 'opportunity' in flags:        return 'Warm pipeline — Opportunity stage'
-    if 'not_interested' in flags:     return 'Said "not interested" on prior call'
+    if 'not_interested' in flags:     return 'Said not interested on prior call'
     if 'target_wealth_firm' in flags: return 'Wealth advisor at target firm — channel partner'
 
     # LinkedIn-derived caps / floors
-    if 'under_30' in flags:           return 'Under 30 — recent grad cap (LinkedIn)'
+    if 'under_30' in flags:           return 'Under 30 — recent grad cap'
     if 'tenure_10plus' in flags and sc == 3:
-        return '10+ year tenure floor (lifted from lower)'
+        return '10+ year tenure floor'
 
     # Low tier (1-2) drivers
     if sc <= 2:
@@ -1164,15 +1164,15 @@ def explain_score(p: dict, sc: int, flags: list) -> str:
         if any(t in combined for t in DOWNGRADE_TERMS):
             return 'Junior or downgrade-term title'
         if any(t in title for t in ('founder', 'co-founder', 'cofounder')):
-            return 'Founder — unverified scale (conservative default)'
+            return 'Founder of unverified-scale business'
         return 'Low-tier signals'
 
     # HIGH (5) — explain what corroborated
     if sc == 5:
         if dom in FINANCE_DOMAINS:
-            return f'Finance domain ({dom}) — auto-HIGH'
+            return f'Finance domain {dom} — auto-HIGH'
         if is_physician(title, email, company):
-            return 'Physician / MD — pitched on K-1 angle'
+            return 'Physician / MD — K-1 angle'
         if any(fc in company for fc in FINANCE_COMPANIES):
             return 'Senior role at top-tier finance firm'
         scale = classify_company_scale(company, p.get('linkedin_company_size', ''))
@@ -1188,14 +1188,14 @@ def explain_score(p: dict, sc: int, flags: list) -> str:
     # MEDIUM-HIGH (4)
     if sc == 4:
         if has_high_title(title):
-            return 'Senior title — no firm-quality signal (capped from 5)'
+            return 'Senior title — no firm-quality signal, capped from 5'
         if any(t in title for t in ('senior director', 'associate director')) or \
            any(t in title for t in ('vp', 'vice president', 'svp', 'evp', 'avp')) or \
            ('director' in title and 'art director' not in title):
             return 'VP / Director-level title'
         if any(t in company for t in ('real estate', 'realty', 'extell', 'related companies', 'tishman', 'sl green', 'brookfield')):
             return 'Real-estate exec at major developer'
-        return 'Medium-High (NW cap or mid-tier title)'
+        return 'Medium-High — NW cap or mid-tier title'
 
     # MEDIUM (3) — defaults
     if sc == 3:
