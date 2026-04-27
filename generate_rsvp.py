@@ -3886,5 +3886,10 @@ def main():
     (docs / 'scoring.html').write_text(scoring_html, encoding='utf-8')
     print(f'Written → docs/scoring.html  ({len(scoring_html):,} bytes)')
 
+    # Persist the company-scale cache regardless of whether enrichment ran —
+    # scoring populates it in-memory via classify_company_scale, and we want
+    # those Yahoo/LinkedIn verdicts to survive across runs.
+    _save_company_scale_cache()
+
 if __name__ == '__main__':
     main()
