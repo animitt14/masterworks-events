@@ -3774,19 +3774,11 @@ def build_contacts_html(contacts: list, generated_at: str) -> str:
             f'border:1px solid {score_color_fg}55;padding:2px 8px;border-radius:10px;'
             f'font-size:0.72rem;font-weight:700">{sc} · {score_label}</span>'
         )
-        invested_badge = ''
-        if r['invested']:
-            invested_badge = (
-                '<span style="background:#eaf7f0;color:#1a7a45;border:1px solid #1a7a4555;'
-                'border-radius:10px;font-size:0.6rem;font-weight:700;padding:1px 6px;'
-                'letter-spacing:0.04em;margin-left:5px">INV</span>'
-            )
-        elif r['opportunity']:
-            invested_badge = (
-                '<span style="background:#fdf6e3;color:#8a6800;border:1px solid #8a680055;'
-                'border-radius:10px;font-size:0.6rem;font-weight:700;padding:1px 6px;'
-                'letter-spacing:0.04em;margin-left:5px">OPP</span>'
-            )
+        invested_badge = (
+            '<span style="background:#eaf7f0;color:#1a7a45;border:1px solid #1a7a4555;'
+            'border-radius:10px;font-size:0.6rem;font-weight:700;padding:1px 6px;'
+            'letter-spacing:0.04em;margin-left:5px">INV</span>' if r['invested'] else ''
+        )
         hs_link = (
             f' <a href="{hs_url(r["id"])}" target="_blank" rel="noopener" '
             f'style="color:#ff7a59;font-weight:700;text-decoration:none;font-size:0.78rem">↗</a>'
