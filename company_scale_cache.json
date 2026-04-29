@@ -3668,6 +3668,11 @@
     "scale": "unknown",
     "source": "none"
   },
+  "stealth": {
+    "market_cap": 362509184,
+    "scale": "small",
+    "source": "yahoo"
+  },
   "stealth digital healthtech": {
     "scale": "unknown",
     "source": "none"
