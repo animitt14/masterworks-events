@@ -841,7 +841,7 @@ def fetch_contacts(start: date, end: date) -> list:
                 'hubspot_owner_id', 'lifecyclestage', 'call_completed',
                 'outbound_rsvp_to_event', 'attended_outbound_event',
                 'outbound_event_attendee_disqualified', 'unknown_rsvp',
-                'admin_url', 'totalamountpurchased', 'createdate',
+                'admin_url', 'totalamountpurchased', 'createdate', 'recent_deal_close_date',
                 'hs_v2_date_entered_current_stage',
                 'wealth_segment', 'inferred_income', 'address',
                 'hs_linkedin_url', 'linkedin_personal_url', 'outbound_team___linkedin_url', 'pipl_linkedin',
@@ -1705,7 +1705,7 @@ def pluto_nw_bump(current_nw: str, pluto_val: str) -> tuple | None:
 
 # ─── EVENT STATS ──────────────────────────────────────────────────────────────
 
-def compute_event_stats(contacts: list) -> dict:
+def compute_event_stats(contacts: list, event_date: str) -> dict:
     """Aggregate per-event metrics from a list of contacts."""
     attended = 0
     attended_score = 0
@@ -1745,9 +1745,8 @@ def compute_event_stats(contacts: list) -> dict:
             account_created += 1
             tier_accts[sc] = tier_accts.get(sc, 0) + 1
 
-        # Capital (only 2026+ conversions)
-        acct_year = (p.get('createdate') or '')[:4]
-        if acct_year >= '2026':
+        deal_close = (p.get('recent_deal_close_date') or '')[:10]
+        if deal_close >= event_date:
             try:
                 amount = float(p.get('totalamountpurchased') or 0)
             except (ValueError, TypeError):
@@ -3113,7 +3112,7 @@ def build_events_html(by_date: dict, generated_at: str) -> str:
 
     events = []
     for d in sorted(by_date.keys(), reverse=True):
-        s = compute_event_stats(by_date[d])
+        s = compute_event_stats(by_date[d], d)
         events.append({
             'date':           d,
             'rsvps':          s['rsvps'],
