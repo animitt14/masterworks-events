@@ -3378,7 +3378,6 @@ def build_events_html(by_date: dict, generated_at: str) -> str:
       <tr>
         <th style="text-align:left">Event</th>
         <th class="group-attended">Attended / RSVPs</th>
-        <th class="group-score">Tiers</th>
         <th class="group-email">Open %</th>
         <th class="group-call">Calls Booked</th>
         <th class="group-account">Accts</th>
@@ -3524,16 +3523,10 @@ function renderEventTable() {{
     var staleCell= stale > 2
       ? '<span class="stale-warn">' + stale + '</span>'
       : '<span class="stale-ok">' + stale + '</span>';
-    var tiersCell= '<span class="tier-badges">' +
-      '<span class="tier-mini t5"><span class="dot">5</span>' + t5 + '</span>' +
-      '<span class="tier-mini t4"><span class="dot">4</span>' + t4 + '</span>' +
-      '<span class="tier-mini t3"><span class="dot">3</span>' + t3 + '</span>' +
-      '</span>';
     var row =
       '<tr>' +
       '<td class="date-cell">' + formatDateShort(e.date) + '</td>' +
       '<td>' + e.attended + ' / ' + e.rsvps + '</td>' +
-      '<td>' + tiersCell + '</td>' +
       '<td>' + openCell + '</td>' +
       '<td>' + (e.calls_booked || 0) + '</td>' +
       '<td>' + acctCell + '</td>' +
