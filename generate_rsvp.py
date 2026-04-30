@@ -2363,8 +2363,6 @@ header{{background:#1b3c6e;padding:16px 28px;position:sticky;top:0;z-index:100;
   </div>
   <div class="page-tabs">
     <a href="index.html"   class="page-tab active-tab">RSVP Dashboard</a>
-    <a href="events.html"  class="page-tab">Event Dashboard</a>
-    <a href="scoring.html" class="page-tab">Scoring Logic</a>
   </div>
 </header>
 
@@ -3204,8 +3202,6 @@ def build_events_html(by_date: dict, generated_at: str) -> str:
   </div>
   <div class="page-tabs">
     <a href="index.html"   class="page-tab">RSVP Dashboard</a>
-    <a href="events.html"  class="page-tab active-tab">Event Dashboard</a>
-    <a href="scoring.html" class="page-tab">Scoring Logic</a>
   </div>
 </header>
 
@@ -3742,8 +3738,6 @@ def build_scoring_html(generated_at: str) -> str:
   </div>
   <div class="page-tabs">
     <a href="index.html"   class="page-tab">RSVP Dashboard</a>
-    <a href="events.html"  class="page-tab">Event Dashboard</a>
-    <a href="scoring.html" class="page-tab active-tab">Scoring Logic</a>
   </div>
 </header>
 
@@ -4044,13 +4038,6 @@ def main():
     (docs / 'index.html').write_text(rsvp_html, encoding='utf-8')
     print(f'Written → docs/index.html  ({len(rsvp_html):,} bytes)')
 
-    events_html = build_events_html(dict(by_date), now_str)
-    (docs / 'events.html').write_text(events_html, encoding='utf-8')
-    print(f'Written → docs/events.html  ({len(events_html):,} bytes)')
-
-    scoring_html = build_scoring_html(now_str)
-    (docs / 'scoring.html').write_text(scoring_html, encoding='utf-8')
-    print(f'Written → docs/scoring.html  ({len(scoring_html):,} bytes)')
 
 if __name__ == '__main__':
     main()
