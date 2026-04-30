@@ -31,7 +31,10 @@ SEARCH_URL    = 'https://api.hubapi.com/crm/v3/objects/contacts/search'
 # Google Custom Search — used to enrich contacts with no title AND no company
 GOOGLE_API_KEY     = os.environ.get('GOOGLE_API_KEY', '')
 GOOGLE_CSE_ID      = os.environ.get('GOOGLE_CSE_ID', '')
-PROXYCURL_API_KEY  = os.environ.get('PROXYCURL_API_KEY', '').strip()
+# NinjaPear is the rebranded successor to Proxycurl (Sep 2026 sunset).
+# The same API key is honored under either env var name; we read both for compat.
+NINJAPEAR_API_KEY  = (os.environ.get('NINJAPEAR_API_KEY') or
+                      os.environ.get('PROXYCURL_API_KEY') or '').strip()
 GOOGLE_SEARCH_URL  = 'https://www.googleapis.com/customsearch/v1'
 ENRICH_LIMIT       = 95   # stay just under the 100/day free quota
 
@@ -442,106 +445,6 @@ def enrich_no_data_contacts(contacts: list) -> int:
     return enriched
 
 
-def enrich_tenure_data(contacts: list) -> int:
-    """Second pass: for contacts that have title/company but are missing
-    linkedin_current_role_started, do a targeted LinkedIn search to extract
-    tenure data. Runs after enrich_no_data_contacts."""
-    global _quota_exhausted, _api_calls
-    if not GOOGLE_API_KEY or not GOOGLE_CSE_ID:
-        return 0
-
-    filled = 0
-    for c in contacts:
-        if _quota_exhausted or _api_calls >= ENRICH_LIMIT:
-            break
-        p = c['properties']
-        if not (p.get('jobtitle') or p.get('company')):
-            continue
-        if p.get('linkedin_current_role_started'):
-            continue
-
-        fname = p.get('firstname') or ''
-        lname = p.get('lastname') or ''
-        name = f'{fname} {lname}'.strip()
-        if not name:
-            continue
-
-        cached = _enrich_cache.get(name)
-        if cached and cached.get('linkedin_current_role_started'):
-            c['properties']['linkedin_current_role_started'] = cached['linkedin_current_role_started']
-            filled += 1
-            continue
-        if cached is None:
-            continue
-
-        li_url_hint = (
-            p.get('pipl_linkedin') or p.get('hs_linkedin_url') or
-            p.get('outbound_team___linkedin_url') or p.get('linkedin_personal_url') or ''
-        ).strip()
-        company = p.get('company') or ''
-
-        queries = []
-        if li_url_hint:
-            li_path = re.search(r'linkedin\.com(/in/[^/?#\s]+)', li_url_hint)
-            if li_path:
-                queries.append(f'site:linkedin.com{li_path.group(1)}')
-        if company:
-            queries.append(f'"{name}" "{company}" site:linkedin.com')
-        queries.append(f'"{name}" site:linkedin.com/in')
-
-        role_start = ''
-        grad_year = ''
-        company_size = ''
-        for q in queries:
-            if _quota_exhausted or _api_calls >= ENRICH_LIMIT:
-                _quota_exhausted = True
-                break
-            try:
-                _api_calls += 1
-                resp = requests.get(
-                    GOOGLE_SEARCH_URL,
-                    params={'key': GOOGLE_API_KEY, 'cx': GOOGLE_CSE_ID, 'q': q, 'num': 5},
-                    timeout=10,
-                )
-                if resp.status_code == 429:
-                    _quota_exhausted = True
-                    break
-                if not resp.ok:
-                    continue
-                for item in resp.json().get('items', []):
-                    blob = item.get('title', '') + ' ' + item.get('snippet', '')
-                    if not role_start:
-                        role_start = _extract_role_start(blob)
-                    if not grad_year:
-                        grad_year = _extract_grad_year(blob)
-                    if not company_size:
-                        company_size = _extract_company_size(blob)
-                if role_start:
-                    break
-            except Exception:
-                continue
-
-        if role_start or grad_year or company_size:
-            updates = {}
-            if role_start:
-                updates['linkedin_current_role_started'] = role_start
-            if grad_year:
-                updates['linkedin_grad_year'] = grad_year
-            if company_size:
-                updates['linkedin_company_size'] = company_size
-            c['properties'].update(updates)
-            if cached and isinstance(cached, dict):
-                cached.update(updates)
-            elif not cached:
-                _enrich_cache[name] = updates
-            filled += 1
-            print(f'  Tenure: {name} → started {role_start or "?"}, grad {grad_year or "?"}, size {company_size or "?"}')
-
-    if filled:
-        _save_enrich_cache()
-    return filled
-
-
 def _patch_hubspot_contact(contact_id: str, properties: dict):
     """PATCH a HubSpot contact with the given properties."""
     if not HUBSPOT_TOKEN or not properties:
@@ -561,39 +464,120 @@ def _patch_hubspot_contact(contact_id: str, properties: dict):
         print(f'  HubSpot patch exception for {contact_id}: {e}', file=sys.stderr)
 
 
-# ─── PROXYCURL PHOTO ENRICHMENT ───────────────────────────────────────────────
-# Fetch profile photos from Proxycurl when HubSpot's `linkedin_image_url` is
-# blank. Results are cached forever (a profile photo URL almost never changes,
-# and re-fetching costs $) and written back to HubSpot on success so future
-# daily runs read it directly from HubSpot without paying again.
+# ─── NINJAPEAR PHOTO ENRICHMENT ───────────────────────────────────────────────
+# Fetch profile photos from NinjaPear's Person Profile endpoint (formerly
+# Proxycurl, sunset Sep 2026). Photos now come from Twitter/X profiles.
+#
+# Input model: NinjaPear's /api/v1/employee/profile no longer accepts
+# LinkedIn URLs. Valid input combinations are:
+#   1. work_email (alone)
+#   2. first_name + employer_website
+#   3. employer_website + role
+# We try them in that order, skipping personal-domain emails.
+#
+# Cost: 3 credits per request, charged even on 404. Cache aggressively.
+# Successful lookups are written back to HubSpot's linkedin_image_url so
+# subsequent daily runs read the photo from HubSpot for free.
 
-PROXYCURL_ENDPOINT = 'https://nubela.co/proxycurl/api/v2/linkedin'
+NINJAPEAR_ENDPOINT = 'https://nubela.co/api/v1/employee/profile'
+NINJAPEAR_WEBSITE_LOOKUP_ENDPOINT = 'https://nubela.co/api/v1/company/website'
 
-def _proxycurl_get_photo(li_url: str):
-    """Fetch profile_pic_url from Proxycurl. Returns URL string, or None on miss."""
-    if not PROXYCURL_API_KEY or not li_url:
+
+def _clean_company_name(name: str) -> str:
+    """Strip surrounding quotes/whitespace from a company name (HubSpot data is messy)."""
+    return (name or '').strip().strip('"').strip("'").strip()
+
+
+def _ninjapear_lookup_website(company_name: str):
+    """NinjaPear Website Lookup: company name → canonical URL. 1 credit per call.
+
+    Cached by normalized company name — multiple contacts at the same company
+    share a single lookup. Cached miss (None) is also stored to avoid retries.
+    """
+    if not NINJAPEAR_API_KEY:
         return None
+    company_name = _clean_company_name(company_name)
+    if not company_name:
+        return None
+
+    cache_key = f'ninjapear_website:{company_name.lower()}'
+    if cache_key in _enrich_cache:
+        return _enrich_cache[cache_key]   # may be None for cached miss
+
     try:
         r = requests.get(
-            PROXYCURL_ENDPOINT,
-            headers={'Authorization': f'Bearer {PROXYCURL_API_KEY}'},
-            params={'url': li_url, 'use_cache': 'if-present', 'fallback_to_cache': 'on-error'},
+            NINJAPEAR_WEBSITE_LOOKUP_ENDPOINT,
+            headers={'Authorization': f'Bearer {NINJAPEAR_API_KEY}'},
+            params={'company_name': company_name, 'country_code': 'us'},
             timeout=30,
         )
         if r.status_code == 404:
+            _enrich_cache[cache_key] = None
             return None
         if not r.ok:
-            print(f'  Proxycurl HTTP {r.status_code} for {li_url}', file=sys.stderr)
+            print(f'  NinjaPear Website Lookup HTTP {r.status_code} for {company_name}', file=sys.stderr)
+            return None  # transient — don't cache
+        website = r.json().get('website') or None
+        _enrich_cache[cache_key] = website
+        if website:
+            print(f'  NinjaPear Website Lookup: {company_name} → {website}')
+        return website
+    except Exception as e:
+        print(f'  NinjaPear Website Lookup error for {company_name}: {e}', file=sys.stderr)
+        return None
+
+
+def _ninjapear_get_photo(*, work_email: str = '', first_name: str = '',
+                         last_name: str = '', employer_website: str = '',
+                         role: str = ''):
+    """Call NinjaPear Person Profile and return profile_pic_url, or None on miss."""
+    if not NINJAPEAR_API_KEY:
+        return None
+
+    params = {}
+    # Validate at least one valid input combination is present
+    if work_email:
+        params['work_email'] = work_email
+        if first_name: params['first_name'] = first_name
+        if last_name:  params['last_name']  = last_name
+    elif first_name and employer_website:
+        params['first_name'] = first_name
+        params['employer_website'] = employer_website
+        if last_name: params['last_name'] = last_name
+    elif employer_website and role:
+        params['employer_website'] = employer_website
+        params['role'] = role
+    else:
+        return None  # No valid input combination
+
+    try:
+        r = requests.get(
+            NINJAPEAR_ENDPOINT,
+            headers={'Authorization': f'Bearer {NINJAPEAR_API_KEY}'},
+            params=params,
+            timeout=100,   # NinjaPear recommends 100s timeout
+        )
+        if r.status_code == 404:
+            return None
+        if r.status_code == 503:
+            print(f'  NinjaPear 503 (transient), skipping {params}', file=sys.stderr)
+            return None
+        if not r.ok:
+            print(f'  NinjaPear HTTP {r.status_code} for {params}', file=sys.stderr)
             return None
         return r.json().get('profile_pic_url') or None
     except Exception as e:
-        print(f'  Proxycurl error for {li_url}: {e}', file=sys.stderr)
+        print(f'  NinjaPear error for {params}: {e}', file=sys.stderr)
         return None
 
 
 def proxycurl_enrich_photos(contacts: list) -> int:
-    """Populate linkedin_image_url for contacts that lack it. Returns count enriched."""
-    if not PROXYCURL_API_KEY:
+    """Populate linkedin_image_url for contacts that lack it. Returns count enriched.
+
+    Function name preserved for caller compatibility, but uses NinjaPear under
+    the hood (Proxycurl was sunset Sep 2026).
+    """
+    if not NINJAPEAR_API_KEY:
         return 0
 
     enriched = 0
@@ -603,33 +587,66 @@ def proxycurl_enrich_photos(contacts: list) -> int:
         if (p.get('linkedin_image_url') or '').strip():
             continue
 
-        li_url = (
-            p.get('hs_linkedin_url') or p.get('linkedin_personal_url') or
-            p.get('outbound_team___linkedin_url') or p.get('pipl_linkedin') or ''
-        ).strip()
-        if not li_url:
-            continue   # Proxycurl needs a LinkedIn URL as input
-
-        # Cache by LinkedIn URL — the photo is per-profile, not per-contact
-        cache_key = f'proxycurl_photo:{li_url}'
+        # Cache by HubSpot contact ID — stable per contact regardless of input path
+        cache_key = f'ninjapear_photo:{c["id"]}'
         if cache_key in _enrich_cache:
             cached = _enrich_cache[cache_key]
             if cached:
                 p['linkedin_image_url'] = cached
                 enriched += 1
-            continue   # cached miss → don't retry
+            continue   # cached miss → don't retry (saves 3 credits)
 
-        photo_url = _proxycurl_get_photo(li_url)
+        # Build the best NinjaPear input combination from what we have.
+        email = (p.get('email') or '').strip().lower()
+        dom   = email_domain(email)
+        is_personal = dom in PERSONAL_DOMAINS
+        first = (p.get('firstname') or '').strip()
+        last  = (p.get('lastname')  or '').strip()
+        # Skip junk first-names that are actually email addresses
+        if '@' in first:
+            first = ''
+        company_name = _clean_company_name(p.get('company') or '')
+
+        photo_url = None
+        attempted = False  # did we make any NinjaPear call?
+
+        if email and not is_personal:
+            # Path A: work_email — best accuracy, 3 credits
+            photo_url = _ninjapear_get_photo(
+                work_email=email, first_name=first, last_name=last,
+            )
+            attempted = True
+        elif first and company_name:
+            # Path B: personal email but has company → look up company website,
+            # then run Person Profile with first_name + employer_website.
+            # Worst-case cost: 1 credit (website lookup) + 3 credits (profile) = 4.
+            looked_up_website = _ninjapear_lookup_website(company_name)
+            attempted = True   # the website lookup already burned 1 credit
+            if looked_up_website:
+                photo_url = _ninjapear_get_photo(
+                    first_name=first, last_name=last,
+                    employer_website=looked_up_website,
+                )
+
+        if not attempted:
+            # No valid input combination → cache as miss to skip future runs
+            _enrich_cache[cache_key] = None
+            continue
+
         _enrich_cache[cache_key] = photo_url   # store None for miss to avoid retry
         if photo_url:
             p['linkedin_image_url'] = photo_url
             enriched += 1
-            print(f'  Proxycurl: photo found for {li_url}')
+            print(f'  NinjaPear: photo found for contact {c["id"]} ({first} {last})')
             # Write back to HubSpot so the next run gets it for free
             _patch_hubspot_contact(c['id'], {'linkedin_image_url': photo_url})
 
     _save_enrich_cache()
     return enriched
+
+
+# Back-compat alias
+_proxycurl_get_photo = _ninjapear_get_photo
 
 
 # ─── NYC PLUTO PROPERTY LOOKUP ────────────────────────────────────────────────
@@ -3953,17 +3970,13 @@ def main():
     if n_enriched:
         print(f'Enriched {n_enriched} no-data contacts via Google Search')
 
-    n_tenure = enrich_tenure_data(contacts_to_enrich)
-    if n_tenure:
-        print(f'Tenure data filled for {n_tenure} contacts')
-
     n_pluto = pluto_enrich_contacts(contacts_to_enrich)
     if n_pluto:
         print(f'PLUTO property values fetched for {n_pluto} NYC contacts')
 
     n_proxycurl = proxycurl_enrich_photos(contacts_to_enrich)
     if n_proxycurl:
-        print(f'Proxycurl: fetched profile photos for {n_proxycurl} contacts')
+        print(f'NinjaPear: fetched profile photos for {n_proxycurl} contacts (3 credits each)')
 
     by_date = defaultdict(list)
     for c in contacts:
