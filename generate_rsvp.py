@@ -12,6 +12,7 @@ import json
 import os
 import re
 import sys
+import time
 import requests
 from datetime import date, timedelta, datetime, timezone
 from html import escape
@@ -31,10 +32,10 @@ SEARCH_URL    = 'https://api.hubapi.com/crm/v3/objects/contacts/search'
 # Google Custom Search — used to enrich contacts with no title AND no company
 GOOGLE_API_KEY     = os.environ.get('GOOGLE_API_KEY', '')
 GOOGLE_CSE_ID      = os.environ.get('GOOGLE_CSE_ID', '')
-# NinjaPear is the rebranded successor to Proxycurl (Sep 2026 sunset).
-# The same API key is honored under either env var name; we read both for compat.
-NINJAPEAR_API_KEY  = (os.environ.get('NINJAPEAR_API_KEY') or
-                      os.environ.get('PROXYCURL_API_KEY') or '').strip()
+# RocketReach replaces NinjaPear (Apr 2026): higher photo coverage on
+# professional contacts because RocketReach pulls from LinkedIn primarily,
+# not Twitter/X.
+ROCKETREACH_API_KEY = os.environ.get('ROCKETREACH_API_KEY', '').strip()
 GOOGLE_SEARCH_URL  = 'https://www.googleapis.com/customsearch/v1'
 ENRICH_LIMIT       = 95   # stay just under the 100/day free quota
 
@@ -464,23 +465,26 @@ def _patch_hubspot_contact(contact_id: str, properties: dict):
         print(f'  HubSpot patch exception for {contact_id}: {e}', file=sys.stderr)
 
 
-# ─── NINJAPEAR PHOTO ENRICHMENT ───────────────────────────────────────────────
-# Fetch profile photos from NinjaPear's Person Profile endpoint (formerly
-# Proxycurl, sunset Sep 2026). Photos now come from Twitter/X profiles.
+# ─── ROCKETREACH PHOTO ENRICHMENT ─────────────────────────────────────────────
+# RocketReach replaces NinjaPear (which sourced photos from Twitter/X — too
+# sparse on professional contacts). RocketReach pulls primarily from LinkedIn,
+# giving much higher coverage.
 #
-# Input model: NinjaPear's /api/v1/employee/profile no longer accepts
-# LinkedIn URLs. Valid input combinations are:
-#   1. work_email (alone)
-#   2. first_name + employer_website
-#   3. employer_website + role
-# We try them in that order, skipping personal-domain emails.
+# Inputs we can pass natively (no website-lookup detour):
+#   1. linkedin_url (best — when HubSpot has hs_linkedin_url etc.)
+#   2. name + current_employer
+#   3. email
 #
-# Cost: 3 credits per request, charged even on 404. Cache aggressively.
-# Successful lookups are written back to HubSpot's linkedin_image_url so
-# subsequent daily runs read the photo from HubSpot for free.
+# Cost behavior: lookup credits are charged ONLY when a verified profile is
+# returned. 404/failed lookups are free. We still cache misses to avoid
+# re-attempting the same contact daily.
+#
+# Async behavior: /person/lookup may return status="searching"/"waiting"/
+# "progress" if data needs a fresh crawl. We poll /person/checkStatus for
+# up to ~30s before giving up.
 
-NINJAPEAR_ENDPOINT = 'https://nubela.co/api/v1/employee/profile'
-NINJAPEAR_WEBSITE_LOOKUP_ENDPOINT = 'https://nubela.co/api/v1/company/website'
+ROCKETREACH_LOOKUP_ENDPOINT = 'https://api.rocketreach.co/api/v2/person/lookup'
+ROCKETREACH_STATUS_ENDPOINT = 'https://api.rocketreach.co/api/v2/person/checkStatus'
 
 
 def _clean_company_name(name: str) -> str:
@@ -488,96 +492,98 @@ def _clean_company_name(name: str) -> str:
     return (name or '').strip().strip('"').strip("'").strip()
 
 
-def _ninjapear_lookup_website(company_name: str):
-    """NinjaPear Website Lookup: company name → canonical URL. 1 credit per call.
+def _rocketreach_get_photo(*, linkedin_url: str = '', name: str = '',
+                           current_employer: str = '', email: str = ''):
+    """Call RocketReach /person/lookup, poll if needed, return profile_pic URL or None.
 
-    Cached by normalized company name — multiple contacts at the same company
-    share a single lookup. Cached miss (None) is also stored to avoid retries.
+    Lookup credits are charged only on success (verified data). Failed lookups
+    return None and cost nothing.
     """
-    if not NINJAPEAR_API_KEY:
-        return None
-    company_name = _clean_company_name(company_name)
-    if not company_name:
-        return None
-
-    cache_key = f'ninjapear_website:{company_name.lower()}'
-    if cache_key in _enrich_cache:
-        return _enrich_cache[cache_key]   # may be None for cached miss
-
-    try:
-        r = requests.get(
-            NINJAPEAR_WEBSITE_LOOKUP_ENDPOINT,
-            headers={'Authorization': f'Bearer {NINJAPEAR_API_KEY}'},
-            params={'company_name': company_name, 'country_code': 'us'},
-            timeout=30,
-        )
-        if r.status_code == 404:
-            _enrich_cache[cache_key] = None
-            return None
-        if not r.ok:
-            print(f'  NinjaPear Website Lookup HTTP {r.status_code} for {company_name}', file=sys.stderr)
-            return None  # transient — don't cache
-        website = r.json().get('website') or None
-        _enrich_cache[cache_key] = website
-        if website:
-            print(f'  NinjaPear Website Lookup: {company_name} → {website}')
-        return website
-    except Exception as e:
-        print(f'  NinjaPear Website Lookup error for {company_name}: {e}', file=sys.stderr)
-        return None
-
-
-def _ninjapear_get_photo(*, work_email: str = '', first_name: str = '',
-                         last_name: str = '', employer_website: str = '',
-                         role: str = ''):
-    """Call NinjaPear Person Profile and return profile_pic_url, or None on miss."""
-    if not NINJAPEAR_API_KEY:
+    if not ROCKETREACH_API_KEY:
         return None
 
     params = {}
-    # Validate at least one valid input combination is present
-    if work_email:
-        params['work_email'] = work_email
-        if first_name: params['first_name'] = first_name
-        if last_name:  params['last_name']  = last_name
-    elif first_name and employer_website:
-        params['first_name'] = first_name
-        params['employer_website'] = employer_website
-        if last_name: params['last_name'] = last_name
-    elif employer_website and role:
-        params['employer_website'] = employer_website
-        params['role'] = role
+    if linkedin_url:
+        params['linkedin_url'] = linkedin_url
+    elif name and current_employer:
+        params['name'] = name
+        params['current_employer'] = current_employer
+    elif email:
+        params['email'] = email
     else:
         return None  # No valid input combination
 
+    headers = {'Api-Key': ROCKETREACH_API_KEY}
+
     try:
-        r = requests.get(
-            NINJAPEAR_ENDPOINT,
-            headers={'Authorization': f'Bearer {NINJAPEAR_API_KEY}'},
-            params=params,
-            timeout=100,   # NinjaPear recommends 100s timeout
-        )
+        r = requests.get(ROCKETREACH_LOOKUP_ENDPOINT, headers=headers,
+                         params=params, timeout=30)
+        if r.status_code == 401:
+            print('  RocketReach: invalid API key (401)', file=sys.stderr)
+            return None
         if r.status_code == 404:
             return None
-        if r.status_code == 503:
-            print(f'  NinjaPear 503 (transient), skipping {params}', file=sys.stderr)
+        if r.status_code == 429:
+            print('  RocketReach: rate-limited (429), skipping', file=sys.stderr)
             return None
         if not r.ok:
-            print(f'  NinjaPear HTTP {r.status_code} for {params}', file=sys.stderr)
+            print(f'  RocketReach HTTP {r.status_code} for {params}', file=sys.stderr)
             return None
-        return r.json().get('profile_pic_url') or None
+
+        data = r.json()
+        # If data is already complete, return the photo immediately
+        if data.get('profile_pic'):
+            return data['profile_pic']
+
+        status = (data.get('status') or '').lower()
+        profile_id = data.get('id')
+        if status == 'failed' or status == 'complete':
+            # complete-without-photo means the person has no photo
+            return None
+        if not profile_id:
+            return None  # nothing to poll
+
+        # Poll /checkStatus until complete or we time out (~30s).
+        for _attempt in range(6):
+            time.sleep(5)
+            try:
+                pr = requests.get(
+                    ROCKETREACH_STATUS_ENDPOINT,
+                    headers=headers,
+                    params={'ids': str(profile_id)},
+                    timeout=15,
+                )
+                if not pr.ok:
+                    continue
+                results = pr.json()
+                items = results if isinstance(results, list) else [results]
+                for item in items:
+                    if str(item.get('id')) != str(profile_id):
+                        continue
+                    s = (item.get('status') or '').lower()
+                    if s == 'complete':
+                        return item.get('profile_pic') or None
+                    if s == 'failed':
+                        return None
+                    # else still pending — keep polling
+            except Exception:
+                continue
+
+        print(f'  RocketReach: timed out polling profile {profile_id}', file=sys.stderr)
+        return None
     except Exception as e:
-        print(f'  NinjaPear error for {params}: {e}', file=sys.stderr)
+        print(f'  RocketReach error for {params}: {e}', file=sys.stderr)
         return None
 
 
 def proxycurl_enrich_photos(contacts: list) -> int:
     """Populate linkedin_image_url for contacts that lack it. Returns count enriched.
 
-    Function name preserved for caller compatibility, but uses NinjaPear under
-    the hood (Proxycurl was sunset Sep 2026).
+    Function name preserved for caller compatibility, but uses RocketReach
+    under the hood. Successful lookups are written back to HubSpot so future
+    daily runs read the photo from HubSpot for free.
     """
-    if not NINJAPEAR_API_KEY:
+    if not ROCKETREACH_API_KEY:
         return 0
 
     enriched = 0
@@ -587,57 +593,50 @@ def proxycurl_enrich_photos(contacts: list) -> int:
         if (p.get('linkedin_image_url') or '').strip():
             continue
 
-        # Cache by HubSpot contact ID — stable per contact regardless of input path
-        cache_key = f'ninjapear_photo:{c["id"]}'
+        # Cache by HubSpot contact ID — stable across input paths
+        cache_key = f'rocketreach_photo:{c["id"]}'
         if cache_key in _enrich_cache:
             cached = _enrich_cache[cache_key]
             if cached:
                 p['linkedin_image_url'] = cached
                 enriched += 1
-            continue   # cached miss → don't retry (saves 3 credits)
+            continue   # cached miss → don't retry
 
-        # Build the best NinjaPear input combination from what we have.
-        email = (p.get('email') or '').strip().lower()
-        dom   = email_domain(email)
-        is_personal = dom in PERSONAL_DOMAINS
+        # Gather every input we have, in priority order
         first = (p.get('firstname') or '').strip()
         last  = (p.get('lastname')  or '').strip()
-        # Skip junk first-names that are actually email addresses
-        if '@' in first:
+        if '@' in first:   # junk first-names that are actually emails
             first = ''
-        company_name = _clean_company_name(p.get('company') or '')
+        full_name = f'{first} {last}'.strip()
+        company   = _clean_company_name(p.get('company') or '')
+        email     = (p.get('email') or '').strip().lower()
+        is_personal = email_domain(email) in PERSONAL_DOMAINS
+        li_url = (
+            p.get('hs_linkedin_url') or p.get('linkedin_personal_url') or
+            p.get('outbound_team___linkedin_url') or p.get('pipl_linkedin') or ''
+        ).strip()
 
+        # Choose the best path: LinkedIn URL > name+company > email
         photo_url = None
-        attempted = False  # did we make any NinjaPear call?
-
-        if email and not is_personal:
-            # Path A: work_email — best accuracy, 3 credits
-            photo_url = _ninjapear_get_photo(
-                work_email=email, first_name=first, last_name=last,
-            )
-            attempted = True
-        elif first and company_name:
-            # Path B: personal email but has company → look up company website,
-            # then run Person Profile with first_name + employer_website.
-            # Worst-case cost: 1 credit (website lookup) + 3 credits (profile) = 4.
-            looked_up_website = _ninjapear_lookup_website(company_name)
-            attempted = True   # the website lookup already burned 1 credit
-            if looked_up_website:
-                photo_url = _ninjapear_get_photo(
-                    first_name=first, last_name=last,
-                    employer_website=looked_up_website,
-                )
-
-        if not attempted:
-            # No valid input combination → cache as miss to skip future runs
+        if li_url:
+            # Path A: linkedin_url — most accurate
+            photo_url = _rocketreach_get_photo(linkedin_url=li_url)
+        elif full_name and company:
+            # Path B: name + current employer
+            photo_url = _rocketreach_get_photo(name=full_name, current_employer=company)
+        elif email and not is_personal:
+            # Path C: work email
+            photo_url = _rocketreach_get_photo(email=email)
+        else:
+            # No valid input → cache miss to skip future runs
             _enrich_cache[cache_key] = None
             continue
 
-        _enrich_cache[cache_key] = photo_url   # store None for miss to avoid retry
+        _enrich_cache[cache_key] = photo_url
         if photo_url:
             p['linkedin_image_url'] = photo_url
             enriched += 1
-            print(f'  NinjaPear: photo found for contact {c["id"]} ({first} {last})')
+            print(f'  RocketReach: photo found for contact {c["id"]} ({full_name})')
             # Write back to HubSpot so the next run gets it for free
             _patch_hubspot_contact(c['id'], {'linkedin_image_url': photo_url})
 
@@ -645,8 +644,8 @@ def proxycurl_enrich_photos(contacts: list) -> int:
     return enriched
 
 
-# Back-compat alias
-_proxycurl_get_photo = _ninjapear_get_photo
+# Back-compat alias for any callers still importing the old name
+_proxycurl_get_photo = _rocketreach_get_photo
 
 
 # ─── NYC PLUTO PROPERTY LOOKUP ────────────────────────────────────────────────
@@ -1229,7 +1228,8 @@ def avatar_html(p: dict, name: str) -> str:
     fallback_html = _initials_avatar_html(name)
 
     style = ('width:30px;height:30px;border-radius:50%;object-fit:cover;'
-             'flex-shrink:0;border:1px solid #e1e6ee;background:#f0f1f5')
+             'flex-shrink:0;border:1px solid #e1e6ee;background:#f0f1f5;'
+             'cursor:pointer')
 
     # Tier 1: have a LinkedIn photo URL — Gravatar is the next-step fallback
     if li_img:
@@ -1238,6 +1238,8 @@ def avatar_html(p: dict, name: str) -> str:
             f'data-fb="{escape(grav)}" '
             f'data-fb-html="{escape(fallback_html)}" '
             f'onerror="_avatarErr(this)" '
+            f'onclick="openPhotoModal(event, this)" '
+            f'title="Click to enlarge" '
             f'style="{style}">'
         )
     # Tier 2: no LinkedIn photo, but we have an email — try Gravatar directly
@@ -1246,9 +1248,11 @@ def avatar_html(p: dict, name: str) -> str:
             f'<img src="{escape(grav)}" alt="" '
             f'data-fb-html="{escape(fallback_html)}" '
             f'onerror="_avatarErr(this)" '
+            f'onclick="openPhotoModal(event, this)" '
+            f'title="Click to enlarge" '
             f'style="{style}">'
         )
-    # Tier 3: no email either — straight to initials
+    # Tier 3: no email either — straight to initials (not clickable, no real photo to show)
     return fallback_html
 
 
@@ -2511,6 +2515,30 @@ function _avatarErr(img) {{
   }}
 }}
 
+// ── Photo modal: click avatar → enlarge in popup ─────────────────────────────
+function openPhotoModal(ev, img) {{
+  if (ev) {{ ev.stopPropagation(); ev.preventDefault(); }}  // don't expand row
+  var modal = document.getElementById('photo-modal');
+  var modalImg = document.getElementById('photo-modal-img');
+  if (!modal || !modalImg) return;
+  modalImg.src = img.src;
+  modalImg.alt = img.alt || '';
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';  // freeze background scroll
+}}
+function closePhotoModal() {{
+  var modal = document.getElementById('photo-modal');
+  if (!modal) return;
+  modal.style.display = 'none';
+  document.body.style.overflow = '';
+  var modalImg = document.getElementById('photo-modal-img');
+  if (modalImg) modalImg.src = '';  // free memory
+}}
+// Close on Escape
+document.addEventListener('keydown', function(e) {{
+  if (e.key === 'Escape') closePhotoModal();
+}});
+
 // ── Lazy-load past event rows ─────────────────────────────────────────────────
 var _renderedPast = {{}};
 function renderPastTab(tabId) {{
@@ -2989,6 +3017,27 @@ document.querySelectorAll('tr[data-contact]').forEach(function(row) {{
   }});
 }})();
 </script>
+
+<!-- Photo modal — shown when an avatar is clicked -->
+<div id="photo-modal"
+     onclick="if (event.target === this) closePhotoModal()"
+     style="display:none;position:fixed;inset:0;z-index:9999;
+            background:rgba(8,16,32,0.78);align-items:center;justify-content:center;
+            cursor:zoom-out">
+  <div style="position:relative;max-width:90vw;max-height:90vh">
+    <button onclick="closePhotoModal()"
+            aria-label="Close"
+            style="position:absolute;top:-12px;right:-12px;width:36px;height:36px;
+                   border-radius:50%;border:none;background:#fff;color:#1b3c6e;
+                   font-size:1.2rem;font-weight:700;cursor:pointer;
+                   box-shadow:0 4px 14px rgba(0,0,0,0.35);line-height:1;
+                   display:flex;align-items:center;justify-content:center">×</button>
+    <img id="photo-modal-img" src="" alt=""
+         style="display:block;max-width:90vw;max-height:90vh;border-radius:8px;
+                box-shadow:0 12px 40px rgba(0,0,0,0.5);background:#1b3c6e;cursor:default"
+         onclick="event.stopPropagation()">
+  </div>
+</div>
 </body>
 </html>'''
 
@@ -3976,7 +4025,7 @@ def main():
 
     n_proxycurl = proxycurl_enrich_photos(contacts_to_enrich)
     if n_proxycurl:
-        print(f'NinjaPear: fetched profile photos for {n_proxycurl} contacts (3 credits each)')
+        print(f'RocketReach: fetched profile photos for {n_proxycurl} contacts')
 
     by_date = defaultdict(list)
     for c in contacts:
