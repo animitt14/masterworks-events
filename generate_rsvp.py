@@ -442,6 +442,106 @@ def enrich_no_data_contacts(contacts: list) -> int:
     return enriched
 
 
+def enrich_tenure_data(contacts: list) -> int:
+    """Second pass: for contacts that have title/company but are missing
+    linkedin_current_role_started, do a targeted LinkedIn search to extract
+    tenure data. Runs after enrich_no_data_contacts."""
+    global _quota_exhausted, _api_calls
+    if not GOOGLE_API_KEY or not GOOGLE_CSE_ID:
+        return 0
+
+    filled = 0
+    for c in contacts:
+        if _quota_exhausted or _api_calls >= ENRICH_LIMIT:
+            break
+        p = c['properties']
+        if not (p.get('jobtitle') or p.get('company')):
+            continue
+        if p.get('linkedin_current_role_started'):
+            continue
+
+        fname = p.get('firstname') or ''
+        lname = p.get('lastname') or ''
+        name = f'{fname} {lname}'.strip()
+        if not name:
+            continue
+
+        cached = _enrich_cache.get(name)
+        if cached and cached.get('linkedin_current_role_started'):
+            c['properties']['linkedin_current_role_started'] = cached['linkedin_current_role_started']
+            filled += 1
+            continue
+        if cached is None:
+            continue
+
+        li_url_hint = (
+            p.get('pipl_linkedin') or p.get('hs_linkedin_url') or
+            p.get('outbound_team___linkedin_url') or p.get('linkedin_personal_url') or ''
+        ).strip()
+        company = p.get('company') or ''
+
+        queries = []
+        if li_url_hint:
+            li_path = re.search(r'linkedin\.com(/in/[^/?#\s]+)', li_url_hint)
+            if li_path:
+                queries.append(f'site:linkedin.com{li_path.group(1)}')
+        if company:
+            queries.append(f'"{name}" "{company}" site:linkedin.com')
+        queries.append(f'"{name}" site:linkedin.com/in')
+
+        role_start = ''
+        grad_year = ''
+        company_size = ''
+        for q in queries:
+            if _quota_exhausted or _api_calls >= ENRICH_LIMIT:
+                _quota_exhausted = True
+                break
+            try:
+                _api_calls += 1
+                resp = requests.get(
+                    GOOGLE_SEARCH_URL,
+                    params={'key': GOOGLE_API_KEY, 'cx': GOOGLE_CSE_ID, 'q': q, 'num': 5},
+                    timeout=10,
+                )
+                if resp.status_code == 429:
+                    _quota_exhausted = True
+                    break
+                if not resp.ok:
+                    continue
+                for item in resp.json().get('items', []):
+                    blob = item.get('title', '') + ' ' + item.get('snippet', '')
+                    if not role_start:
+                        role_start = _extract_role_start(blob)
+                    if not grad_year:
+                        grad_year = _extract_grad_year(blob)
+                    if not company_size:
+                        company_size = _extract_company_size(blob)
+                if role_start:
+                    break
+            except Exception:
+                continue
+
+        if role_start or grad_year or company_size:
+            updates = {}
+            if role_start:
+                updates['linkedin_current_role_started'] = role_start
+            if grad_year:
+                updates['linkedin_grad_year'] = grad_year
+            if company_size:
+                updates['linkedin_company_size'] = company_size
+            c['properties'].update(updates)
+            if cached and isinstance(cached, dict):
+                cached.update(updates)
+            elif not cached:
+                _enrich_cache[name] = updates
+            filled += 1
+            print(f'  Tenure: {name} → started {role_start or "?"}, grad {grad_year or "?"}, size {company_size or "?"}')
+
+    if filled:
+        _save_enrich_cache()
+    return filled
+
+
 def _patch_hubspot_contact(contact_id: str, properties: dict):
     """PATCH a HubSpot contact with the given properties."""
     if not HUBSPOT_TOKEN or not properties:
@@ -3852,6 +3952,10 @@ def main():
     n_enriched = enrich_no_data_contacts(contacts_to_enrich)
     if n_enriched:
         print(f'Enriched {n_enriched} no-data contacts via Google Search')
+
+    n_tenure = enrich_tenure_data(contacts_to_enrich)
+    if n_tenure:
+        print(f'Tenure data filled for {n_tenure} contacts')
 
     n_pluto = pluto_enrich_contacts(contacts_to_enrich)
     if n_pluto:
