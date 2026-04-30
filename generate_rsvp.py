@@ -1004,6 +1004,12 @@ def score_contact(p: dict) -> tuple:
     if 'invested' in flags or 'opportunity' in flags:
         return 5, flags
 
+    # ── HubSpot wealth segment ≥ $10M → auto-HIGH ─────────────────────────────
+    ws_low = _wealth_segment_low(p.get('wealth_segment') or '')
+    if ws_low and ws_low >= 10_000_000:
+        flags.append('hs_wealth_10m_plus')
+        return 5, flags
+
     # ── Hard disqualifiers: not interested or no show ─────────────────────────
     if 'not_interested' in flags:
         return 1, flags
@@ -4455,7 +4461,8 @@ def main():
 
     print(f'Dates: {sorted(by_date.keys())}')
 
-    now_str = datetime.now(timezone.utc).strftime('%b %-d, %Y at %-I:%M %p UTC')
+    _now = datetime.now(timezone.utc)
+    now_str = f"{_now.strftime('%b')} {_now.day}, {_now.year} at {_now.strftime('%I:%M %p').lstrip('0')} UTC"
 
     docs = Path('docs')
     docs.mkdir(parents=True, exist_ok=True)
