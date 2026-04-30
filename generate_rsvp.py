@@ -7,6 +7,7 @@ scores them 1–5, and writes docs/index.html.
 """
 
 import base64
+import hashlib
 import json
 import os
 import re
@@ -30,6 +31,7 @@ SEARCH_URL    = 'https://api.hubapi.com/crm/v3/objects/contacts/search'
 # Google Custom Search — used to enrich contacts with no title AND no company
 GOOGLE_API_KEY     = os.environ.get('GOOGLE_API_KEY', '')
 GOOGLE_CSE_ID      = os.environ.get('GOOGLE_CSE_ID', '')
+PROXYCURL_API_KEY  = os.environ.get('PROXYCURL_API_KEY', '').strip()
 GOOGLE_SEARCH_URL  = 'https://www.googleapis.com/customsearch/v1'
 ENRICH_LIMIT       = 95   # stay just under the 100/day free quota
 
@@ -41,7 +43,7 @@ PERSONAL_DOMAINS = {
 }
 
 # Date window: how many days back/ahead to pull
-DAYS_BACK  = int(os.environ.get('DAYS_BACK',  60))
+DAYS_BACK  = int(os.environ.get('DAYS_BACK',  180))
 DAYS_AHEAD = int(os.environ.get('DAYS_AHEAD', 30))
 
 OWNERS = {
@@ -242,180 +244,6 @@ _enrich_cache: dict = {}      # loaded from file at start of main()
 _quota_exhausted: bool = False  # flip to True on first 429 — stops all further queries
 _api_calls: int = 0           # total Google API calls this run; capped at ENRICH_LIMIT
 
-# ─── COMPANY SCALE CLASSIFIER ────────────────────────────────────────────────
-# Replaces a hardcoded MAJOR_EMPLOYERS list with a cascading lookup:
-#   B. Yahoo Finance market cap (public companies)
-#   A. LinkedIn snippet employee count (any company surfaced by Google CSE)
-#   C. (TODO) LLM classification when ANTHROPIC_API_KEY is configured
-# Verdict + source cached in company_scale_cache.json keyed by lowercase name.
-
-COMPANY_SCALE_CACHE_FILE = Path('company_scale_cache.json')
-_company_scale_cache: dict = {}
-
-def _load_company_scale_cache():
-    global _company_scale_cache
-    if COMPANY_SCALE_CACHE_FILE.exists():
-        try:
-            _company_scale_cache = json.loads(COMPANY_SCALE_CACHE_FILE.read_text(encoding='utf-8'))
-        except Exception:
-            _company_scale_cache = {}
-
-def _save_company_scale_cache():
-    COMPANY_SCALE_CACHE_FILE.write_text(
-        json.dumps(_company_scale_cache, indent=2, sort_keys=True),
-        encoding='utf-8',
-    )
-
-_US_EXCHANGES = {'NMS', 'NYQ', 'NCM', 'NGM', 'PCX', 'BTS', 'ASE'}
-
-def _yahoo_market_cap(company: str):
-    """Resolve company name → market cap (USD int) via yfinance.
-    Returns None if no US ticker found, name doesn't match, or API fails.
-    Uses yfinance which handles Yahoo's crumb-auth dance internally."""
-    try:
-        import yfinance as yf
-    except ImportError:
-        return None
-    try:
-        results = yf.Search(company, max_results=10, news_count=0).quotes
-    except Exception:
-        return None
-    target = company.lower().strip()
-    for q in results or []:
-        if q.get('quoteType') != 'EQUITY':
-            continue
-        # Prefer US-listed equities — foreign listings of delisted US companies
-        # often surface first but lack market-cap data.
-        if q.get('exchange') not in _US_EXCHANGES:
-            continue
-        symbol = q.get('symbol')
-        if not symbol:
-            continue
-        short = (q.get('shortname') or '').lower()
-        long_ = (q.get('longname')  or '').lower()
-        if target not in short and target not in long_ \
-                and short not in target and long_ not in target:
-            continue
-        try:
-            mc = yf.Ticker(symbol).info.get('marketCap', 0)
-        except Exception:
-            continue
-        if mc:
-            return int(mc)
-    return None
-
-def _classify_market_cap(mc: int) -> str:
-    if mc >= 10_000_000_000: return 'large'   # ≥ $10B
-    if mc >=  1_000_000_000: return 'mid'     # $1B – $10B
-    return 'small'
-
-def _extract_company_size(text: str) -> str:
-    """LinkedIn snippet → 'large' / 'mid' / 'small' / 'tiny' / '' from employee count.
-    Patterns: '10,001+ employees', '1,001-5,000 employees', '11-50 employees'.
-    Tiers: large ≥10K, mid 1K–10K, small 51–999, tiny ≤50."""
-    text = text or ''
-    m = re.search(r'(\d[\d,]*)\+?\s*[-–]?\s*(\d[\d,]*)?\s*employees', text, re.IGNORECASE)
-    if not m:
-        return ''
-    upper = (m.group(2) or m.group(1)).replace(',', '')
-    try:
-        n = int(upper)
-    except ValueError:
-        return ''
-    if n >= 10_000: return 'large'
-    if n >=  1_000: return 'mid'
-    if n >       50: return 'small'
-    return 'tiny'
-
-def classify_company_scale(company: str, prior_size: str = '') -> str:
-    """Cascade: cache → Yahoo (yfinance) → LinkedIn-extracted size → 'unknown'.
-    Caches verdict + source. Returns 'large' / 'mid' / 'small' / 'unknown'.
-
-    `prior_size` may be:
-      - a verdict already extracted by enrichment ('large'/'mid'/'small'), used as A-fallback, or
-      - a raw snippet blob to extract from (handled via _extract_company_size).
-    """
-    if not company or not company.strip():
-        return 'unknown'
-    key = company.lower().strip()
-    cached = _company_scale_cache.get(key)
-    # Return a cached real verdict immediately. If cached='unknown' but the caller
-    # now has prior_size info we didn't have before, fall through and re-evaluate.
-    if cached and cached.get('scale') and cached['scale'] != 'unknown':
-        return cached['scale']
-    if cached and cached.get('scale') == 'unknown' and not prior_size:
-        return 'unknown'
-
-    # B: Yahoo Finance market cap (US-listed public companies)
-    if not cached:  # don't re-hit Yahoo if we already failed once
-        mc = _yahoo_market_cap(company)
-        if mc:
-            scale = _classify_market_cap(mc)
-            _company_scale_cache[key] = {'scale': scale, 'source': 'yahoo', 'market_cap': mc}
-            return scale
-
-    # A: LinkedIn employee-count fallback (private firms, delisted, foreign-only)
-    li_scale = ''
-    if prior_size in ('large', 'mid', 'small', 'tiny'):
-        li_scale = prior_size
-    elif prior_size:
-        li_scale = _extract_company_size(prior_size)
-    if li_scale:
-        _company_scale_cache[key] = {'scale': li_scale, 'source': 'linkedin'}
-        return li_scale
-
-    # C: TODO — LLM classification (requires ANTHROPIC_API_KEY)
-    _company_scale_cache[key] = {'scale': 'unknown', 'source': 'none'}
-    return 'unknown'
-
-_EXIT_RE  = re.compile(
-    r'\b(acquired by|sold (?:my company |the company |startup |it )?to|'
-    r"ipo'?d|went public|founded and exited|exited successfully|post[\- ]exit|"
-    r'after exiting)\b',
-    re.IGNORECASE,
-)
-_BOARD_RE = re.compile(
-    r'\b(board (?:member|director|seat|chair)|non[\- ]executive director|'
-    r'chairman of (?:the )?board|chairperson of (?:the )?board|'
-    r'sits on (?:the )?board|advisory board|board observer)\b',
-    re.IGNORECASE,
-)
-
-def _extract_exit_signal(text: str) -> bool:
-    """Detect founder/startup exit mentions in a LinkedIn snippet
-    (acquired by X, sold to Y, IPO'd, exited successfully)."""
-    return bool(_EXIT_RE.search(text or ''))
-
-def _extract_board_signal(text: str) -> bool:
-    """Detect board / advisory-board memberships in a LinkedIn snippet."""
-    return bool(_BOARD_RE.search(text or ''))
-
-def _extract_grad_year(text: str) -> str:
-    """Best-effort grad-year extraction from a LinkedIn search snippet.
-    Returns 'YYYY' or '' if not found."""
-    text = text or ''
-    m = re.search(r'class\s+of\s+(\d{4})', text, re.IGNORECASE)
-    if m: return m.group(1)
-    m = re.search(r'(?:university|college|institute|school|academy)\b[^.|·]{0,80}?(\d{4})\s*[-–]\s*(\d{4})', text, re.IGNORECASE)
-    if m: return m.group(2)
-    m = re.search(r'(\d{4})\s*[-–]\s*(\d{4})\s+(?:university|college|institute|school|academy)', text, re.IGNORECASE)
-    if m: return m.group(2)
-    return ''
-
-def _extract_role_start(text: str) -> str:
-    """Best-effort current-role start date from a LinkedIn search snippet.
-    Returns 'YYYY-MM' or 'YYYY' or '' if not found."""
-    text = text or ''
-    months = r'(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)'
-    m = re.search(rf'\b{months}[a-z]*\s+(\d{{4}})\s*[-–]\s*present', text, re.IGNORECASE)
-    if m:
-        mmap = {'jan':'01','feb':'02','mar':'03','apr':'04','may':'05','jun':'06',
-                'jul':'07','aug':'08','sep':'09','oct':'10','nov':'11','dec':'12'}
-        return f"{m.group(2)}-{mmap[m.group(1).lower()]}"
-    m = re.search(r'\b(\d{4})\s*[-–]\s*present', text, re.IGNORECASE)
-    if m: return m.group(1)
-    return ''
-
 def _parse_linkedin_result(title_tag: str, snippet: str) -> tuple:
     """Return (job_title, company) from a Google/LinkedIn search result.
 
@@ -521,42 +349,18 @@ def google_enrich(name: str, company_hint: str = '', domain: str = '',
                 continue
 
             items = resp.json().get('items', [])
-            # Accumulate fields across all hits — title/company comes from the
-            # best parse, grad year + role start + company size may live in a
-            # sibling snippet.
-            acc = {'jobtitle': '', 'company': '',
-                   'linkedin_grad_year': '', 'linkedin_current_role_started': '',
-                   'linkedin_company_size': '',
-                   'linkedin_has_exit': '', 'linkedin_has_board': ''}
-            full_blob = ''
             for item in items:
-                title_tag = item.get('title', '')
-                snippet   = item.get('snippet', '')
-                inferred_title, inferred_company = _parse_linkedin_result(title_tag, snippet)
-                blob = title_tag + ' ' + snippet
-                full_blob += ' ' + blob
-                if inferred_title  and not acc['jobtitle']: acc['jobtitle']  = inferred_title
-                if inferred_company and not acc['company']: acc['company']  = inferred_company
-                if not acc['linkedin_grad_year']:
-                    acc['linkedin_grad_year'] = _extract_grad_year(blob)
-                if not acc['linkedin_current_role_started']:
-                    acc['linkedin_current_role_started'] = _extract_role_start(blob)
-                if not acc['linkedin_company_size']:
-                    acc['linkedin_company_size'] = _extract_company_size(blob)
-            # Run exit / board detection over the full blob (signal can live in
-            # any snippet of the result set)
-            if _extract_exit_signal(full_blob):  acc['linkedin_has_exit']  = 'true'
-            if _extract_board_signal(full_blob): acc['linkedin_has_board'] = 'true'
-            if acc['jobtitle'] or acc['company']:
-                result = {k: v for k, v in acc.items() if v}
-                result['_enriched'] = True
-                # Seed the company-scale cache from the snippet blob —
-                # cheaper than a Yahoo lookup for known LinkedIn-surfaced firms.
-                co = acc['company'] or acc.get('jobtitle', '')
-                if acc['company']:
-                    classify_company_scale(acc['company'], full_blob)
-                _enrich_cache[name] = result
-                return result
+                inferred_title, inferred_company = _parse_linkedin_result(
+                    item.get('title', ''), item.get('snippet', '')
+                )
+                if inferred_title or inferred_company:
+                    result = {
+                        'jobtitle':  inferred_title,
+                        'company':   inferred_company,
+                        '_enriched': True,
+                    }
+                    _enrich_cache[name] = result
+                    return result
 
         except Exception as e:
             print(f'  Google search exception for "{name}": {e}', file=sys.stderr)
@@ -604,8 +408,7 @@ def enrich_no_data_contacts(contacts: list) -> int:
                 # Write to HubSpot if fields are still blank (handles failed/missed prior writes)
                 _patch_hubspot_contact(c['id'], {
                     k: v for k, v in cached.items()
-                    if k in ('jobtitle', 'company')
-                       and v and not p.get(k)
+                    if k in ('jobtitle', 'company') and v and not p.get(k)
                 })
             continue   # either way, don't make an API call
 
@@ -632,12 +435,10 @@ def enrich_no_data_contacts(contacts: list) -> int:
             # Write back to HubSpot — only fill blank fields, never overwrite
             _patch_hubspot_contact(c['id'], {
                 k: v for k, v in result.items()
-                if k in ('jobtitle', 'company', 'linkedin_grad_year', 'linkedin_current_role_started', 'linkedin_company_size')
-                   and v and not p.get(k)
+                if k in ('jobtitle', 'company') and v and not p.get(k)
             })
 
     _save_enrich_cache()
-    _save_company_scale_cache()
     return enriched
 
 
@@ -658,6 +459,77 @@ def _patch_hubspot_contact(contact_id: str, properties: dict):
             print(f'  HubSpot patch failed for {contact_id}: HTTP {resp.status_code}', file=sys.stderr)
     except Exception as e:
         print(f'  HubSpot patch exception for {contact_id}: {e}', file=sys.stderr)
+
+
+# ─── PROXYCURL PHOTO ENRICHMENT ───────────────────────────────────────────────
+# Fetch profile photos from Proxycurl when HubSpot's `linkedin_image_url` is
+# blank. Results are cached forever (a profile photo URL almost never changes,
+# and re-fetching costs $) and written back to HubSpot on success so future
+# daily runs read it directly from HubSpot without paying again.
+
+PROXYCURL_ENDPOINT = 'https://nubela.co/proxycurl/api/v2/linkedin'
+
+def _proxycurl_get_photo(li_url: str):
+    """Fetch profile_pic_url from Proxycurl. Returns URL string, or None on miss."""
+    if not PROXYCURL_API_KEY or not li_url:
+        return None
+    try:
+        r = requests.get(
+            PROXYCURL_ENDPOINT,
+            headers={'Authorization': f'Bearer {PROXYCURL_API_KEY}'},
+            params={'url': li_url, 'use_cache': 'if-present', 'fallback_to_cache': 'on-error'},
+            timeout=30,
+        )
+        if r.status_code == 404:
+            return None
+        if not r.ok:
+            print(f'  Proxycurl HTTP {r.status_code} for {li_url}', file=sys.stderr)
+            return None
+        return r.json().get('profile_pic_url') or None
+    except Exception as e:
+        print(f'  Proxycurl error for {li_url}: {e}', file=sys.stderr)
+        return None
+
+
+def proxycurl_enrich_photos(contacts: list) -> int:
+    """Populate linkedin_image_url for contacts that lack it. Returns count enriched."""
+    if not PROXYCURL_API_KEY:
+        return 0
+
+    enriched = 0
+    for c in contacts:
+        p = c['properties']
+        # Skip if HubSpot already has a photo URL
+        if (p.get('linkedin_image_url') or '').strip():
+            continue
+
+        li_url = (
+            p.get('hs_linkedin_url') or p.get('linkedin_personal_url') or
+            p.get('outbound_team___linkedin_url') or p.get('pipl_linkedin') or ''
+        ).strip()
+        if not li_url:
+            continue   # Proxycurl needs a LinkedIn URL as input
+
+        # Cache by LinkedIn URL — the photo is per-profile, not per-contact
+        cache_key = f'proxycurl_photo:{li_url}'
+        if cache_key in _enrich_cache:
+            cached = _enrich_cache[cache_key]
+            if cached:
+                p['linkedin_image_url'] = cached
+                enriched += 1
+            continue   # cached miss → don't retry
+
+        photo_url = _proxycurl_get_photo(li_url)
+        _enrich_cache[cache_key] = photo_url   # store None for miss to avoid retry
+        if photo_url:
+            p['linkedin_image_url'] = photo_url
+            enriched += 1
+            print(f'  Proxycurl: photo found for {li_url}')
+            # Write back to HubSpot so the next run gets it for free
+            _patch_hubspot_contact(c['id'], {'linkedin_image_url': photo_url})
+
+    _save_enrich_cache()
+    return enriched
 
 
 # ─── NYC PLUTO PROPERTY LOOKUP ────────────────────────────────────────────────
@@ -770,10 +642,10 @@ def fetch_pluto_value(address: str, city: str, zip_code: str) -> str | None:
             _enrich_cache[cache_key] = None
             return None
 
-        # Tag non-residential building classes (commercial, industrial, etc.)
+        # Skip non-residential building classes (commercial, industrial, etc.)
         if bldg_class not in ('A', 'B', 'C', 'D', 'R', 'S'):
-            _enrich_cache[cache_key] = 'Commercial'
-            return 'Commercial'
+            _enrich_cache[cache_key] = None
+            return None
 
         # NYC property tax ratios by unit count:
         # Tax Class 1 (1–3 units): assessed ≈ 6% of market value
@@ -841,10 +713,12 @@ def fetch_contacts(start: date, end: date) -> list:
                 'hubspot_owner_id', 'lifecyclestage', 'call_completed',
                 'outbound_rsvp_to_event', 'attended_outbound_event',
                 'outbound_event_attendee_disqualified', 'unknown_rsvp',
-                'admin_url', 'totalamountpurchased', 'createdate', 'recent_deal_close_date',
+                'outbound_event_send_confirmation',
+                'admin_url', 'totalamountpurchased', 'createdate',
                 'hs_v2_date_entered_current_stage',
                 'wealth_segment', 'inferred_income', 'address',
                 'hs_linkedin_url', 'linkedin_personal_url', 'outbound_team___linkedin_url', 'pipl_linkedin',
+                'linkedin_image_url',
                 'hs_email_open', 'hs_email_delivered', 'hs_email_first_reply_date',
             ],
             'limit': 200,
@@ -862,45 +736,6 @@ def fetch_contacts(start: date, end: date) -> list:
             break
 
     return contacts
-
-
-def fetch_all_contacts_with_rsvp() -> list:
-    """Lifetime fetch — every contact who has ever had outbound_rsvp_to_event
-    set, regardless of date. For the all-contacts roster page."""
-    if not HUBSPOT_TOKEN:
-        print('ERROR: HUBSPOT_API_KEY not set', file=sys.stderr)
-        sys.exit(1)
-    headers = {'Authorization': f'Bearer {HUBSPOT_TOKEN}', 'Content-Type': 'application/json'}
-    contacts, after = [], None
-    while True:
-        payload = {
-            'filterGroups': [{
-                'filters': [{'propertyName': 'outbound_rsvp_to_event', 'operator': 'HAS_PROPERTY'}]
-            }],
-            'properties': [
-                'firstname', 'lastname', 'jobtitle', 'company',
-                'email', 'city', 'state', 'zip',
-                'lifecyclestage', 'call_completed',
-                'outbound_rsvp_to_event', 'attended_outbound_event',
-                'outbound_event_attendee_disqualified',
-                'wealth_segment', 'inferred_income', 'address',
-                'hs_linkedin_url', 'linkedin_personal_url', 'outbound_team___linkedin_url', 'pipl_linkedin',
-                'hs_v2_date_entered_current_stage',
-            ],
-            'limit': 200,
-            'sorts': [{'propertyName': 'outbound_rsvp_to_event', 'direction': 'DESCENDING'}],
-        }
-        if after:
-            payload['after'] = after
-        resp = requests.post(SEARCH_URL, headers=headers, json=payload, timeout=30)
-        resp.raise_for_status()
-        data = resp.json()
-        contacts.extend(data.get('results', []))
-        after = data.get('paging', {}).get('next', {}).get('after')
-        if not after:
-            break
-    return contacts
-
 
 # ─── SCORING ──────────────────────────────────────────────────────────────────
 
@@ -1004,35 +839,11 @@ def score_contact(p: dict) -> tuple:
     if 'invested' in flags or 'opportunity' in flags:
         return 5, flags
 
-    # ── HubSpot wealth segment ≥ $10M → auto-HIGH ─────────────────────────────
-    ws_low = _wealth_segment_low(p.get('wealth_segment') or '')
-    if ws_low and ws_low >= 10_000_000:
-        flags.append('hs_wealth_10m_plus')
-        return 5, flags
-
     # ── Hard disqualifiers: not interested or no show ─────────────────────────
     if 'not_interested' in flags:
         return 1, flags
     if 'no_show' in flags and any(t in combined for t in DOWNGRADE_TERMS):
         return 1, flags
-
-    # ── Real-estate ≥ $3M (PLUTO) → auto-HIGH ─────────────────────────────────
-    # Property ≥ $3M implies real owned wealth that overrides subjective DQs
-    # (wealth advisor, art world, etc.) — they have investable assets even if
-    # their day job suggests otherwise.
-    pluto_val = (p.get('_pluto_val') or '').strip()
-    if pluto_val:
-        _pluto_low = _parse_pluto_low(pluto_val)
-        if _pluto_low and _pluto_low >= 3_000_000:
-            flags.append('property_3m_plus')
-            return 5, flags
-
-    # ── Founder / startup with prior exit (LinkedIn) → auto-HIGH ──────────────
-    # Acquired / sold / IPO mentions in the LinkedIn snippet imply they cashed
-    # out a venture — strong wealth signal regardless of current title.
-    if (p.get('linkedin_has_exit') or '').lower() == 'true':
-        flags.append('founder_with_exit')
-        return 5, flags
 
     # ── Wealth advisors / financial advisors (refer clients, don't invest) ────
     # Exception: at target wealth-management firms (LPL, Raymond James, JPM, MS),
@@ -1148,74 +959,18 @@ def score_contact(p: dict) -> tuple:
             'general partner', 'president',
         ]) or bool(re.search(r'\bchief\b.+\bofficer\b', title)))
         if not (_fin_dom or _phys or _top_fin or _exec_title):
-            # Founder at a recognizable-scale company lifts above the
-            # conservative default. Tiered by LinkedIn employee count:
-            #   large/mid (≥1K)  → Medium-High (4)
-            #   small    (51–999) → Medium      (3)
-            #   tiny / unknown    → Low-Medium  (2) — stay conservative
-            _scale = classify_company_scale(company, p.get('linkedin_company_size', ''))
-            if _scale in ('large', 'mid'):
-                sc = 4
-                flags.append('founder_50plus')
-            elif _scale == 'small':
-                sc = 3
-                flags.append('founder_50plus')
-            else:
-                sc = min(sc, 2)
+            sc = min(sc, 2)
 
     # ── Title-only HIGH → cap at Medium-High without a firm-quality signal ──────
     # A strong title (MD, President, CEO) at an unknown firm doesn't reliably mean
     # investable wealth. HIGH requires title + at least one firm-quality corroboration:
     # finance-domain email, confirmed physician, or named top-tier finance company.
     if sc == 5 and 'invested' not in flags and 'opportunity' not in flags:
-        # Company scale via cascading classifier (Yahoo market cap → LinkedIn
-        # employee count → unknown). 'large' counts as firm-corroboration.
-        scale = classify_company_scale(company, p.get('linkedin_company_size', ''))
         _firm_signal = (email_domain(email) in FINANCE_DOMAINS
                         or is_physician(title, email, company)
-                        or any(fc in company for fc in FINANCE_COMPANIES)
-                        or scale in ('large', 'mid'))
-        # "Partner" is its own firm-signal only at large/mid firms — a Partner at
-        # a 5-person LLC isn't earning $1M+, but at any recognized large/mid firm
-        # the title implies carry/equity/profit-share at the $1M+ income tier.
-        if not _firm_signal and scale in ('large', 'mid'):
-            _t = title.strip()
-            if _t == 'partner' or _t.endswith(' partner'):
-                prefix = _t[:-len(' partner')].strip() if ' partner' in _t else ''
-                if prefix not in _PARTNER_EXCLUSIONS:
-                    _firm_signal = True
+                        or any(fc in company for fc in FINANCE_COMPANIES))
         if not _firm_signal:
             sc = 4
-
-    # ── LinkedIn-derived caps & floors ────────────────────────────────────────
-    # Board memberships: floor at Medium-High (4) — sitting on a board signals
-    # network depth and ownership-class wealth.
-    if (p.get('linkedin_has_board') or '').lower() == 'true' \
-            and 'invested' not in flags and 'opportunity' not in flags:
-        sc = max(sc, 4)
-        flags.append('board_member')
-
-    # Tenure floor: 10+ years in current role → at least Medium (3)
-    role_start = (p.get('linkedin_current_role_started') or '').strip()
-    if role_start and 'invested' not in flags and 'opportunity' not in flags:
-        try:
-            if date.today().year - int(role_start[:4]) >= 10:
-                sc = max(sc, 3)
-                flags.append('tenure_10plus')
-        except ValueError:
-            pass
-    # Age cap: under 30 (4-yr undergrad → graduated in last 8 years) → Low-Medium (2)
-    # Exception: finance-domain emails (gs.com, jpmorgan.com, etc.) are exempt —
-    # young finance employees still get the auto-HIGH treatment via firm signal.
-    grad_year = (p.get('linkedin_grad_year') or '').strip()
-    if grad_year and 'invested' not in flags and 'opportunity' not in flags \
-            and email_domain(email) not in FINANCE_DOMAINS:
-        try:
-            if int(grad_year) >= date.today().year - 8:
-                sc = min(sc, 2)
-                flags.append('under_30')
-        except ValueError:
-            pass
 
     # ── NW cap — applied to all except finance-domain and physician hits ───────
     # Finance domain (@gs.com etc.) and physicians are reliable HIGH signals
@@ -1232,95 +987,6 @@ def score_contact(p: dict) -> tuple:
             sc = min(sc, 4)   # straddles $1M — cap at Medium-High, not High
 
     return sc, flags
-
-
-def explain_score(p: dict, sc: int, flags: list) -> str:
-    """One-line reason explaining why this contact landed at `sc` rather
-    than an adjacent tier (e.g. why 5 not 4, why 4 not 3, why 2 not 3).
-    Avoids restating wealth segment / NW (shown in the adjacent cell).
-    Returns 4-12 words."""
-    title    = (p.get('jobtitle') or '').lower()
-    company  = (p.get('company')  or '').lower()
-    email    = (p.get('email')    or '').lower()
-    dom      = email_domain(email)
-    combined = title + ' ' + company
-
-    # Lifecycle / call signals (always win)
-    if 'invested' in flags:           return 'Already invested'
-    if 'opportunity' in flags:        return 'Warm pipeline — Opportunity stage'
-    if 'not_interested' in flags:     return 'Said not interested on prior call'
-    if 'property_3m_plus' in flags:   return 'Real estate ≥ $3M (PLUTO) — verified wealth'
-    if 'founder_with_exit' in flags:  return 'Founder with prior startup exit'
-    if 'target_wealth_firm' in flags: return 'Wealth advisor at target firm — channel partner'
-
-    # LinkedIn-derived caps / floors
-    if 'under_30' in flags:           return 'Under 30 — recent grad cap'
-    if 'board_member' in flags and sc == 4: return 'Board membership — ownership-class signal'
-    if 'tenure_10plus' in flags and sc == 3:
-        return '10+ year tenure floor'
-    if 'founder_50plus' in flags:     return 'Founder of 50+ employee company'
-
-    # Low tier (1-2) drivers
-    if sc <= 2:
-        if any(t in combined for t in WEALTH_ADVISOR_TERMS):
-            return "Wealth advisor — refers clients, doesn't invest"
-        if any(t in combined for t in ('art dealer', 'art advisor', 'art adviser', 'gallery')) or 'fine art' in company:
-            return "Art world — fractional doesn't fit mental model"
-        if any(t in combined for t in ('real estate agent', 'realtor', 're agent', 're broker')):
-            return 'Real estate agent — commission income'
-        if any(t in title for t in ('music producer', 'filmmaker', 'film-maker', 'screenwriter', 'cinematographer')):
-            return 'Music / film — cultural sector'
-        if any(t in combined for t in SERVICE_PROVIDER_TERMS):
-            return 'Time-for-money service provider'
-        if any(t in combined for t in CREATOR_TERMS):
-            return 'Content creator / influencer'
-        if 'no_show' in flags:
-            return 'No-show on prior event + downgrade signal'
-        if any(t in combined for t in DOWNGRADE_TERMS):
-            return 'Junior or downgrade-term title'
-        if any(t in title for t in ('founder', 'co-founder', 'cofounder')):
-            return 'Founder of unverified-scale business'
-        return 'Low-tier signals'
-
-    # HIGH (5) — explain what corroborated
-    if sc == 5:
-        if dom in FINANCE_DOMAINS:
-            return f'Finance domain {dom} — auto-HIGH'
-        if is_physician(title, email, company):
-            return 'Physician / MD — K-1 angle'
-        if any(fc in company for fc in FINANCE_COMPANIES):
-            return 'Senior role at top-tier finance firm'
-        scale = classify_company_scale(company, p.get('linkedin_company_size', ''))
-        _t = title.strip()
-        if (_t == 'partner' or _t.endswith(' partner')) and scale in ('large', 'mid'):
-            return f'Partner at {scale}-scale firm — $1M+ income proxy'
-        if scale in ('large', 'mid'):
-            return f'Senior role at {scale}-scale firm'
-        if has_high_title(title):
-            return 'Senior title with firm corroboration'
-        return 'Multiple HIGH signals'
-
-    # MEDIUM-HIGH (4)
-    if sc == 4:
-        if has_high_title(title):
-            return 'Senior title — no firm-quality signal, capped from 5'
-        if any(t in title for t in ('senior director', 'associate director')) or \
-           any(t in title for t in ('vp', 'vice president', 'svp', 'evp', 'avp')) or \
-           ('director' in title and 'art director' not in title):
-            return 'VP / Director-level title'
-        if any(t in company for t in ('real estate', 'realty', 'extell', 'related companies', 'tishman', 'sl green', 'brookfield')):
-            return 'Real-estate exec at major developer'
-        return 'Medium-High — NW cap or mid-tier title'
-
-    # MEDIUM (3) — defaults
-    if sc == 3:
-        if any(t in title for t in ('senior manager', 'lead', 'principal', 'head of')):
-            return 'Senior manager / lead role'
-        if any(t in title for t in ('attorney', 'lawyer', 'counsel')):
-            return 'Solo / small-firm attorney'
-        return 'Default mid-tier — no caps, no HIGH signals'
-
-    return 'Standard scoring path'
 
 
 # ─── DQ / QP TAG ──────────────────────────────────────────────────────────────
@@ -1350,17 +1016,7 @@ def _income_low(inc: str):
 
 
 def dq_qp_tag(p: dict) -> str:
-    """Returns 'QP', 'DQ', or 'UNCERTAIN' for a contact's properties dict.
-
-    QP triggers (any one is sufficient):
-      - Wealth-segment low end >= $1M (accredited territory)
-      - Inferred-income low end  >= $200K (accredited income)
-      - Email at a finance domain (FINANCE_DOMAINS)
-      - C-suite / Founder / Owner / President role at an identifiable company
-    DQ triggers:
-      - Junk first-name (email-as-name) OR no title/company/wealth/income at all
-    Otherwise: UNCERTAIN.
-    """
+    """Returns 'QP', 'DQ', or 'UNCERTAIN' for a contact's properties dict."""
     title   = (p.get('jobtitle') or '').lower()
     company = (p.get('company')  or '').lower()
     email   = (p.get('email')    or '').lower()
@@ -1405,6 +1061,78 @@ def dq_qp_tag_html(p: dict) -> str:
         f'letter-spacing:0.04em;color:{fg};background:{bg};'
         f'border:1px solid {fg}55;vertical-align:middle">{tag}</span>'
     )
+
+
+# ─── AVATAR (LinkedIn photo → Gravatar → initials cascade) ────────────────────
+
+# Deterministic palette — same name always gets the same color.
+_AVATAR_BG = ['#1a5fa8', '#1a7a45', '#8a6800', '#b85a00',
+              '#7a3aa8', '#0a8a8a', '#c04040', '#4a4a8a']
+
+def _initials(name: str) -> str:
+    parts = [p for p in (name or '').strip().split() if p]
+    if not parts:
+        return '?'
+    if len(parts) == 1:
+        return parts[0][0].upper()
+    return (parts[0][0] + parts[-1][0]).upper()
+
+
+def _initials_avatar_html(name: str) -> str:
+    initials = _initials(name)
+    bg = _AVATAR_BG[sum(ord(c) for c in (name or '?')) % len(_AVATAR_BG)]
+    return (
+        f'<span style="display:inline-flex;align-items:center;justify-content:center;'
+        f'width:30px;height:30px;border-radius:50%;background:{bg};color:#fff;'
+        f'font-size:0.72rem;font-weight:700;flex-shrink:0;letter-spacing:0.02em">'
+        f'{escape(initials)}</span>'
+    )
+
+
+def _gravatar_url(email: str, size: int = 60) -> str:
+    """Return Gravatar URL with d=404 so onerror fires when no image is registered."""
+    if not email or '@' not in email:
+        return ''
+    h = hashlib.md5(email.strip().lower().encode('utf-8')).hexdigest()
+    return f'https://www.gravatar.com/avatar/{h}?s={size}&d=404'
+
+
+def avatar_html(p: dict, name: str) -> str:
+    """30px circular avatar — LinkedIn photo → Gravatar → initials cascade.
+
+    The cascade is implemented client-side via the _avatarErr() JS helper:
+      1. <img src> set to linkedin_image_url (if available)
+      2. on error → switches to Gravatar (if email available)
+      3. on error → swaps to initials avatar
+    """
+    li_img = (p.get('linkedin_image_url') or '').strip()
+    if li_img and not li_img.startswith(('http://', 'https://')):
+        li_img = ''
+    grav = _gravatar_url(p.get('email') or '')
+    fallback_html = _initials_avatar_html(name)
+
+    style = ('width:30px;height:30px;border-radius:50%;object-fit:cover;'
+             'flex-shrink:0;border:1px solid #e1e6ee;background:#f0f1f5')
+
+    # Tier 1: have a LinkedIn photo URL — Gravatar is the next-step fallback
+    if li_img:
+        return (
+            f'<img src="{escape(li_img)}" alt="" '
+            f'data-fb="{escape(grav)}" '
+            f'data-fb-html="{escape(fallback_html)}" '
+            f'onerror="_avatarErr(this)" '
+            f'style="{style}">'
+        )
+    # Tier 2: no LinkedIn photo, but we have an email — try Gravatar directly
+    if grav:
+        return (
+            f'<img src="{escape(grav)}" alt="" '
+            f'data-fb-html="{escape(fallback_html)}" '
+            f'onerror="_avatarErr(this)" '
+            f'style="{style}">'
+        )
+    # Tier 3: no email either — straight to initials
+    return fallback_html
 
 
 def get_persona(p: dict) -> str:
@@ -1544,23 +1272,11 @@ def get_nw(p: dict) -> tuple:
         'cleary', 'paul weiss', 'cravath', 'debevoise', 'proskauer',
     ]):
         return '$3M–$10M', 'Partner at elite law firm'
-    # Plain "Partner" (equity partner / consulting partner / PE partner) →
-    # typically $1M+ annual income via carry, profit share, or equity stake.
-    # Excludes account/channel/operating/marketing/etc. partners — those are
-    # sales / biz-dev roles, not equity partnerships.
-    _t_clean = title.strip()
-    if (_t_clean == 'partner' or _t_clean.endswith(' partner')) and not _t_clean.endswith(' vice partner'):
-        prefix = _t_clean[:-len(' partner')].strip() if ' partner' in _t_clean else ''
-        if prefix not in _PARTNER_EXCLUSIONS:
-            return '$1M–$4M', 'Partner-level role — typically $1M+ annual income (carry / equity / profit share)'
 
-    _scale = classify_company_scale(company, p.get('linkedin_company_size', ''))
-    in_major_employer = _scale in ('large', 'mid')
-    # Tier 2: VP/Director/C-suite at major finance OR large public co → $2M–$6M
+    # Tier 2: VP/Director/C-suite at major finance → $2M–$6M
     if any(t in title for t in ['vp', 'vice president', 'director', 'svp', 'evp', 'cfo', 'cto', 'coo', 'cio', 'ceo', 'chief']) \
-            and (in_top_finance or in_major_employer):
-        which = 'top-tier finance firm' if in_top_finance else 'large company (≥$10B mcap or ≥10K employees)'
-        return '$2M–$6M', f'C-suite / VP at {which}'
+            and in_top_finance:
+        return '$2M–$6M', 'C-suite / VP at major finance firm'
     # C-suite titles (any company, any chief* title) → at least $1M–$4M
     # Exception: CEO / Chief Executive at a small/lifestyle or nonprofit org → conservative
     _is_ceo = any(t in title for t in ['ceo', 'chief executive'])
@@ -1581,13 +1297,6 @@ def get_nw(p: dict) -> tuple:
             return '$150K–$500K', 'Founder with no company listed'
         if is_small_biz(company):
             return '$150K–$500K', 'Founder of small / lifestyle business'
-        # If LinkedIn confirms >50 employees, founder NW lifts above the
-        # conservative default — running a real team implies real revenue.
-        _scale = classify_company_scale(company, p.get('linkedin_company_size', ''))
-        if _scale in ('large', 'mid'):
-            return '$1M–$4M', 'Founder of mid/large-scale company (LinkedIn ≥1K employees)'
-        if _scale == 'small':
-            return '$500K–$2M', 'Founder of 50+ employee company (LinkedIn)'
         return '$150K–$500K', 'Founder (unverified scale — assume conservative)'
 
     # Attorney / CPA (non-finance firm) → $500K–$2M (associate) or $1M–$4M (partner)
@@ -1711,7 +1420,7 @@ def pluto_nw_bump(current_nw: str, pluto_val: str) -> tuple | None:
 
 # ─── EVENT STATS ──────────────────────────────────────────────────────────────
 
-def compute_event_stats(contacts: list, event_date: str) -> dict:
+def compute_event_stats(contacts: list) -> dict:
     """Aggregate per-event metrics from a list of contacts."""
     attended = 0
     attended_score = 0
@@ -1751,8 +1460,9 @@ def compute_event_stats(contacts: list, event_date: str) -> dict:
             account_created += 1
             tier_accts[sc] = tier_accts.get(sc, 0) + 1
 
-        deal_close = (p.get('recent_deal_close_date') or '')[:10]
-        if deal_close >= event_date:
+        # Capital (only 2026+ conversions)
+        acct_year = (p.get('createdate') or '')[:4]
+        if acct_year >= '2026':
             try:
                 amount = float(p.get('totalamountpurchased') or 0)
             except (ValueError, TypeError):
@@ -1943,7 +1653,7 @@ def infer_nyc_neighborhood(address: str, city: str) -> str:
     return 'New York, NY'
 
 
-def render_detail_row(p: dict, per: str, nw: str, sc: int = 0, flags: list = None) -> str:
+def render_detail_row(p: dict, per: str, nw: str) -> str:
     """Render the hidden dropdown detail row (today + future events only)."""
     hs_wealth    = (p.get('wealth_segment')  or '').strip() or '—'
     inferred_inc = (p.get('inferred_income') or '').strip() or '—'
@@ -2006,17 +1716,12 @@ def render_detail_row(p: dict, per: str, nw: str, sc: int = 0, flags: list = Non
 
     return (
         f'<tr class="detail-row" style="display:none">'
-        f'<td colspan="8" style="padding:0;border-bottom:1px solid #eef1f7;width:100%">'
+        f'<td colspan="9" style="padding:0;border-bottom:1px solid #eef1f7;width:100%">'
         f'<div class="detail-inner">'
         f'<div class="detail-cell">'
         f'<p class="detail-cell-label">Persona</p>'
         f'<span class="persona-detail-pill">{escape(per)}</span>'
-        + (
-            f'<p class="detail-cell-label" style="margin-top:10px">Score Logic</p>'
-            f'<div style="font-size:0.78rem;color:#3a5070;line-height:1.4">{escape(explain_score(p, sc, flags or []))}</div>'
-            if sc else ''
-        )
-        + f'</div>'
+        f'</div>'
         f'<div class="detail-cell">'
         f'<p class="detail-cell-label">Wealth Segment</p>'
         f'<div class="seg-stack">'
@@ -2069,6 +1774,8 @@ def render_row(idx: int, c: dict, show_dropdown: bool = False, show_unk: bool = 
     disqualified   = (p.get('outbound_event_attendee_disqualified') or '').strip().lower() == 'disqualified'
     uninvite_chk   = 'checked' if disqualified else ''
     uninvite_class = ' uninvited' if disqualified else ''
+    send_conf      = (p.get('outbound_event_send_confirmation') or '').strip().lower() == 'yes'
+    send_conf_chk  = 'checked' if send_conf else ''
 
     invested_badge = ('<span style="display:inline-block;background:#eaf7f0;color:#1a7a45;'
                       'border:1px solid #1a7a4555;border-radius:10px;font-size:0.62rem;'
@@ -2111,13 +1818,18 @@ def render_row(idx: int, c: dict, show_dropdown: bool = False, show_unk: bool = 
     nw_cell = f'<strong style="font-size:0.85rem">{escape(nw)}</strong>'
 
     name_cell = (
+        f'<div style="display:flex;align-items:center;gap:10px">'
+        f'{avatar_html(p, name)}'
+        f'<div style="min-width:0">'
         f'{opp_star}<strong>{escape(name)}</strong>{invested_badge}{unknown_badge}'
         f'{loc_html}{ns_html}'
+        f'</div>'
+        f'</div>'
     )
 
     chevron_td = '<td style="text-align:center;padding:11px 4px"><span class="expand-chevron">▼</span></td>' if show_dropdown else ''
     tr_attrs   = (f'data-contact="{escape(cid)}" style="cursor:pointer" ' if show_dropdown else '')
-    detail_row = render_detail_row(p, per, nw, sc, flags) if show_dropdown else ''
+    detail_row = render_detail_row(p, per, nw) if show_dropdown else ''
 
     return (
         f'<tr data-id="{escape(cid)}" data-auto="{sc}" '
@@ -2128,11 +1840,11 @@ def render_row(idx: int, c: dict, show_dropdown: bool = False, show_unk: bool = 
         f'<td style="color:#aabcd4;text-align:center">{idx}</td>'
         f'<td>{name_cell}</td>'
         f'<td>{tc_html}</td>'
-        f'<td style="text-align:center" class="score-cell">{score_badge_html(sc)}</td>'
-        + (f'<td style="text-align:center" class="dq-qp-cell">{dq_qp_tag_html(p)}</td>' if show_dropdown else '')
-        + f'<td style="text-align:center;white-space:nowrap">'
+        f'<td style="text-align:center" class="score-cell">{score_badge_html(sc)}{dq_qp_tag_html(p) if show_dropdown else ""}</td>'
+        f'<td style="text-align:center">'
         f'<a href="{li_url(name, company, p)}" target="_blank" '
-        f'style="color:#0a66c2;font-weight:700;text-decoration:none;font-size:0.8rem;margin-right:8px">LI↗</a>'
+        f'style="color:#0a66c2;font-weight:700;text-decoration:none;font-size:0.8rem">LI↗</a></td>'
+        f'<td style="text-align:center">'
         f'<a href="{hs_url(cid)}" target="_blank" '
         f'style="color:#ff7a59;font-weight:700;text-decoration:none;font-size:0.8rem">HS↗</a></td>'
         f'<td style="text-align:center">'
@@ -2142,6 +1854,10 @@ def render_row(idx: int, c: dict, show_dropdown: bool = False, show_unk: bool = 
         f'<input type="checkbox" class="attended-chk" {attended_chk} '
         f'onchange="toggleAttended(this)" '
         f'style="width:16px;height:16px;cursor:pointer;accent-color:#1a7a45"></td>'
+        f'<td style="text-align:center">'
+        f'<input type="checkbox" class="sendconf-chk" {send_conf_chk} '
+        f'onchange="toggleSendConfirmation(this)" '
+        f'style="width:16px;height:16px;cursor:pointer;accent-color:#1a5fa8" title="Send Confirmation"></td>'
         f'</tr>\n'
         f'{detail_row}'
     )
@@ -2200,6 +1916,7 @@ def render_panel(date_str: str, contacts: list, tab_id: str, active: bool, past:
     )
     attended_count  = sum(1 for c in contacts if (c['properties'].get('attended_outbound_event') or '').strip().lower() == 'yes')
     uninvite_count  = sum(1 for c in contacts if (c['properties'].get('outbound_event_attendee_disqualified') or '').strip().lower() == 'disqualified')
+    send_conf_count = sum(1 for c in contacts if (c['properties'].get('outbound_event_send_confirmation') or '').strip().lower() == 'yes')
     attended_score_html = (
         f'<span style="font-size:0.78rem;color:#1a7a45;font-weight:700" '
         f'id="attended-score-{tab_id}">Attended score: {attended_sc}</span>'
@@ -2232,7 +1949,8 @@ def render_panel(date_str: str, contacts: list, tab_id: str, active: bool, past:
         <th>Name</th>
         <th>Title / Company</th>
         <th>Likelihood</th>
-        <th>Links</th>
+        <th>LinkedIn</th>
+        <th>HubSpot</th>
       </tr></thead>
       <tbody id="tbody-{tab_id}"></tbody>
     </table>
@@ -2281,10 +1999,11 @@ def render_panel(date_str: str, contacts: list, tab_id: str, active: bool, past:
         <th>Name</th>
         <th>Title / Company</th>
         <th>Likelihood <span style="font-size:0.6rem;opacity:0.6">(click to override)</span></th>
-        <th>Disqualified?</th>
-        <th>Links</th>
+        <th>LinkedIn</th>
+        <th>HubSpot</th>
         <th>Uninvite<br><span id="uninvite-count-{tab_id}" style="font-size:0.65rem;color:#c04040;font-weight:400">{uninvite_count if uninvite_count else ''}</span></th>
         <th>Attended<br><span id="attended-count-{tab_id}" style="font-size:0.65rem;color:#1a7a45;font-weight:400">{attended_count if attended_count else ''}</span></th>
+        <th>Send Confirmation?<br><span id="sendconf-count-{tab_id}" style="font-size:0.65rem;color:#1a5fa8;font-weight:400">{send_conf_count if send_conf_count else ''}</span></th>
       </tr></thead>
       <tbody>{rows_html}</tbody>
     </table>
@@ -2522,10 +2241,9 @@ header{{background:#1b3c6e;padding:16px 28px;position:sticky;top:0;z-index:100;
     </div>
   </div>
   <div class="page-tabs">
-    <a href="index.html"    class="page-tab active-tab">RSVP Dashboard</a>
-    <a href="events.html"   class="page-tab">Event Dashboard</a>
-    <a href="contacts.html" class="page-tab">Contacts</a>
-    <a href="scoring.html"  class="page-tab">Scoring Logic</a>
+    <a href="index.html"   class="page-tab active-tab">RSVP Dashboard</a>
+    <a href="events.html"  class="page-tab">Event Dashboard</a>
+    <a href="scoring.html" class="page-tab">Scoring Logic</a>
   </div>
 </header>
 
@@ -2572,7 +2290,9 @@ function _flushUninvitesAndRefresh(tok, btn) {{
   var state = {{}};
   for (var i = 0; i < localStorage.length; i++) {{
     var k = localStorage.key(i);
-    if (k && k.startsWith('uninvite_')) state[k] = localStorage.getItem(k);
+    if (k && (k.startsWith('uninvite_') || k.startsWith('sendconf_'))) {{
+      state[k] = localStorage.getItem(k);
+    }}
   }}
   var gistPromise = Object.keys(state).length
     ? fetch('https://api.github.com/gists/{SHARED_GIST_ID}', {{
@@ -2630,13 +2350,15 @@ function _patchHubSpot(cid, properties) {{
   // HubSpot private app tokens don't support CORS — browser fetch will be blocked.
   // Uninvites are synced via Gist → Python daily run instead (_syncUninvitesToGist).
 }}
-function _syncUninvitesToGist() {{
+function _syncSharedStateToGist() {{
   var tok = localStorage.getItem('gh_pat');
   if (!tok) return;
   var state = {{}};
   for (var i = 0; i < localStorage.length; i++) {{
     var k = localStorage.key(i);
-    if (k && k.startsWith('uninvite_')) state[k] = localStorage.getItem(k);
+    if (k && (k.startsWith('uninvite_') || k.startsWith('sendconf_'))) {{
+      state[k] = localStorage.getItem(k);
+    }}
   }}
   fetch('https://api.github.com/gists/{SHARED_GIST_ID}', {{
     method: 'PATCH',
@@ -2650,6 +2372,8 @@ function _syncUninvitesToGist() {{
     if (!r.ok) {{ console.error('Gist write returned', r.status); }}
   }}).catch(function(e) {{ console.error('Gist write failed:', e); }});
 }}
+// Back-compat alias — older inline callers may still reference this name.
+function _syncUninvitesToGist() {{ _syncSharedStateToGist(); }}
 function initSharedState(cb) {{
   if (cb) cb();
 }}
@@ -2657,6 +2381,17 @@ function initSharedState(cb) {{
 // ── HTML escaping helper ──────────────────────────────────────────────────────
 function escHtml(s) {{
   return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}}
+
+// ── Avatar fallback cascade: LinkedIn → Gravatar → initials ──────────────────
+function _avatarErr(img) {{
+  var next = img.getAttribute('data-fb');
+  if (next) {{
+    img.removeAttribute('data-fb');  // prevent infinite loop
+    img.src = next;
+  }} else {{
+    img.outerHTML = img.getAttribute('data-fb-html') || '';
+  }}
 }}
 
 // ── Lazy-load past event rows ─────────────────────────────────────────────────
@@ -2677,14 +2412,15 @@ function renderPastTab(tabId) {{
     var badge = '<span style="background:' + m.bg + ';color:' + m.fg + ';border:1px solid ' + m.fg + '55;' +
                 'padding:4px 11px;border-radius:12px;font-size:0.78rem;font-weight:700">' +
                 c.score + ' \u2014 ' + m.label + '</span>';
-    var liLink = c.li ? '<a href="' + escHtml(c.li) + '" target="_blank" rel="noopener" style="color:#0a66c2;font-weight:700;text-decoration:none;font-size:0.8rem;margin-right:8px">LI\u2197</a>' : '';
-    var hsLink = '<a href="' + escHtml(c.hs) + '" target="_blank" rel="noopener" style="color:#ff7a59;font-weight:700;text-decoration:none;font-size:0.8rem">HS\u2197</a>';
+    var liCell = c.li ? '<a href="' + escHtml(c.li) + '" target="_blank" rel="noopener" style="color:#0077b5;font-size:0.78rem">LinkedIn</a>' : '\u2014';
+    var hsCell = '<a href="' + escHtml(c.hs) + '" target="_blank" rel="noopener" style="font-size:0.78rem;color:#c9a84c">HS</a>';
     html += '<tr>' +
       '<td style="color:#9aaac0;font-size:0.78rem">' + (i + 1) + '</td>' +
       '<td style="font-weight:600">' + escHtml(c.name) + '</td>' +
       '<td>' + titleHtml + '</td>' +
       '<td>' + badge + '</td>' +
-      '<td style="text-align:center;white-space:nowrap">' + liLink + hsLink + '</td>' +
+      '<td>' + liCell + '</td>' +
+      '<td>' + hsCell + '</td>' +
     '</tr>';
   }}
   tbody.innerHTML = html;
@@ -2900,6 +2636,20 @@ function toggleAttended(chk) {{
   updateResetBtn(tid);
 }}
 
+function toggleSendConfirmation(chk) {{
+  var row = chk.closest('tr');
+  var cid = row.dataset.id;
+  var tid = row.closest('.tab-panel').id.replace('tab-','');
+  if (chk.checked) {{
+    saveSharedState('sendconf_' + cid, '1');
+  }} else {{
+    removeSharedState('sendconf_' + cid);
+  }}
+  _syncSharedStateToGist();
+  refreshHeader(tid);
+  updateResetBtn(tid);
+}}
+
 function refreshHeader(tabId) {{
   var el = document.getElementById('attended-score-' + tabId);
   if (!el) return;
@@ -2917,6 +2667,10 @@ function refreshHeader(tabId) {{
   var uninvCount = document.querySelectorAll('#tbl-' + tabId + ' .uninvite-chk:checked').length;
   var uninvEl = document.getElementById('uninvite-count-' + tabId);
   if (uninvEl) uninvEl.textContent = uninvCount || '';
+
+  var sendConfCount = document.querySelectorAll('#tbl-' + tabId + ' .sendconf-chk:checked').length;
+  var sendConfEl = document.getElementById('sendconf-count-' + tabId);
+  if (sendConfEl) sendConfEl.textContent = sendConfCount || '';
 
   var dayScore = 0;
   document.querySelectorAll('#tbl-' + tabId + ' tbody tr').forEach(function(row) {{
@@ -2943,6 +2697,10 @@ function applyStoredOverrides(tabId) {{
       var achk = row.querySelector('.attended-chk');
       if (achk) achk.checked = true;
     }}
+    if (getSharedState('sendconf_' + cid)) {{
+      var schk = row.querySelector('.sendconf-chk');
+      if (schk) schk.checked = true;
+    }}
   }});
   refreshHeader(tabId);
 }}
@@ -2952,7 +2710,8 @@ function updateResetBtn(tabId) {{
   var hasAny = Array.from(rows).some(function(r) {{
     return getSharedState('override_'  + r.dataset.id) ||
            getSharedState('uninvite_'  + r.dataset.id) ||
-           getSharedState('attended_'  + r.dataset.id);
+           getSharedState('attended_'  + r.dataset.id) ||
+           getSharedState('sendconf_'  + r.dataset.id);
   }});
   var btn = document.querySelector('.reset-overrides-btn[data-tab="' + tabId + '"]');
   if (btn) btn.style.display = hasAny ? 'block' : 'none';
@@ -2966,16 +2725,21 @@ function resetOverrides(tabId) {{
     removeSharedState('override_' + cid);
     var wasUninvited = !!getSharedState('uninvite_' + cid);
     var wasAttended  = !!getSharedState('attended_'  + cid);
+    var wasSendConf  = !!getSharedState('sendconf_'  + cid);
     removeSharedState('uninvite_' + cid);
     removeSharedState('attended_' + cid);
+    removeSharedState('sendconf_' + cid);
     applyOverride(cid, auto, tabId);
     row.classList.remove('uninvited');
     var uchk = row.querySelector('.uninvite-chk');
     if (uchk) uchk.checked = false;
     var achk = row.querySelector('.attended-chk');
     if (achk) achk.checked = false;
+    var schk = row.querySelector('.sendconf-chk');
+    if (schk) schk.checked = false;
     if (wasUninvited) _patchHubSpot(cid, {{outbound_event_attendee_disqualified: ''}});
     if (wasAttended)  _patchHubSpot(cid, {{attended_outbound_event: ''}});
+    if (wasSendConf)  _syncSharedStateToGist();
   }});
   refreshHeader(tabId);
   updateResetBtn(tabId);
@@ -3118,7 +2882,7 @@ def build_events_html(by_date: dict, generated_at: str) -> str:
 
     events = []
     for d in sorted(by_date.keys(), reverse=True):
-        s = compute_event_stats(by_date[d], d)
+        s = compute_event_stats(by_date[d])
         events.append({
             'date':           d,
             'rsvps':          s['rsvps'],
@@ -3273,10 +3037,9 @@ def build_events_html(by_date: dict, generated_at: str) -> str:
     </div>
   </div>
   <div class="page-tabs">
-    <a href="index.html"    class="page-tab">RSVP Dashboard</a>
-    <a href="events.html"   class="page-tab active-tab">Event Dashboard</a>
-    <a href="contacts.html" class="page-tab">Contacts</a>
-    <a href="scoring.html"  class="page-tab">Scoring Logic</a>
+    <a href="index.html"   class="page-tab">RSVP Dashboard</a>
+    <a href="events.html"  class="page-tab active-tab">Event Dashboard</a>
+    <a href="scoring.html" class="page-tab">Scoring Logic</a>
   </div>
 </header>
 
@@ -3384,6 +3147,7 @@ def build_events_html(by_date: dict, generated_at: str) -> str:
       <tr>
         <th style="text-align:left">Event</th>
         <th class="group-attended">Attended / RSVPs</th>
+        <th class="group-score">Tiers</th>
         <th class="group-email">Open %</th>
         <th class="group-call">Calls Booked</th>
         <th class="group-account">Accts</th>
@@ -3529,10 +3293,16 @@ function renderEventTable() {{
     var staleCell= stale > 2
       ? '<span class="stale-warn">' + stale + '</span>'
       : '<span class="stale-ok">' + stale + '</span>';
+    var tiersCell= '<span class="tier-badges">' +
+      '<span class="tier-mini t5"><span class="dot">5</span>' + t5 + '</span>' +
+      '<span class="tier-mini t4"><span class="dot">4</span>' + t4 + '</span>' +
+      '<span class="tier-mini t3"><span class="dot">3</span>' + t3 + '</span>' +
+      '</span>';
     var row =
       '<tr>' +
       '<td class="date-cell">' + formatDateShort(e.date) + '</td>' +
       '<td>' + e.attended + ' / ' + e.rsvps + '</td>' +
+      '<td>' + tiersCell + '</td>' +
       '<td>' + openCell + '</td>' +
       '<td>' + (e.calls_booked || 0) + '</td>' +
       '<td>' + acctCell + '</td>' +
@@ -3653,389 +3423,6 @@ render();
 </body>
 </html>'''
 
-# ─── CONTACTS PAGE ────────────────────────────────────────────────────────────
-
-def build_contacts_html(contacts: list, generated_at: str) -> str:
-    """Flat lifetime-roster page — one row per contact, all cached + computed
-    fields, sortable / filterable. Replaces the per-event past-tab flow."""
-
-    today_str = date.today().isoformat()
-
-    def _tenure_years(role_start: str) -> str:
-        if not role_start:
-            return ''
-        try:
-            yr = int(role_start[:4])
-            n = date.today().year - yr
-            return f'{n} yr' if n else ''
-        except Exception:
-            return ''
-
-    # Build rows: compute everything per-contact
-    rows = []
-    for c in contacts:
-        p = c['properties']
-        cid = c['id']
-        fname = p.get('firstname') or ''
-        lname = p.get('lastname')  or ''
-        name  = f'{fname} {lname}'.strip() or '(no name)'
-        title = p.get('jobtitle') or ''
-        company = p.get('company') or ''
-        sc, flags = score_contact(p)
-        per       = get_persona(p)
-        nw, _     = get_nw(p)
-        pluto_bump = pluto_nw_bump(nw, p.get('_pluto_val') or '')
-        if pluto_bump:
-            nw, _ = pluto_bump
-        why = explain_score(p, sc, flags)
-        invested    = 'invested' in flags          # actual customer / order completed
-        opportunity = 'opportunity' in flags       # warm pipeline (no INV pill, just border + sort)
-        scale = classify_company_scale(company, p.get('linkedin_company_size', ''))
-        grad  = (p.get('linkedin_grad_year') or '').strip()
-        tenure = _tenure_years(p.get('linkedin_current_role_started') or '')
-        exit_flag  = (p.get('linkedin_has_exit')  or '').lower() == 'true'
-        board_flag = (p.get('linkedin_has_board') or '').lower() == 'true'
-        pluto_val  = (p.get('_pluto_val') or '').strip()
-        last_event = (p.get('outbound_rsvp_to_event') or '')[:10]
-        attended = (p.get('attended_outbound_event') or '').strip().lower() == 'yes'
-        disqualified = (p.get('outbound_event_attendee_disqualified') or '').strip().lower() == 'disqualified'
-        rows.append({
-            'id': cid, 'name': name, 'title': title, 'company': company,
-            'sc': sc, 'why': why, 'persona': per, 'nw': nw,
-            'hs_wealth': (p.get('wealth_segment')  or '').strip() or '—',
-            'hs_income': (p.get('inferred_income') or '').strip() or '—',
-            'grad': grad or '—',
-            'tenure': tenure or '—',
-            'scale': scale,
-            'exit': exit_flag, 'board': board_flag,
-            'pluto': pluto_val or '—',
-            'last_event': last_event or '—',
-            'attended': attended, 'dq': disqualified,
-            'invested': invested,
-            'opportunity': opportunity,
-        })
-
-    # Sort: invested → score desc → last_event desc
-    rows.sort(key=lambda r: (
-        0 if r['invested'] else 1,
-        -r['sc'],
-        '' if r['last_event'] == '—' else r['last_event'],
-    ), reverse=False)
-    # Note: last_event is descending — simulate by negating via tuple inversion
-    rows.sort(key=lambda r: (
-        0 if r['invested'] else 1,
-        -r['sc'],
-        '0000-00-00' if r['last_event'] == '—' else r['last_event'],
-    ))
-    # We want last_event DESC within tier. Stable-sort then reverse last-event manually:
-    rows.sort(key=lambda r: (
-        0 if r['invested'] else 1,
-        -r['sc'],
-    ))
-    # Within each (invested, sc) bucket the order is whatever above gave us.
-    # For real DESC by last_event within bucket, sort once with composite key.
-    rows.sort(key=lambda r: (
-        0 if r['invested'] else 1,
-        -r['sc'],
-        # negative-style: for desc sort on string, use a transform
-        # python's sorted is stable, so doing date sort separately works — but cleanest:
-    ))
-    # Cleanest: explicit composite sort with a string-inverted date proxy
-    def _date_sort_key(d):
-        # Higher dates → smaller string (so ascending order = desc by date)
-        if d == '—': return 'ZZZZZZZZZ'
-        return ''.join(chr(255 - ord(ch)) for ch in d)
-    rows.sort(key=lambda r: (
-        0 if r['invested'] else (1 if r['opportunity'] else 2),
-        -r['sc'],
-        _date_sort_key(r['last_event']),
-    ))
-
-    # Stats tiles
-    total = len(rows)
-    invested_n = sum(1 for r in rows if r['invested'])
-    high_n     = sum(1 for r in rows if r['sc'] == 5)
-    dq_n       = sum(1 for r in rows if r['dq'])
-    attended_n = sum(1 for r in rows if r['attended'])
-
-    # Persona dropdown options (unique non-blank)
-    personas_seen = sorted({r['persona'] for r in rows if r['persona'] and r['persona'] != 'Unknown'})
-
-    # Build tbody
-    tbody_rows = []
-    for r in rows:
-        sc = r['sc']
-        score_color_fg, score_color_bg = SCORE_COLORS[sc]
-        score_label = SCORE_LABELS[sc]
-        score_cell = (
-            f'<span class="score-pill" style="background:{score_color_bg};color:{score_color_fg};'
-            f'border:1px solid {score_color_fg}55;padding:2px 8px;border-radius:10px;'
-            f'font-size:0.72rem;font-weight:700">{sc} · {score_label}</span>'
-        )
-        invested_badge = (
-            '<span style="background:#eaf7f0;color:#1a7a45;border:1px solid #1a7a4555;'
-            'border-radius:10px;font-size:0.6rem;font-weight:700;padding:1px 6px;'
-            'letter-spacing:0.04em;margin-left:5px">INV</span>' if r['invested'] else ''
-        )
-        hs_link = (
-            f' <a href="{hs_url(r["id"])}" target="_blank" rel="noopener" '
-            f'style="color:#ff7a59;font-weight:700;text-decoration:none;font-size:0.78rem">↗</a>'
-        )
-        title_co = ''
-        if r['title']:   title_co += f'<div>{escape(r["title"])}</div>'
-        if r['company']: title_co += f'<div style="color:#7a94b8;font-size:0.78rem">{escape(r["company"])}</div>'
-        if not title_co: title_co = '<span style="color:#c0ccd8">—</span>'
-
-        scale_pill = ''
-        if r['scale'] == 'large':  scale_pill = '<span style="background:#eaf0fb;color:#1a3b7a;padding:1px 7px;border-radius:9px;font-size:0.66rem;font-weight:700">LARGE</span>'
-        elif r['scale'] == 'mid':  scale_pill = '<span style="background:#eaf7f0;color:#1a7a45;padding:1px 7px;border-radius:9px;font-size:0.66rem;font-weight:700">MID</span>'
-        elif r['scale'] == 'small':scale_pill = '<span style="background:#faf3e0;color:#8a6800;padding:1px 7px;border-radius:9px;font-size:0.66rem;font-weight:700">SMALL</span>'
-        elif r['scale'] == 'tiny': scale_pill = '<span style="background:#fdecec;color:#a83030;padding:1px 7px;border-radius:9px;font-size:0.66rem;font-weight:700">TINY</span>'
-        else:                      scale_pill = '<span style="color:#c0ccd8">—</span>'
-
-        exit_cell  = '<span style="color:#1a7a45;font-weight:700">✓</span>' if r['exit']  else '<span style="color:#c0ccd8">?</span>'
-        board_cell = '<span style="color:#1a7a45;font-weight:700">✓</span>' if r['board'] else '<span style="color:#c0ccd8">?</span>'
-        att_cell   = '<span style="color:#1a7a45;font-weight:700">✓</span>' if r['attended'] else '<span style="color:#c0ccd8">—</span>'
-        dq_cell    = '<span style="color:#a83030;font-weight:700">✓</span>' if r['dq']      else '<span style="color:#c0ccd8">—</span>'
-
-        tbody_rows.append(
-            f'<tr data-invested="{1 if r["invested"] else 0}" data-score="{sc}" '
-            f'data-persona="{escape(r["persona"])}" data-scale="{escape(r["scale"])}" '
-            f'data-exit="{"1" if r["exit"] else "0"}" data-board="{"1" if r["board"] else "0"}" '
-            f'data-attended="{"1" if r["attended"] else "0"}" data-dq="{"1" if r["dq"] else "0"}" '
-            f'data-event="{escape(r["last_event"])}">'
-            f'<td><strong>{escape(r["name"])}</strong>{invested_badge}{hs_link}</td>'
-            f'<td>{title_co}</td>'
-            f'<td style="text-align:center">{score_cell}</td>'
-            f'<td style="font-size:0.78rem;color:#5a7090;max-width:240px">{escape(r["why"])}</td>'
-            f'<td style="font-size:0.78rem">{escape(r["persona"]) if r["persona"]!="Unknown" else "—"}</td>'
-            f'<td style="font-size:0.78rem">{escape(r["nw"])}</td>'
-            f'<td style="font-size:0.78rem;color:#5a7090">{escape(r["hs_wealth"])}</td>'
-            f'<td style="font-size:0.78rem;color:#5a7090">{escape(r["hs_income"])}</td>'
-            f'<td style="text-align:center;font-size:0.78rem">{escape(r["grad"])}</td>'
-            f'<td style="text-align:center;font-size:0.78rem">{escape(r["tenure"])}</td>'
-            f'<td style="text-align:center">{scale_pill}</td>'
-            f'<td style="text-align:center">{exit_cell}</td>'
-            f'<td style="text-align:center">{board_cell}</td>'
-            f'<td style="font-size:0.78rem;color:#5a7090">{escape(r["pluto"])}</td>'
-            f'<td style="text-align:center;font-size:0.78rem;font-variant-numeric:tabular-nums">{escape(r["last_event"])}</td>'
-            f'<td style="text-align:center">{att_cell}</td>'
-            f'<td style="text-align:center">{dq_cell}</td>'
-            f'</tr>'
-        )
-
-    tbody_html = '\n'.join(tbody_rows)
-
-    persona_opts = '<option value="">All</option>' + ''.join(
-        f'<option value="{escape(p_)}">{escape(p_)}</option>' for p_ in personas_seen
-    )
-
-    return '''<!DOCTYPE html>
-<html lang="en"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Masterworks — All Contacts</title>
-<style>
-  * { box-sizing:border-box; margin:0; padding:0; }
-  body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-         background:#f4f6fa; color:#2a3a52; min-height:100vh; }
-  header { background:linear-gradient(135deg,#1b3c6e 0%,#2a5298 100%);
-           padding:18px 32px; color:#fff; }
-  .header-row { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; }
-  .brand { font-size:0.7rem; letter-spacing:0.18em; text-transform:uppercase; opacity:0.55; margin-bottom:2px; }
-  .title { font-size:1.35rem; font-weight:700; letter-spacing:0.01em; }
-  .meta  { font-size:0.65rem; color:rgba(255,255,255,0.4); margin-top:2px; }
-  .page-tabs { display:flex; margin-top:6px; border-top:1px solid rgba(255,255,255,0.1); }
-  .page-tab { padding:10px 22px; font-size:0.7rem; letter-spacing:0.09em; text-transform:uppercase;
-              text-decoration:none; color:rgba(255,255,255,0.42); border-bottom:2px solid transparent;
-              transition:all 0.15s; }
-  .page-tab:hover { color:rgba(255,255,255,0.8); border-bottom-color:rgba(255,255,255,0.25); }
-  .page-tab.active-tab { color:#fff; border-bottom-color:#c9a84c; font-weight:700; }
-  .stats { display:grid; grid-template-columns:repeat(5,1fr); gap:0;
-           background:#fff; border-bottom:1px solid #e0e6ee; }
-  .stat-tile { padding:14px 24px; text-align:center; border-right:1px solid #eef1f7; }
-  .stat-tile:last-child { border-right:none; }
-  .stat-value { font-size:1.45rem; font-weight:700; color:#1b3c6e; line-height:1; }
-  .stat-label { font-size:0.62rem; color:#7a94b8; text-transform:uppercase; letter-spacing:0.13em; margin-top:4px; }
-  .controls { padding:12px 24px; background:#eaf0f9; border-bottom:1px solid #c6d4e8;
-              display:flex; gap:8px; flex-wrap:wrap; align-items:center; font-size:0.78rem; color:#3a4e68; }
-  .controls input, .controls select {
-    padding:6px 10px; border:1px solid #c6d4e8; border-radius:4px;
-    background:#fff; color:#1b3c6e; font-family:inherit; font-size:0.78rem; outline:none; }
-  .controls input:focus, .controls select:focus { border-color:#1b3c6e; box-shadow:0 0 0 2px rgba(27,60,110,0.15); }
-  .controls button { background:#1b3c6e; color:#fff; border:none; border-radius:4px;
-    padding:7px 13px; font-family:inherit; font-size:0.74rem; cursor:pointer; }
-  .controls button:hover { background:#2a5298; }
-  .vcount { margin-left:auto; font-size:0.72rem; color:#7a94b8; }
-  .table-wrap { padding:14px 24px 60px; overflow-x:auto; }
-  table.contacts { width:100%; border-collapse:separate; border-spacing:0; background:#fff;
-                   border-radius:6px; box-shadow:0 1px 4px rgba(27,60,110,0.08); overflow:hidden; }
-  thead.sticky { position:sticky; top:0; z-index:5; }
-  thead th { background:#1b3c6e; color:#e8f0fc; font-size:0.66rem; text-transform:uppercase;
-             letter-spacing:0.08em; font-weight:700; padding:9px 10px; text-align:left;
-             cursor:pointer; user-select:none; white-space:nowrap; border-bottom:2px solid #142d54; }
-  thead th:hover { background:#22508a; }
-  thead th.sort-asc::after  { content:" ▲"; opacity:0.85; font-size:0.65rem; }
-  thead th.sort-desc::after { content:" ▼"; opacity:0.85; font-size:0.65rem; }
-  tbody tr { border-bottom:1px solid #eef1f7; transition:background 0.1s; }
-  tbody tr:nth-child(even) { background:#fafbfd; }
-  tbody tr:hover { background:#eef4fb; }
-  tbody tr.row-hidden { display:none; }
-  tbody tr[data-invested="1"] td:first-child { border-left:3px solid #1a7a45; }
-  td { padding:9px 10px; font-size:0.82rem; color:#3a4e68; vertical-align:top; }
-  td strong { color:#1b3c6e; }
-  footer { padding:18px; text-align:center; font-size:0.66rem; color:#6a90be;
-           letter-spacing:0.1em; text-transform:uppercase; background:#1b3c6e; color:#9bb4d4; }
-</style></head><body>
-<header>
-  <div class="header-row">
-    <div>
-      <div class="brand">Masterworks · Outbound</div>
-      <div class="title">All Contacts</div>
-      <div class="meta">''' + escape(generated_at) + ''' · ''' + str(total) + ''' contacts (lifetime)</div>
-    </div>
-  </div>
-  <div class="page-tabs">
-    <a href="index.html"    class="page-tab">RSVP Dashboard</a>
-    <a href="events.html"   class="page-tab">Event Dashboard</a>
-    <a href="contacts.html" class="page-tab active-tab">Contacts</a>
-    <a href="scoring.html"  class="page-tab">Scoring Logic</a>
-  </div>
-</header>
-
-<div class="stats">
-  <div class="stat-tile"><div class="stat-value">''' + str(total) + '''</div><div class="stat-label">Total contacts</div></div>
-  <div class="stat-tile"><div class="stat-value" style="color:#1a7a45">''' + str(invested_n) + '''</div><div class="stat-label">Invested / Opp</div></div>
-  <div class="stat-tile"><div class="stat-value" style="color:#1a7a45">''' + str(high_n) + '''</div><div class="stat-label">Score 5 (HIGH)</div></div>
-  <div class="stat-tile"><div class="stat-value" style="color:#1a7a45">''' + str(attended_n) + '''</div><div class="stat-label">Attended ≥ 1</div></div>
-  <div class="stat-tile"><div class="stat-value" style="color:#a83030">''' + str(dq_n) + '''</div><div class="stat-label">Disqualified</div></div>
-</div>
-
-<div class="controls">
-  <input id="f-name"    type="text" placeholder="filter name…" oninput="applyFilters()">
-  <input id="f-company" type="text" placeholder="filter company…" oninput="applyFilters()">
-  <select id="f-score" onchange="applyFilters()">
-    <option value="">All scores</option>
-    <option value="5">5 — High</option><option value="4">4 — Medium-High</option>
-    <option value="3">3 — Medium</option><option value="2">2 — Low-Medium</option><option value="1">1 — Low</option>
-  </select>
-  <select id="f-persona" onchange="applyFilters()">''' + persona_opts + '''</select>
-  <select id="f-scale" onchange="applyFilters()">
-    <option value="">All sizes</option>
-    <option value="large">Large (10K+)</option><option value="mid">Mid (1K–10K)</option>
-    <option value="small">Small (51–999)</option><option value="tiny">Tiny (1–50)</option>
-    <option value="unknown">Unknown</option>
-  </select>
-  <select id="f-attended" onchange="applyFilters()">
-    <option value="">Attended: all</option><option value="1">Attended ✓</option><option value="0">Not attended</option>
-  </select>
-  <select id="f-dq" onchange="applyFilters()">
-    <option value="">DQ: all</option><option value="1">Disqualified</option><option value="0">Not DQ</option>
-  </select>
-  <button onclick="clearFilters()">Clear</button>
-  <span class="vcount">Showing <strong id="vcount">''' + str(total) + '''</strong> of ''' + str(total) + '''</span>
-</div>
-
-<div class="table-wrap">
-<table class="contacts" id="t">
-  <thead class="sticky"><tr>
-    <th data-col="name"     data-type="text" onclick="sortBy(this)">Name</th>
-    <th data-col="title"    data-type="text" onclick="sortBy(this)">Title / Company</th>
-    <th data-col="score"    data-type="num"  onclick="sortBy(this)" class="sort-desc">Score</th>
-    <th data-col="why"      data-type="text" onclick="sortBy(this)">Score Logic</th>
-    <th data-col="persona"  data-type="text" onclick="sortBy(this)">Persona</th>
-    <th data-col="nw"       data-type="text" onclick="sortBy(this)">NW</th>
-    <th data-col="hsw"      data-type="text" onclick="sortBy(this)">HS Wealth</th>
-    <th data-col="hsi"      data-type="text" onclick="sortBy(this)">HS Income</th>
-    <th data-col="grad"     data-type="num"  onclick="sortBy(this)">Grad</th>
-    <th data-col="tenure"   data-type="num"  onclick="sortBy(this)">Tenure</th>
-    <th data-col="scale"    data-type="text" onclick="sortBy(this)">Co Scale</th>
-    <th data-col="exit"     data-type="num"  onclick="sortBy(this)">Exit?</th>
-    <th data-col="board"    data-type="num"  onclick="sortBy(this)">Board?</th>
-    <th data-col="pluto"    data-type="text" onclick="sortBy(this)">Property</th>
-    <th data-col="event"    data-type="text" onclick="sortBy(this)">Last Event</th>
-    <th data-col="attended" data-type="num"  onclick="sortBy(this)">Attended</th>
-    <th data-col="dq"       data-type="num"  onclick="sortBy(this)">DQ?</th>
-  </tr></thead>
-  <tbody id="tb">
-''' + tbody_html + '''
-  </tbody>
-</table>
-</div>
-<footer>Masterworks Internal · Lifetime contact roster · Updated ''' + escape(generated_at) + '''</footer>
-
-<script>
-function applyFilters() {
-  var fn = (document.getElementById('f-name').value||'').toLowerCase();
-  var fc = (document.getElementById('f-company').value||'').toLowerCase();
-  var fs = document.getElementById('f-score').value;
-  var fp = document.getElementById('f-persona').value;
-  var fsc= document.getElementById('f-scale').value;
-  var fa = document.getElementById('f-attended').value;
-  var fd = document.getElementById('f-dq').value;
-  var rows = document.querySelectorAll('#tb tr');
-  var visible = 0;
-  rows.forEach(function(tr) {
-    var name = tr.children[0].textContent.toLowerCase();
-    var co   = tr.children[1].textContent.toLowerCase();
-    var sc   = tr.dataset.score;
-    var per  = tr.dataset.persona;
-    var scl  = tr.dataset.scale;
-    var att  = tr.dataset.attended;
-    var dq   = tr.dataset.dq;
-    var ok = true;
-    if (fn  && name.indexOf(fn) < 0) ok = false;
-    if (ok && fc  && co.indexOf(fc)  < 0) ok = false;
-    if (ok && fs  && sc !== fs) ok = false;
-    if (ok && fp  && per !== fp) ok = false;
-    if (ok && fsc && scl !== fsc) ok = false;
-    if (ok && fa  && att !== fa) ok = false;
-    if (ok && fd  && dq  !== fd) ok = false;
-    tr.classList.toggle('row-hidden', !ok);
-    if (ok) visible++;
-  });
-  document.getElementById('vcount').textContent = visible;
-}
-function clearFilters() {
-  ['f-name','f-company','f-score','f-persona','f-scale','f-attended','f-dq'].forEach(function(id){
-    document.getElementById(id).value = '';
-  });
-  applyFilters();
-}
-var sortDir = 'desc', sortCol = 'score';
-function sortBy(th) {
-  var col = th.dataset.col, type = th.dataset.type;
-  if (sortCol === col) sortDir = (sortDir === 'asc' ? 'desc' : 'asc');
-  else { sortCol = col; sortDir = 'asc'; }
-  document.querySelectorAll('thead th').forEach(function(h){ h.classList.remove('sort-asc','sort-desc'); });
-  th.classList.add(sortDir === 'asc' ? 'sort-asc' : 'sort-desc');
-  var tb = document.getElementById('tb');
-  var rows = Array.from(tb.querySelectorAll('tr'));
-  var idx = { name:0, title:1, score:2, why:3, persona:4, nw:5, hsw:6, hsi:7, grad:8,
-              tenure:9, scale:10, exit:11, board:12, pluto:13, event:14, attended:15, dq:16 };
-  var i = idx[col];
-  rows.sort(function(a,b) {
-    var av, bv;
-    if (col === 'score')    { av = parseInt(a.dataset.score); bv = parseInt(b.dataset.score); }
-    else if (col === 'exit')    { av = parseInt(a.dataset.exit);     bv = parseInt(b.dataset.exit); }
-    else if (col === 'board')   { av = parseInt(a.dataset.board);    bv = parseInt(b.dataset.board); }
-    else if (col === 'attended'){ av = parseInt(a.dataset.attended); bv = parseInt(b.dataset.attended); }
-    else if (col === 'dq')      { av = parseInt(a.dataset.dq);       bv = parseInt(b.dataset.dq); }
-    else if (col === 'event')   { av = a.dataset.event; bv = b.dataset.event; }
-    else if (col === 'grad' || col === 'tenure') {
-      av = parseInt((a.children[i].textContent||'').replace(/[^0-9]/g,'')) || 0;
-      bv = parseInt((b.children[i].textContent||'').replace(/[^0-9]/g,'')) || 0;
-    }
-    else { av = (a.children[i].textContent||'').toLowerCase(); bv = (b.children[i].textContent||'').toLowerCase(); }
-    if (av < bv) return sortDir === 'asc' ? -1 : 1;
-    if (av > bv) return sortDir === 'asc' ? 1 : -1;
-    return 0;
-  });
-  rows.forEach(function(r) { tb.appendChild(r); });
-}
-</script>
-</body></html>'''
-
-
 # ─── SCORING PAGE ─────────────────────────────────────────────────────────────
 
 def build_scoring_html(generated_at: str) -> str:
@@ -4090,22 +3477,12 @@ def build_scoring_html(generated_at: str) -> str:
         section('Auto-High: company signals (sample)') +
         chip_row(finance_cos_sample, '#1a7a45', '#d4f0e0') +
         rule('+ PE firms, hedge funds, major banks, top law firms, VC firms') +
-        section('Auto-High: large companies (programmatic, no hardcoded list)') +
-        rule('Companies are classified at runtime via cascading lookup: <strong>Yahoo Finance market cap</strong> (public companies) &rarr; <strong>LinkedIn employee count from search snippets</strong> (private) &rarr; <em>unknown</em>. Verdict cached in <code>company_scale_cache.json</code>.') +
-        rule('Tiers: <strong>large</strong> = mcap &ge; $10B or &ge; 10K employees, <strong>mid</strong> = $1B–$10B mcap or 1K–10K employees, <strong>small</strong> = below. CEO / President / MD / Chief* titles at <em>large or mid</em> firms count as firm-corroboration &mdash; no downgrade by the title-only HIGH cap.') +
         section('Auto-High: profession') +
-        rule('Physicians, surgeons, MDs (pitched on MMFC K-1 angle)') +
-        section('Auto-High: verified wealth') +
-        rule('<strong>Real estate &ge; $3M</strong> (PLUTO low-end estimate) &mdash; implies ownership-class assets that override subjective DQs') +
-        rule('<strong>Founder with prior exit</strong> (LinkedIn mentions <em>acquired by</em> / <em>sold to</em> / <em>IPO</em> / <em>exited</em>) &mdash; cashed-out venture wealth') +
-        section('Auto-High: title alone (with firm signal)') +
-        rule('<strong>Partner</strong> at a large or mid-scale firm &mdash; assumed $1M+ annual income via carry, profit share, or equity stake. Firm scale is detected programmatically (Yahoo market cap or LinkedIn employee count). Excludes <em>Account / Channel / Strategic / Operating / Marketing</em> Partner &mdash; those are sales / biz-dev roles')
+        rule('Physicians, surgeons, MDs (pitched on MMFC K-1 angle)')
     )
 
     card4 = tier_card(4, 'Medium-High', '#1a5fa8', '#e8f0fb',
         rule('VP, Director, SVP, EVP, AVP, Senior Director, Associate Director at any company') +
-        rule('<strong>Board / advisory-board member</strong> (per LinkedIn) &mdash; ownership-class signal floors at Medium-High') +
-        rule('<strong>Founder / Co-Founder of a company with &ge;1,000 LinkedIn employees</strong> &mdash; running a real org. (51&ndash;999 employees lifts to Medium / 3; &lt;50 stays at 2.)') +
         rule('Real estate executives (SVP at Extell, Related, Brookfield, etc.)') +
         rule('Senior engineers at FAANG (RSU hedge angle)') +
         rule('Principal Engineer / Analyst / Developer (not High &mdash; technical, not investment-focused)') +
@@ -4115,13 +3492,11 @@ def build_scoring_html(generated_at: str) -> str:
     card3 = tier_card(3, 'Medium', '#8a6800', '#fdf6e3',
         rule('Solo practitioners / small law firm attorneys') +
         rule('Senior Manager at non-finance company') +
-        rule('<strong>10+ years in current role</strong> (per LinkedIn) &mdash; floors the score at Medium even if other signals are weaker') +
         rule('No data + NYC zip code (assume local)')
     )
 
     card2 = tier_card(2, 'Low-Medium', '#b85a00', '#fdf0e8',
-        rule('<strong>Under 30</strong> (graduated college in the last 8 years per LinkedIn) &mdash; caps the score even if title is senior. <em>Exception: finance-domain emails (gs.com, jpmorgan.com, etc.) override this cap &mdash; young finance employees still score HIGH.</em>') +
-        rule('Founder / Co-Founder &mdash; <strong>default Low-Medium</strong> unless finance domain, physician, named top-tier finance firm, or LinkedIn shows scale (51&ndash;999 employees lifts to Medium / 3; &ge;1K lifts to Medium-High / 4)') +
+        rule('Founder / Co-Founder &mdash; <strong>default Low-Medium unless finance domain, physician, or named top-tier finance firm</strong>') +
         rule('CEO / Owner without verifiable scale (no press, no funding, no recognizable company)') +
         rule('Real estate agents / realtors (commission-based, low liquid wealth)') +
         rule('Art world: dealers, brokers, advisors, consultants, all gallery staff &mdash; no exceptions') +
@@ -4200,10 +3575,9 @@ def build_scoring_html(generated_at: str) -> str:
     </div>
   </div>
   <div class="page-tabs">
-    <a href="index.html"    class="page-tab">RSVP Dashboard</a>
-    <a href="events.html"   class="page-tab">Event Dashboard</a>
-    <a href="contacts.html" class="page-tab">Contacts</a>
-    <a href="scoring.html"  class="page-tab active-tab">Scoring Logic</a>
+    <a href="index.html"   class="page-tab">RSVP Dashboard</a>
+    <a href="events.html"  class="page-tab">Event Dashboard</a>
+    <a href="scoring.html" class="page-tab active-tab">Scoring Logic</a>
   </div>
 </header>
 
@@ -4340,8 +3714,8 @@ def build_scoring_html(generated_at: str) -> str:
 
 GIST_STATE_FILE = 'mw_rsvp_state.json'
 
-def sync_uninvites_from_gist(contacts: list):
-    """Read the shared Gist state and PATCH HubSpot for any uninvited contacts."""
+def _read_gist_state() -> dict:
+    """Read the shared-state Gist; return {} on any error."""
     try:
         r = requests.get(
             f'https://api.github.com/gists/{SHARED_GIST_ID}',
@@ -4350,9 +3724,32 @@ def sync_uninvites_from_gist(contacts: list):
         )
         r.raise_for_status()
         content = r.json().get('files', {}).get(GIST_STATE_FILE, {}).get('content', '{}')
-        state = json.loads(content)
+        return json.loads(content)
     except Exception as e:
         print(f'Gist read skipped: {e}', file=sys.stderr)
+        return {}
+
+
+def _write_gist_state(state: dict):
+    """Write a (possibly empty) state dict back to the Gist."""
+    gh_token = os.environ.get('GITHUB_TOKEN', '')
+    if not gh_token:
+        return
+    try:
+        requests.patch(
+            f'https://api.github.com/gists/{SHARED_GIST_ID}',
+            headers={'Authorization': f'token {gh_token}', 'Accept': 'application/vnd.github.v3+json'},
+            json={'files': {GIST_STATE_FILE: {'content': json.dumps(state)}}},
+            timeout=10,
+        )
+    except Exception as e:
+        print(f'Gist write skipped: {e}', file=sys.stderr)
+
+
+def sync_uninvites_from_gist(contacts: list):
+    """Read the shared Gist state and PATCH HubSpot for any uninvited contacts."""
+    state = _read_gist_state()
+    if not state:
         return
 
     uninvite_ids = [k[len('uninvite_'):] for k, v in state.items()
@@ -4368,35 +3765,65 @@ def sync_uninvites_from_gist(contacts: list):
     to_patch = [cid for cid in uninvite_ids if cid not in already_done]
     if not to_patch:
         print('  Uninvite sync: all already Disqualified in HubSpot, nothing to patch')
+    else:
+        headers = {'Authorization': f'Bearer {HUBSPOT_TOKEN}', 'Content-Type': 'application/json'}
+        for cid in to_patch:
+            try:
+                resp = requests.patch(
+                    f'https://api.hubapi.com/crm/v3/objects/contacts/{cid}',
+                    headers=headers,
+                    json={'properties': {'outbound_event_attendee_disqualified': 'Disqualified'}},
+                    timeout=10,
+                )
+                status = 'OK' if resp.ok else f'HTTP {resp.status_code}'
+                print(f'  Uninvite sync {cid}: {status}')
+            except Exception as e:
+                print(f'  Uninvite sync {cid}: error {e}', file=sys.stderr)
+
+    # Clear ONLY uninvite_* keys — preserve sendconf_* (or other prefixes) for their own sync
+    remaining = {k: v for k, v in state.items() if not k.startswith('uninvite_')}
+    _write_gist_state(remaining)
+    print('  Uninvite sync: uninvite_* keys cleared')
+
+
+def sync_send_confirmations_from_gist(contacts: list):
+    """Read the shared Gist state and PATCH HubSpot for any send-confirmation requests."""
+    state = _read_gist_state()
+    if not state:
         return
 
-    headers = {'Authorization': f'Bearer {HUBSPOT_TOKEN}', 'Content-Type': 'application/json'}
-    for cid in to_patch:
-        try:
-            resp = requests.patch(
-                f'https://api.hubapi.com/crm/v3/objects/contacts/{cid}',
-                headers=headers,
-                json={'properties': {'outbound_event_attendee_disqualified': 'Disqualified'}},
-                timeout=10,
-            )
-            status = 'OK' if resp.ok else f'HTTP {resp.status_code}'
-            print(f'  Uninvite sync {cid}: {status}')
-        except Exception as e:
-            print(f'  Uninvite sync {cid}: error {e}', file=sys.stderr)
+    sendconf_ids = [k[len('sendconf_'):] for k, v in state.items()
+                    if k.startswith('sendconf_') and v]
+    if not sendconf_ids:
+        return
 
-    # Clear the Gist — HubSpot is the source of truth once written
-    try:
-        gh_token = os.environ.get('GITHUB_TOKEN', '')
-        if gh_token:
-            requests.patch(
-                f'https://api.github.com/gists/{SHARED_GIST_ID}',
-                headers={'Authorization': f'token {gh_token}', 'Accept': 'application/vnd.github.v3+json'},
-                json={'files': {GIST_STATE_FILE: {'content': '{}'}}},
-                timeout=10,
-            )
-            print('  Uninvite sync: Gist cleared')
-    except Exception as e:
-        print(f'  Gist clear skipped: {e}', file=sys.stderr)
+    # Skip contacts already set to "Yes" in HubSpot
+    already_done = {
+        c['id'] for c in contacts
+        if (c['properties'].get('outbound_event_send_confirmation') or '').strip().lower() == 'yes'
+    }
+    to_patch = [cid for cid in sendconf_ids if cid not in already_done]
+    if not to_patch:
+        print('  Send-confirmation sync: all already set to Yes in HubSpot, nothing to patch')
+    else:
+        headers = {'Authorization': f'Bearer {HUBSPOT_TOKEN}', 'Content-Type': 'application/json'}
+        for cid in to_patch:
+            try:
+                resp = requests.patch(
+                    f'https://api.hubapi.com/crm/v3/objects/contacts/{cid}',
+                    headers=headers,
+                    json={'properties': {'outbound_event_send_confirmation': 'Yes'}},
+                    timeout=10,
+                )
+                status = 'OK' if resp.ok else f'HTTP {resp.status_code}'
+                print(f'  Send-confirmation sync {cid}: {status}')
+            except Exception as e:
+                print(f'  Send-confirmation sync {cid}: error {e}', file=sys.stderr)
+
+    # Clear ONLY sendconf_* keys — preserve other prefixes
+    remaining = {k: v for k, v in _read_gist_state().items() if not k.startswith('sendconf_')}
+    _write_gist_state(remaining)
+    print('  Send-confirmation sync: sendconf_* keys cleared')
 
 
 # ─── MAIN ─────────────────────────────────────────────────────────────────────
@@ -4407,34 +3834,11 @@ def main():
     end   = today + timedelta(days=DAYS_AHEAD)
 
     _load_enrich_cache()
-    _load_company_scale_cache()
     print(f'Fetching RSVPs {start} → {end}  (DAYS_BACK={DAYS_BACK}, DAYS_AHEAD={DAYS_AHEAD})')
     contacts = fetch_contacts(start, end)
     print(f'Got {len(contacts)} contacts')
-
-    # Merge LinkedIn-derived fields from enrich_cache.json into each contact's
-    # properties dict. These fields (linkedin_grad_year, linkedin_current_role_started,
-    # linkedin_company_size) live only in the cache, not in HubSpot — overlay them
-    # so score_contact() can read them directly.
-    _LINKEDIN_FIELDS = ('linkedin_grad_year', 'linkedin_current_role_started',
-                        'linkedin_company_size', 'linkedin_has_exit', 'linkedin_has_board')
-    _merged = 0
-    for c in contacts:
-        p = c.get('properties') or {}
-        fname = p.get('firstname') or ''
-        lname = p.get('lastname')  or ''
-        name  = f'{fname} {lname}'.strip()
-        cached = _enrich_cache.get(name) if name else None
-        if cached:
-            for k in _LINKEDIN_FIELDS:
-                if cached.get(k) and not p.get(k):
-                    p[k] = cached[k]
-                    _merged += 1
-            c['properties'] = p
-    if _merged:
-        print(f'Merged {_merged} cached LinkedIn fields into contact properties')
-
     sync_uninvites_from_gist(contacts)
+    sync_send_confirmations_from_gist(contacts)
 
     # Enrich only today + future events — skip past events entirely.
     # Today's contacts go first to max out the quota on what matters most.
@@ -4453,6 +3857,10 @@ def main():
     if n_pluto:
         print(f'PLUTO property values fetched for {n_pluto} NYC contacts')
 
+    n_proxycurl = proxycurl_enrich_photos(contacts_to_enrich)
+    if n_proxycurl:
+        print(f'Proxycurl: fetched profile photos for {n_proxycurl} contacts')
+
     by_date = defaultdict(list)
     for c in contacts:
         d = c['properties'].get('outbound_rsvp_to_event')
@@ -4461,19 +3869,15 @@ def main():
 
     print(f'Dates: {sorted(by_date.keys())}')
 
-    _now = datetime.now(timezone.utc)
-    now_str = f"{_now.strftime('%b')} {_now.day}, {_now.year} at {_now.strftime('%I:%M %p').lstrip('0')} UTC"
+    now_str = datetime.now(timezone.utc).strftime('%b %-d, %Y at %-I:%M %p UTC')
 
     docs = Path('docs')
     docs.mkdir(parents=True, exist_ok=True)
 
-    # Dashboard shows today + future only — past events live on the contacts page
-    by_date_future = {d: contacts for d, contacts in by_date.items() if d[:10] >= today_iso}
-    rsvp_html = build_html(by_date_future, now_str)
+    rsvp_html = build_html(dict(by_date), now_str)
     (docs / 'index.html').write_text(rsvp_html, encoding='utf-8')
     print(f'Written → docs/index.html  ({len(rsvp_html):,} bytes)')
 
-    # Events page keeps the full window so the chronological summary stays useful
     events_html = build_events_html(dict(by_date), now_str)
     (docs / 'events.html').write_text(events_html, encoding='utf-8')
     print(f'Written → docs/events.html  ({len(events_html):,} bytes)')
@@ -4481,31 +3885,6 @@ def main():
     scoring_html = build_scoring_html(now_str)
     (docs / 'scoring.html').write_text(scoring_html, encoding='utf-8')
     print(f'Written → docs/scoring.html  ({len(scoring_html):,} bytes)')
-
-    # Lifetime contact roster — separate fetch (HAS_PROPERTY filter, no date window)
-    print('Fetching lifetime contacts for roster page…')
-    all_contacts = fetch_all_contacts_with_rsvp()
-    print(f'Got {len(all_contacts)} lifetime contacts')
-    # Same LinkedIn-cache merge as the dashboard
-    _LIFETIME_LI_FIELDS = ('linkedin_grad_year', 'linkedin_current_role_started',
-                           'linkedin_company_size', 'linkedin_has_exit', 'linkedin_has_board')
-    for c in all_contacts:
-        p = c.get('properties') or {}
-        nm = f"{p.get('firstname') or ''} {p.get('lastname') or ''}".strip()
-        cached = _enrich_cache.get(nm) if nm else None
-        if cached:
-            for k in _LIFETIME_LI_FIELDS:
-                if cached.get(k) and not p.get(k):
-                    p[k] = cached[k]
-            c['properties'] = p
-    contacts_html = build_contacts_html(all_contacts, now_str)
-    (docs / 'contacts.html').write_text(contacts_html, encoding='utf-8')
-    print(f'Written → docs/contacts.html  ({len(contacts_html):,} bytes)')
-
-    # Persist the company-scale cache regardless of whether enrichment ran —
-    # scoring populates it in-memory via classify_company_scale, and we want
-    # those Yahoo/LinkedIn verdicts to survive across runs.
-    _save_company_scale_cache()
 
 if __name__ == '__main__':
     main()
