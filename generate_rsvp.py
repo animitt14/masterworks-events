@@ -4029,7 +4029,7 @@ def main():
 
     print(f'Dates: {sorted(by_date.keys())}')
 
-    now_str = datetime.now(timezone.utc).strftime('%b %-d, %Y at %-I:%M %p UTC')
+    now_str = datetime.now(timezone.utc).strftime('%b %#d, %Y at %#I:%M %p UTC') if sys.platform == 'win32' else datetime.now(timezone.utc).strftime('%b %-d, %Y at %-I:%M %p UTC')
 
     docs = Path('docs')
     docs.mkdir(parents=True, exist_ok=True)
