@@ -373,8 +373,49 @@ def google_enrich(name: str, company_hint: str = '', domain: str = '',
     return {}
 
 
+MANUAL_ENRICHMENTS_FILE = Path('manual_enrichments.json')
+
+
+def _load_manual_enrichments() -> dict:
+    """Load manual enrichments keyed by lowercase email."""
+    if MANUAL_ENRICHMENTS_FILE.exists():
+        try:
+            entries = json.loads(MANUAL_ENRICHMENTS_FILE.read_text(encoding='utf-8'))
+            return {e['email'].lower(): e for e in entries if e.get('email')}
+        except Exception:
+            return {}
+    return {}
+
+
+def _apply_manual_enrichments(contacts: list) -> int:
+    """Apply manual_enrichments.json to contacts, write to HubSpot if needed."""
+    manual = _load_manual_enrichments()
+    if not manual:
+        return 0
+    applied = 0
+    for c in contacts:
+        p = c['properties']
+        email = (p.get('email') or '').strip().lower()
+        if email not in manual:
+            continue
+        entry = manual[email]
+        patches = {}
+        if entry.get('jobtitle') and not p.get('jobtitle'):
+            patches['jobtitle'] = entry['jobtitle']
+        if entry.get('company') and not p.get('company'):
+            patches['company'] = entry['company']
+        if patches:
+            c['properties'] = {**p, **patches}
+            applied += 1
+            fname = (p.get('firstname') or '').strip()
+            lname = (p.get('lastname') or '').strip()
+            print(f'  Manual: {fname} {lname} → {patches}')
+            _patch_hubspot_contact(c['id'], patches)
+    return applied
+
+
 def enrich_no_data_contacts(contacts: list) -> int:
-    """For contacts with no title AND no company, try Google enrichment.
+    """For contacts missing title or company, try Google enrichment.
     Returns number of contacts enriched."""
     if not GOOGLE_API_KEY or not GOOGLE_CSE_ID:
         return 0
@@ -394,8 +435,8 @@ def enrich_no_data_contacts(contacts: list) -> int:
         if _quota_exhausted:
             break
         p    = c['properties']
-        if p.get('jobtitle') or p.get('company'):
-            continue   # already has data — skip
+        if p.get('jobtitle') and p.get('company'):
+            continue   # has both — skip
 
         fname = p.get('firstname') or ''
         lname = p.get('lastname')  or ''
@@ -4009,9 +4050,13 @@ def main():
         key=lambda c: (c['properties'].get('outbound_rsvp_to_event') or ''),
     )
 
+    n_manual = _apply_manual_enrichments(contacts_to_enrich)
+    if n_manual:
+        print(f'Applied {n_manual} manual enrichments')
+
     n_enriched = enrich_no_data_contacts(contacts_to_enrich)
     if n_enriched:
-        print(f'Enriched {n_enriched} no-data contacts via Google Search')
+        print(f'Enriched {n_enriched} contacts via Google Search')
 
     n_pluto = pluto_enrich_contacts(contacts_to_enrich)
     if n_pluto:
