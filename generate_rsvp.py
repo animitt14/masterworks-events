@@ -1943,11 +1943,19 @@ def render_row(idx: int, c: dict, show_dropdown: bool = False, show_unk: bool = 
                       'font-weight:700;padding:1px 7px;letter-spacing:0.04em;'
                       'vertical-align:middle;margin-right:5px">INV</span>'
                       if 'invested' in flags else '')
-    unknown_badge = ('<span style="display:inline-block;background:#f0f1f5;color:#7a88a0;'
-                     'border:1px solid #aab0c055;border-radius:10px;font-size:0.62rem;'
-                     'font-weight:700;padding:1px 7px;letter-spacing:0.04em;'
-                     'vertical-align:middle;margin-left:4px">?</span>'
-                     if show_unk and (p.get('unknown_rsvp') or '').strip().lower() == 'unknown' else '')
+    rsvp_status = (p.get('unknown_rsvp') or '').strip().lower()
+    if show_unk and rsvp_status == 'guest':
+        unknown_badge = ('<span style="display:inline-block;background:#e8f0fe;color:#3b6bb0;'
+                         'border:1px solid #3b6bb055;border-radius:10px;font-size:0.62rem;'
+                         'font-weight:700;padding:1px 7px;letter-spacing:0.04em;'
+                         'vertical-align:middle;margin-left:4px">+1</span>')
+    elif show_unk and rsvp_status == 'unknown':
+        unknown_badge = ('<span style="display:inline-block;background:#f0f1f5;color:#7a88a0;'
+                         'border:1px solid #aab0c055;border-radius:10px;font-size:0.62rem;'
+                         'font-weight:700;padding:1px 7px;letter-spacing:0.04em;'
+                         'vertical-align:middle;margin-left:4px">?</span>')
+    else:
+        unknown_badge = ''
     opp_star = ''
 
     loc_html = ''
