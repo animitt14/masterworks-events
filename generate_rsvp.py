@@ -1247,9 +1247,9 @@ def dq_qp_tag(p: dict) -> str:
 
 
 def dq_qp_tag_html(p: dict) -> str:
-    """Renders the DQ/QP/UNCERTAIN pill — empty string if no tag applies."""
+    """Renders the DQ/QP pill — blank for UNCERTAIN."""
     tag = dq_qp_tag(p)
-    if not tag:
+    if not tag or tag == 'UNCERTAIN':
         return ''
     fg, bg = TAG_STYLES[tag]
     return (
