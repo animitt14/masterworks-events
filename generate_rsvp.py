@@ -2171,7 +2171,7 @@ def render_panel(date_str: str, contacts: list, tab_id: str, active: bool, past:
         <th>Links</th>
         <th>Uninvite<br><span id="uninvite-count-{tab_id}" style="font-size:0.65rem;color:#c04040;font-weight:400">{uninvite_count if uninvite_count else ''}</span></th>
         <th>Attended<br><span id="attended-count-{tab_id}" style="font-size:0.65rem;color:#1a7a45;font-weight:400">{attended_count if attended_count else ''}</span></th>
-        <th>Send Confirmation?<br><span id="sendconf-count-{tab_id}" style="font-size:0.65rem;color:#1a5fa8;font-weight:400">{send_conf_count if send_conf_count else ''}</span></th>
+        <th>Conf?</th>
       </tr></thead>
       <tbody>{rows_html}</tbody>
     </table>
