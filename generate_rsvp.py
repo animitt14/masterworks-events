@@ -1877,7 +1877,7 @@ def render_detail_row(p: dict, per: str, nw: str) -> str:
 
     return (
         f'<tr class="detail-row" style="display:none">'
-        f'<td colspan="8" style="padding:0;border-bottom:1px solid #eef1f7;width:100%">'
+        f'<td colspan="9" style="padding:0;border-bottom:1px solid #eef1f7;width:100%">'
         f'<div class="detail-inner">'
         f'<div class="detail-cell">'
         f'<p class="detail-cell-label">Persona</p>'
@@ -1984,6 +1984,14 @@ def render_row(idx: int, c: dict, show_dropdown: bool = False, show_unk: bool = 
         )
     tc_html = '<br>'.join(tc_parts) or '<span style="color:#c0ccd8">—</span>'
 
+    pluto_val = (p.get('_pluto_val') or '').strip()
+    if pluto_val and pluto_val != 'Commercial':
+        prop_html = f'<span style="font-size:0.75rem">{escape(pluto_val)}</span>'
+    elif pluto_val == 'Commercial':
+        prop_html = '<span style="font-size:0.72rem;color:#8a6800">Commercial</span>'
+    else:
+        prop_html = '<span style="color:#c0ccd8">—</span>'
+
     nw_cell = f'<strong style="font-size:0.85rem">{escape(nw)}</strong>'
 
     name_cell = (
@@ -2009,6 +2017,7 @@ def render_row(idx: int, c: dict, show_dropdown: bool = False, show_unk: bool = 
         f'<td style="color:#aabcd4;text-align:center">{idx}</td>'
         f'<td>{name_cell}</td>'
         f'<td>{tc_html}</td>'
+        f'<td style="text-align:center">{prop_html}</td>'
         f'<td style="text-align:center" class="score-cell">{score_badge_html(sc)}</td>'
         + (f'<td style="text-align:center">{dq_qp_tag_html(p)}</td>' if show_dropdown else '')
         + f'<td style="text-align:center;white-space:nowrap">'
@@ -2115,6 +2124,7 @@ def render_panel(date_str: str, contacts: list, tab_id: str, active: bool, past:
         <th style="width:34px">#</th>
         <th>Name</th>
         <th>Title / Company</th>
+        <th>Property</th>
         <th>Likelihood</th>
         <th>Links</th>
       </tr></thead>
@@ -2164,6 +2174,7 @@ def render_panel(date_str: str, contacts: list, tab_id: str, active: bool, past:
         <th style="width:34px">#</th>
         <th>Name</th>
         <th>Title / Company</th>
+        <th>Property</th>
         <th>Score</th>
         <th>Threshold</th>
         <th>Links</th>
@@ -2254,6 +2265,7 @@ def build_html(by_date: dict, generated_at: str) -> str:
                 'name':     name,
                 'jobtitle': p.get('jobtitle') or '',
                 'company':  p.get('company')  or '',
+                'pluto':    (p.get('_pluto_val') or '').strip(),
                 'score':    sc,
                 'li':       li_url(name, p.get('company') or '', p),
                 'hs':       hs_url(c['id']),
@@ -2609,6 +2621,14 @@ function renderPastTab(tabId) {{
     var m = SCORE_META[c.score] || {{label:'—', fg:'#666', bg:'#eee'}};
     var titleHtml = (c.jobtitle ? '<div style="font-size:0.82rem">' + escHtml(c.jobtitle) + '</div>' : '') +
                     (c.company  ? '<div style="font-size:0.75rem;color:#7a94b8">' + escHtml(c.company) + '</div>' : '');
+    var propHtml = '';
+    if (c.pluto && c.pluto !== 'Commercial') {{
+      propHtml = '<span style="font-size:0.75rem">' + escHtml(c.pluto) + '</span>';
+    }} else if (c.pluto === 'Commercial') {{
+      propHtml = '<span style="font-size:0.72rem;color:#8a6800">Commercial</span>';
+    }} else {{
+      propHtml = '<span style="color:#c0ccd8">\u2014</span>';
+    }}
     var badge = '<span style="background:' + m.bg + ';color:' + m.fg + ';border:1px solid ' + m.fg + '55;' +
                 'padding:4px 11px;border-radius:12px;font-size:0.78rem;font-weight:700">' +
                 c.score + '</span>';
@@ -2618,6 +2638,7 @@ function renderPastTab(tabId) {{
       '<td style="color:#9aaac0;font-size:0.78rem">' + (i + 1) + '</td>' +
       '<td style="font-weight:600">' + escHtml(c.name) + '</td>' +
       '<td>' + titleHtml + '</td>' +
+      '<td style="text-align:center">' + propHtml + '</td>' +
       '<td>' + badge + '</td>' +
       '<td style="text-align:center;white-space:nowrap">' + liLink + hsLink + '</td>' +
     '</tr>';
