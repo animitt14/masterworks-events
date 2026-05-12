@@ -727,6 +727,21 @@ def _nyc_boro(city: str, zip_code: str) -> int | None:
                 return code
     return None
 
+# Addresses manually confirmed as commercial — checked before PLUTO/census.
+# Normalized form (uppercase, unit stripped). Add new entries as needed.
+COMMERCIAL_OVERRIDES = {
+    '2 COLUMBUS CIRCLE',
+    '150 E 42 ST',
+    '62 CHELSEA PIERS',
+    '437 MADISON AVE',
+    '6 EAST 46 STREET',
+    '6 E 46 ST',
+}
+
+_COMMERCIAL_KEYWORDS = re.compile(
+    r'\b(ste|suite|floor|fl)\s+\S+', re.IGNORECASE)
+
+
 def _pluto_strip_unit(address: str) -> str:
     """Strip apt/unit suffix and normalize address for PLUTO token matching."""
     addr = address.strip()
@@ -754,6 +769,9 @@ def fetch_pluto_value(address: str, city: str, zip_code: str) -> str | None:
     normalized = _pluto_strip_unit(address)
     if not normalized:
         return None
+
+    if normalized in COMMERCIAL_OVERRIDES:
+        return 'Commercial'
 
     cache_key = f'pluto:{normalized}:{zip_code or boro}'
     if cache_key in _enrich_cache:
@@ -793,14 +811,16 @@ def fetch_pluto_value(address: str, city: str, zip_code: str) -> str | None:
         r = rows[0]
 
         assess_tot  = float(r.get('assesstot') or 0)
-        bldg_class  = (r.get('bldgclass') or '').upper()[:1]
+        bldg_class_full = (r.get('bldgclass') or '').upper().strip()
+        bldg_class  = bldg_class_full[:1]
         units_total = max(int(r.get('unitstotal') or 1), 1)
 
         if assess_tot <= 0:
             _enrich_cache[cache_key] = None
             return None
 
-        # Tag non-residential building classes (commercial, industrial, etc.)
+        # Tag non-residential: first-letter check, plus full codes like O1-O9 (offices),
+        # K1-K9 (stores), etc. that PLUTO sometimes miscategorizes
         if bldg_class not in ('A', 'B', 'C', 'D', 'R', 'S'):
             _enrich_cache[cache_key] = 'Commercial'
             return 'Commercial'
@@ -879,7 +899,10 @@ def pluto_enrich_contacts(contacts: list) -> int:
             continue
         val = fetch_pluto_value(address, city, zip_code) if address else None
         if val is None and zip_code:
-            val = fetch_census_value(zip_code)
+            if _COMMERCIAL_KEYWORDS.search(address):
+                val = 'Commercial'
+            else:
+                val = fetch_census_value(zip_code)
         if val is not None:
             p['_pluto_val'] = val
             count += 1
