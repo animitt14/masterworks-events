@@ -799,10 +799,10 @@ def fetch_pluto_value(address: str, city: str, zip_code: str) -> str | None:
             _enrich_cache[cache_key] = None
             return None
 
-        # Skip non-residential building classes (commercial, industrial, etc.)
+        # Tag non-residential building classes (commercial, industrial, etc.)
         if bldg_class not in ('A', 'B', 'C', 'D', 'R', 'S'):
-            _enrich_cache[cache_key] = None
-            return None
+            _enrich_cache[cache_key] = 'Commercial'
+            return 'Commercial'
 
         # NYC property tax ratios by unit count:
         # Tax Class 1 (1–3 units): assessed ≈ 6% of market value
