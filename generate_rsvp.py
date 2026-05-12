@@ -215,11 +215,11 @@ SCORE_OVERRIDES: dict[str, int] = {
 SCORES = [5, 4, 3, 2, 1]
 SCORE_LABELS = {5: 'High', 4: 'Medium-High', 3: 'Medium', 2: 'Low-Medium', 1: 'Low'}
 SCORE_COLORS = {
-    5: ('#1a7a45', '#eaf7f0'),   # green
-    4: ('#1a5fa8', '#e8f0fb'),   # blue
-    3: ('#8a6800', '#fdf6e3'),   # amber
-    2: ('#b85a00', '#fdf0e8'),   # orange
-    1: ('#a83030', '#fde8e8'),   # red
+    5: ('#0d3b7a', '#dbe8f8'),   # darkest blue
+    4: ('#1a5fa8', '#e0edf9'),   # dark blue
+    3: ('#3578c0', '#e6f0fb'),   # medium blue
+    2: ('#6098d4', '#ecf3fc'),   # light blue
+    1: ('#8bb3de', '#f2f7fd'),   # lightest blue
 }
 
 # DQ / QP tag colors — applied to future-event RSVPs in addition to the score pill.
@@ -2505,11 +2505,11 @@ function _flushUninvitesAndRefresh(tok, btn) {{
 var TODAY      = '{today_str}';
 var ALL_DATES  = {all_dates_json};
 var SCORE_META = {{
-  5: {{label:'High',       fg:'#1a7a45', bg:'#eaf7f0'}},
-  4: {{label:'Medium-High',fg:'#1a5fa8', bg:'#e8f0fb'}},
-  3: {{label:'Medium',     fg:'#8a6800', bg:'#fdf6e3'}},
-  2: {{label:'Low-Medium', fg:'#b85a00', bg:'#fdf0e8'}},
-  1: {{label:'Low',        fg:'#a83030', bg:'#fde8e8'}},
+  5: {{label:'High',       fg:'#0d3b7a', bg:'#dbe8f8'}},
+  4: {{label:'Medium-High',fg:'#1a5fa8', bg:'#e0edf9'}},
+  3: {{label:'Medium',     fg:'#3578c0', bg:'#e6f0fb'}},
+  2: {{label:'Low-Medium', fg:'#6098d4', bg:'#ecf3fc'}},
+  1: {{label:'Low',        fg:'#8bb3de', bg:'#f2f7fd'}},
 }};
 
 // ── Shared state (localStorage + direct HubSpot writes) ───────────────────────
