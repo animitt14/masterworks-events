@@ -1687,7 +1687,6 @@ def score_badge_html(sc: int) -> str:
             f'letter-spacing:0.03em;white-space:nowrap;cursor:pointer;'
             f'display:inline-flex;align-items:center;gap:5px">'
             f'<span class="score-num">{sc}</span>'
-            f'<span class="score-lbl" style="font-size:0.68rem;opacity:0.8">{label}</span>'
             f'</span>')
 
 def li_url(name: str, company: str, p: dict | None = None) -> str:
@@ -2592,7 +2591,7 @@ function renderPastTab(tabId) {{
                     (c.company  ? '<div style="font-size:0.75rem;color:#7a94b8">' + escHtml(c.company) + '</div>' : '');
     var badge = '<span style="background:' + m.bg + ';color:' + m.fg + ';border:1px solid ' + m.fg + '55;' +
                 'padding:4px 11px;border-radius:12px;font-size:0.78rem;font-weight:700">' +
-                c.score + ' \u2014 ' + m.label + '</span>';
+                c.score + '</span>';
     var liLink = c.li ? '<a href="' + escHtml(c.li) + '" target="_blank" rel="noopener" style="color:#0a66c2;font-weight:700;text-decoration:none;font-size:0.8rem;margin-right:8px">LI\u2197</a>' : '';
     var hsLink = '<a href="' + escHtml(c.hs) + '" target="_blank" rel="noopener" style="color:#ff7a59;font-weight:700;text-decoration:none;font-size:0.8rem">HS\u2197</a>';
     html += '<tr>' +
@@ -2732,7 +2731,6 @@ function applyOverride(cid, sc, tabId) {{
     'letter-spacing:0.03em;white-space:nowrap;cursor:pointer;' +
     'display:inline-flex;align-items:center;gap:5px">' +
     '<span class="score-num">' + sc + '</span>' +
-    '<span class="score-lbl" style="font-size:0.68rem;opacity:0.8">' + m.label + '</span>' +
     (manual ? '<span style="font-size:0.62rem;opacity:0.6" title="Manually overridden">✏</span>' : '') +
     '</span>';
 
