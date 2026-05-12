@@ -982,6 +982,31 @@ def domain_to_company(email: str) -> str:
     words = words.replace('-', ' ').replace('_', ' ')
     return words.title()
 
+def _email_company_mismatch(email: str, company: str) -> bool:
+    """True when a work-email domain doesn't match the HubSpot company name."""
+    dom = email_domain(email)
+    if not dom or not company or dom in PERSONAL_DOMAINS:
+        return False
+    host = dom.split('.')[0].lower()
+    if host in ('mail', 'em', 'smtp', 'send', 'info'):
+        parts = dom.split('.')
+        host = parts[1].lower() if len(parts) > 2 else host
+    co = re.sub(r'[^a-z0-9]', '', company.lower())
+    if not co or not host:
+        return False
+    if host in co or co in host:
+        return False
+    # check if any company word (3+ chars) appears in the domain
+    for w in re.split(r'[\s\-&,./]+', company.lower()):
+        if len(w) >= 3 and w in host:
+            return False
+    # check if domain parts appear in company
+    for w in re.split(r'[\-_]+', host):
+        if len(w) >= 3 and w in co:
+            return False
+    return True
+
+
 def has_high_title(title: str) -> bool:
     tl = title.lower().strip()
     t  = ' ' + tl + ' '
@@ -2126,8 +2151,13 @@ def render_row(idx: int, c: dict, show_dropdown: bool = False, show_unk: bool = 
     tc_parts = []
     if title:
         tc_parts.append(escape(title) + enriched_tag)
+    _co_flag = ''
+    if company and _email_company_mismatch(p.get('email') or '', company):
+        _flag_dom = email_domain(p.get('email') or '')
+        _co_flag = (f'<span title="Email domain ({escape(_flag_dom)}) doesn\'t match company" '
+                    f'style="color:#c94040;font-size:0.65rem;margin-left:4px;cursor:help">⚑</span>')
     if company:
-        tc_parts.append(f'<span style="color:#7a94b8;font-size:0.78rem">{escape(company)}</span>')
+        tc_parts.append(f'<span style="color:#7a94b8;font-size:0.78rem">{escape(company)}{_co_flag}</span>')
     elif inferred_company:
         tc_parts.append(
             f'<span style="color:#9aaac0;font-size:0.75rem;font-style:italic" '
@@ -2418,6 +2448,8 @@ def build_html(by_date: dict, generated_at: str) -> str:
                 'score':    sc,
                 'li':       li_url(name, p.get('company') or '', p),
                 'hs':       hs_url(c['id']),
+                'coFlag':   _email_company_mismatch(p.get('email') or '', p.get('company') or ''),
+                'emailDom': email_domain(p.get('email') or '') if _email_company_mismatch(p.get('email') or '', p.get('company') or '') else '',
             })
         past_events_data[tid] = rows
     past_events_json = json.dumps(past_events_data, ensure_ascii=False)
@@ -2768,8 +2800,9 @@ function renderPastTab(tabId) {{
   for (var i = 0; i < contacts.length; i++) {{
     var c = contacts[i];
     var m = SCORE_META[c.score] || {{label:'—', fg:'#666', bg:'#eee'}};
+    var coFlagHtml = c.coFlag ? '<span title="Email domain (' + escHtml(c.emailDom) + ') doesn\'t match company" style="color:#c94040;font-size:0.65rem;margin-left:4px;cursor:help">⚑</span>' : '';
     var titleHtml = (c.jobtitle ? '<div style="font-size:0.82rem">' + escHtml(c.jobtitle) + '</div>' : '') +
-                    (c.company  ? '<div style="font-size:0.75rem;color:#7a94b8">' + escHtml(c.company) + '</div>' : '');
+                    (c.company  ? '<div style="font-size:0.75rem;color:#7a94b8">' + escHtml(c.company) + coFlagHtml + '</div>' : '');
     var propHtml = '';
     if (c.pluto && c.pluto !== 'Commercial') {{
       propHtml = '<span style="font-size:0.75rem">' + escHtml(c.pluto) + '</span>';
