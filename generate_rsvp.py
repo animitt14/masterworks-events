@@ -1210,6 +1210,81 @@ def score_contact(p: dict) -> tuple:
     return sc, flags
 
 
+def explain_score(p: dict, sc: int, flags: list) -> str:
+    """One-line reason explaining why this contact landed at `sc`."""
+    title    = (p.get('jobtitle') or '').lower()
+    company  = (p.get('company')  or '').lower()
+    email    = (p.get('email')    or '').lower()
+    dom      = email_domain(email)
+    combined = title + ' ' + company
+
+    if 'invested' in flags:           return 'Already invested'
+    if 'opportunity' in flags:        return 'Warm pipeline — Opportunity stage'
+    if 'not_interested' in flags:     return 'Said "not interested" on prior call'
+    if 'target_wealth_firm' in flags: return 'Wealth advisor at target firm — channel partner'
+    if 'under_30' in flags:           return 'Under 30 — recent grad cap'
+    if 'tenure_10plus' in flags and sc == 3:
+        return '10+ year tenure floor'
+
+    if sc <= 2:
+        if any(t in combined for t in WEALTH_ADVISOR_TERMS):
+            return "Wealth advisor — refers clients, doesn't invest"
+        if any(t in combined for t in ('art dealer', 'art advisor', 'art adviser', 'gallery')) or 'fine art' in company:
+            return "Art world — fractional doesn't fit mental model"
+        if any(t in combined for t in ('real estate agent', 'realtor', 're agent', 're broker')):
+            return 'Real estate agent — commission income'
+        if any(t in title for t in ('music producer', 'filmmaker', 'film-maker', 'screenwriter', 'cinematographer')):
+            return 'Music / film — cultural sector'
+        if any(t in combined for t in SERVICE_PROVIDER_TERMS):
+            return 'Time-for-money service provider'
+        if any(t in combined for t in CREATOR_TERMS):
+            return 'Content creator / influencer'
+        if 'no_show' in flags:
+            return 'No-show on prior event + downgrade signal'
+        if any(t in combined for t in DOWNGRADE_TERMS):
+            return 'Junior or downgrade-term title'
+        if any(t in title for t in ('founder', 'co-founder', 'cofounder')):
+            return 'Founder — unverified scale'
+        return 'Low-tier signals'
+
+    if sc == 5:
+        if dom in FINANCE_DOMAINS:
+            return f'Finance domain ({dom})'
+        if is_physician(title, email, company):
+            return 'Physician / MD — pitched on K-1 angle'
+        if any(fc in company for fc in FINANCE_COMPANIES):
+            return 'Senior role at top-tier finance firm'
+        scale = classify_company_scale(company, p.get('linkedin_company_size', ''))
+        _t = title.strip()
+        if (_t == 'partner' or _t.endswith(' partner')) and scale in ('large', 'mid'):
+            return f'Partner at {scale}-scale firm'
+        if scale in ('large', 'mid'):
+            return f'Senior role at {scale}-scale firm'
+        if has_high_title(title):
+            return 'Senior title with firm corroboration'
+        return 'Multiple HIGH signals'
+
+    if sc == 4:
+        if has_high_title(title):
+            return 'Senior title — no firm-quality signal'
+        if any(t in title for t in ('senior director', 'associate director')) or \
+           any(t in title for t in ('vp', 'vice president', 'svp', 'evp', 'avp')) or \
+           ('director' in title and 'art director' not in title):
+            return 'VP / Director-level title'
+        if any(t in company for t in ('real estate', 'realty', 'extell', 'related companies', 'tishman', 'sl green', 'brookfield')):
+            return 'Real-estate exec at major developer'
+        return 'Medium-High — NW cap or mid-tier title'
+
+    if sc == 3:
+        if any(t in title for t in ('senior manager', 'lead', 'principal', 'head of')):
+            return 'Senior manager / lead role'
+        if any(t in title for t in ('attorney', 'lawyer', 'counsel')):
+            return 'Solo / small-firm attorney'
+        return 'Default mid-tier — no caps, no HIGH signals'
+
+    return 'Standard scoring path'
+
+
 # ─── DQ / QP TAG ──────────────────────────────────────────────────────────────
 # Mirrors the disqualification framework used on the historical disqualified-
 # attendee cohort. Applied to contacts RSVPed to FUTURE events.
@@ -1270,7 +1345,9 @@ def dq_qp_tag(p: dict) -> str:
 
 
 def dq_qp_tag_html(p: dict) -> str:
-    """Renders the DQ/QP pill — blank for UNCERTAIN."""
+    """Renders the DQ/QP pill — blank for UNCERTAIN and Guest contacts."""
+    if (p.get('unknown_rsvp') or '').strip() == 'Guest':
+        return ''
     tag = dq_qp_tag(p)
     if not tag or tag == 'UNCERTAIN':
         return ''
@@ -1878,7 +1955,7 @@ def infer_nyc_neighborhood(address: str, city: str) -> str:
     return 'New York, NY'
 
 
-def render_detail_row(p: dict, per: str, nw: str) -> str:
+def render_detail_row(p: dict, per: str, nw: str, sc: int = 0, flags: list = None) -> str:
     """Render the hidden dropdown detail row (today + future events only)."""
     hs_wealth    = (p.get('wealth_segment')  or '').strip() or '—'
     inferred_inc = (p.get('inferred_income') or '').strip() or '—'
@@ -1946,7 +2023,12 @@ def render_detail_row(p: dict, per: str, nw: str) -> str:
         f'<div class="detail-cell">'
         f'<p class="detail-cell-label">Persona</p>'
         f'<span class="persona-detail-pill">{escape(per)}</span>'
-        f'</div>'
+        + (
+            f'<p class="detail-cell-label" style="margin-top:10px">Score Logic</p>'
+            f'<div style="font-size:0.78rem;color:#3a5070;line-height:1.4">{escape(explain_score(p, sc, flags or []))}</div>'
+            if sc else ''
+        )
+        + f'</div>'
         f'<div class="detail-cell">'
         f'<p class="detail-cell-label">Wealth Segment</p>'
         f'<div class="seg-stack">'
@@ -2068,7 +2150,7 @@ def render_row(idx: int, c: dict, show_dropdown: bool = False, show_unk: bool = 
 
     chevron_td = '<td style="text-align:center;padding:11px 4px"><span class="expand-chevron">▼</span></td>' if show_dropdown else ''
     tr_attrs   = (f'data-contact="{escape(cid)}" style="cursor:pointer" ' if show_dropdown else '')
-    detail_row = render_detail_row(p, per, nw) if show_dropdown else ''
+    detail_row = render_detail_row(p, per, nw, sc, flags) if show_dropdown else ''
 
     return (
         f'<tr data-id="{escape(cid)}" data-auto="{sc}" '
