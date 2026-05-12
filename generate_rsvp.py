@@ -2186,9 +2186,9 @@ def render_panel(date_str: str, contacts: list, tab_id: str, active: bool, past:
         <th style="width:34px">#</th>
         <th>Name</th>
         <th>Title / Company</th>
-        <th style="width:110px">Property</th>
-        <th style="width:110px">Likelihood</th>
-        <th style="width:110px">Links</th>
+        <th style="width:120px">Property</th>
+        <th style="width:120px">Likelihood</th>
+        <th style="width:120px">Links</th>
       </tr></thead>
       <tbody id="tbody-{tab_id}"></tbody>
     </table>
@@ -2236,12 +2236,12 @@ def render_panel(date_str: str, contacts: list, tab_id: str, active: bool, past:
         <th style="width:34px">#</th>
         <th>Name</th>
         <th>Title / Company</th>
-        <th style="width:110px">Property</th>
-        <th style="width:110px">Score</th>
-        <th style="width:110px">Threshold</th>
-        <th style="width:110px">Links</th>
-        <th style="width:110px">Email F/U</th>
-        <th style="width:110px">Attended<br><span id="attended-count-{tab_id}" style="font-size:0.65rem;color:#1a7a45;font-weight:400">{attended_count if attended_count else ''}</span></th>
+        <th style="width:120px">Property</th>
+        <th style="width:120px">Score</th>
+        <th style="width:120px">Threshold</th>
+        <th style="width:120px">Links</th>
+        <th style="width:120px">Email F/U</th>
+        <th style="width:120px">Attended<br><span id="attended-count-{tab_id}" style="font-size:0.65rem;color:#1a7a45;font-weight:400">{attended_count if attended_count else ''}</span></th>
       </tr></thead>
       <tbody>{rows_html}</tbody>
     </table>
