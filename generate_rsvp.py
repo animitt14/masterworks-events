@@ -814,11 +814,11 @@ def fetch_pluto_value(address: str, city: str, zip_code: str) -> str | None:
             # Divide by units for a rough per-unit estimate
             market = building_market / units_total
 
-        # Per-unit value >$6M is almost certainly a misclassified commercial building
+        # Per-unit value >$6M is suspect — skip and log for manual review
         if market > 6_000_000:
-            _enrich_cache[cache_key] = 'Commercial'
-            print(f'  PLUTO {normalized}: Commercial (per-unit ${market:,.0f} > $6M threshold, class {bldg_class})')
-            return 'Commercial'
+            _enrich_cache[cache_key] = None
+            print(f'  PLUTO {normalized}: SKIPPED (per-unit ${market:,.0f} > $6M, needs manual check)')
+            return None
 
         def _fmt(v: float) -> str:
             return f'${v / 1_000_000:.1f}M' if v >= 1_000_000 else f'${round(v / 1_000)}K'
