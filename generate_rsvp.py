@@ -1137,13 +1137,12 @@ def score_contact(p: dict) -> tuple:
         return 2, flags
 
     # ── HIGH signals ──────────────────────────────────────────────────────────
+    _at_finance_co = any(fc in company for fc in FINANCE_COMPANIES)
     if email_domain(email) in FINANCE_DOMAINS:
         sc = 5
     elif is_physician(title, email, company):
         sc = 5
     elif has_high_title(title):
-        sc = 5
-    elif any(fc in company for fc in FINANCE_COMPANIES):
         sc = 5
     else:
         # RE developers/executives (SVP at Extell etc.) → Medium-High
@@ -1154,7 +1153,9 @@ def score_contact(p: dict) -> tuple:
             'vice president', 'vp', 'director', 'senior director', 'svp', 'evp', 'avp',
             'senior manager', 'senior vice', 'associate director',
         ])
-        if re_exec_co and re_exec_title:
+        if _at_finance_co:
+            sc = 4
+        elif re_exec_co and re_exec_title:
             sc = 4
         elif medium_high:
             sc = 4
@@ -1269,6 +1270,8 @@ def explain_score(p: dict, sc: int, flags: list) -> str:
     if sc == 4:
         if has_high_title(title):
             return 'Senior title — no firm-quality signal'
+        if any(fc in company for fc in FINANCE_COMPANIES):
+            return 'Mid-level role at top-tier finance firm'
         if any(t in title for t in ('senior director', 'associate director')) or \
            any(t in title for t in ('vp', 'vice president', 'svp', 'evp', 'avp')) or \
            ('director' in title and 'art director' not in title):
@@ -2026,7 +2029,7 @@ def render_detail_row(p: dict, per: str, nw: str, sc: int = 0, flags: list = Non
         f'<p class="detail-cell-label">Persona</p>'
         f'<span class="persona-detail-pill">{escape(per)}</span>'
         + (
-            f'<p class="detail-cell-label" style="margin-top:10px">Score Logic</p>'
+            f'<p class="detail-cell-label" style="margin-top:10px">Tier Logic</p>'
             f'<div style="font-size:0.78rem;color:#3a5070;line-height:1.4">{escape(explain_score(p, sc, flags or []))}</div>'
             if sc else ''
         )
@@ -2284,7 +2287,7 @@ def render_panel(date_str: str, contacts: list, tab_id: str, active: bool, past:
     show_unk = date_str >= '2026-04-20'
     rows_html = ''.join(render_row(i + 1, c, show_dropdown, show_unk) for i, c in enumerate(sorted_contacts))
 
-    opts = '<option value="">All Scores</option>\n' + '\n'.join(
+    opts = '<option value="">All Tiers</option>\n' + '\n'.join(
         f'<option value="{s}">{s} — {SCORE_LABELS[s]}</option>'
         for s in SCORES if counts[s]
     )
@@ -2321,7 +2324,7 @@ def render_panel(date_str: str, contacts: list, tab_id: str, active: bool, past:
         <th>Name</th>
         <th>Title / Company</th>
         <th style="width:120px">Property</th>
-        <th style="width:120px">Score</th>
+        <th style="width:120px">Tier</th>
         <th style="width:120px">Threshold</th>
         <th style="width:120px">Links</th>
         <th style="width:120px">Email F/U</th>
@@ -2597,7 +2600,7 @@ header{{background:#1b3c6e;padding:16px 28px;position:sticky;top:0;z-index:100;
 <div class="score-popover" id="scorePopover">
   <div style="font-size:0.65rem;color:#8a9fc0;text-transform:uppercase;letter-spacing:0.1em;
               padding:2px 6px 6px;border-bottom:1px solid #eef1f7;margin-bottom:2px">
-    Override score
+    Override tier
   </div>
 </div>
 
@@ -3986,14 +3989,14 @@ def build_scoring_html(generated_at: str) -> str:
 <main>
 
 <div class="note">
-  Scores run <strong>1 (Low) &rarr; 5 (High)</strong> and represent investment likelihood based on
+  Tiers run <strong>1 (Low) &rarr; 5 (High)</strong> and represent investment likelihood based on
   estimated net worth, title, company, and other signals. Computed automatically from HubSpot
   data each morning at 8am ET. Questions or disagreements? Tell Ani directly.
 </div>
 
-<h2>Score Tiers</h2>
+<h2>Tiers</h2>
 ''' + card5 + card4 + card3 + card2 + card1 + '''
-<h2>Score Caps (override everything above)</h2>
+<h2>Tier Caps (override everything above)</h2>
 <div class="caps">''' + caps_html + '''</div>
 
 <h2>NW Estimation Tiers</h2>
