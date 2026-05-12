@@ -2829,7 +2829,7 @@ function renderPastTab(tabId) {{
   for (var i = 0; i < contacts.length; i++) {{
     var c = contacts[i];
     var m = SCORE_META[c.score] || {{label:'—', fg:'#666', bg:'#eee'}};
-    var coFlagHtml = c.coFlag ? '<span title="Email domain (' + escHtml(c.emailDom) + ') doesn\'t match company" style="color:#c94040;font-size:0.65rem;margin-left:4px;cursor:help">⚑</span>' : '';
+    var coFlagHtml = c.coFlag ? '<span title="Email domain (' + escHtml(c.emailDom) + ') does not match company" style="color:#c94040;font-size:0.65rem;margin-left:4px;cursor:help">⚑</span>' : '';
     var titleHtml = (c.jobtitle ? '<div style="font-size:0.82rem">' + escHtml(c.jobtitle) + '</div>' : '') +
                     (c.company  ? '<div style="font-size:0.75rem;color:#7a94b8">' + escHtml(c.company) + coFlagHtml + '</div>' : '');
     var propHtml = '';
