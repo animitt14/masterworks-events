@@ -982,6 +982,30 @@ def domain_to_company(email: str) -> str:
     words = words.replace('-', ' ').replace('_', ' ')
     return words.title()
 
+_DOMAIN_ALIASES = {
+    'bofa': ['bank of america', 'bofa', 'merrill'],
+    'baml': ['bank of america', 'merrill lynch'],
+    'gs': ['goldman sachs', 'goldman'],
+    'ms': ['morgan stanley'],
+    'jpm': ['jpmorgan', 'jp morgan', 'chase'],
+    'jpmc': ['jpmorgan', 'jp morgan', 'chase'],
+    'citi': ['citigroup', 'citibank', 'citi'],
+    'ubs': ['ubs'],
+    'rbc': ['rbc', 'royal bank'],
+    'db': ['deutsche bank'],
+    'cs': ['credit suisse'],
+    'hsbc': ['hsbc'],
+    'bny': ['bny mellon', 'bank of new york'],
+    'ml': ['merrill lynch', 'merrill'],
+    'wf': ['wells fargo'],
+    'wellsfargo': ['wells fargo'],
+    'barclays': ['barclays'],
+    'lazard': ['lazard'],
+    'evercore': ['evercore'],
+    'pjt': ['pjt partners'],
+    'moelis': ['moelis'],
+}
+
 def _email_company_mismatch(email: str, company: str) -> bool:
     """True when a work-email domain doesn't match the HubSpot company name."""
     dom = email_domain(email)
@@ -996,8 +1020,13 @@ def _email_company_mismatch(email: str, company: str) -> bool:
         return False
     if host in co or co in host:
         return False
+    # known abbreviation aliases
+    co_lower = company.lower()
+    if host in _DOMAIN_ALIASES:
+        if any(a in co_lower for a in _DOMAIN_ALIASES[host]):
+            return False
     # check if any company word (3+ chars) appears in the domain
-    for w in re.split(r'[\s\-&,./]+', company.lower()):
+    for w in re.split(r'[\s\-&,./]+', co_lower):
         if len(w) >= 3 and w in host:
             return False
     # check if domain parts appear in company
