@@ -2707,15 +2707,33 @@ function closePopover() {{
   activeCell = null;
 }}
 
+function todayStr() {{
+  var d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}}
+
 function setOverride(cid, sc, tabId) {{
   var key = 'override_' + cid;
   if (sc === getAutoScore(cid, tabId)) {{
     removeSharedState(key);
   }} else {{
-    saveSharedState(key, sc);
+    saveSharedState(key, sc + '|' + todayStr());
   }}
   applyOverride(cid, sc, tabId);
   updateResetBtn(tabId);
+}}
+
+function readOverride(cid) {{
+  var raw = getSharedState('override_' + cid);
+  if (!raw) return null;
+  var parts = raw.split('|');
+  var sc = parseInt(parts[0]);
+  var dt = parts[1] || '';
+  if (dt && dt !== todayStr()) {{
+    removeSharedState('override_' + cid);
+    return null;
+  }}
+  return sc;
 }}
 
 function getAutoScore(cid, tabId) {{
@@ -2729,7 +2747,7 @@ function applyOverride(cid, sc, tabId) {{
   var cell   = row.querySelector('.score-cell');
   var m      = SCORE_META[sc];
   var auto   = parseInt(row.dataset.auto);
-  var manual = getSharedState('override_' + cid);
+  var manual = readOverride(cid);
 
   row.dataset.score = sc;
   cell.innerHTML =
@@ -2739,10 +2757,10 @@ function applyOverride(cid, sc, tabId) {{
     'letter-spacing:0.03em;white-space:nowrap;cursor:pointer;' +
     'display:inline-flex;align-items:center;gap:5px">' +
     '<span class="score-num">' + sc + '</span>' +
-    (manual ? '<span style="font-size:0.62rem;opacity:0.6" title="Manually overridden">✏</span>' : '') +
+    (manual !== null ? '<span style="font-size:0.62rem;opacity:0.6" title="Manually overridden">✏</span>' : '') +
     '</span>';
 
-  if (manual && parseInt(manual) !== auto) {{
+  if (manual !== null && manual !== auto) {{
     row.classList.add('overridden');
   }} else {{
     row.classList.remove('overridden');
@@ -2872,8 +2890,8 @@ function applyStoredOverrides(tabId) {{
   var rows = document.querySelectorAll('#tbl-' + tabId + ' tbody tr');
   rows.forEach(function(row) {{
     var cid = row.dataset.id;
-    var val = getSharedState('override_' + cid);
-    if (val) applyOverride(cid, parseInt(val), tabId);
+    var val = readOverride(cid);
+    if (val !== null) applyOverride(cid, val, tabId);
     if (getSharedState('uninvite_' + cid)) {{
       row.classList.add('uninvited');
       var uchk = row.querySelector('.uninvite-chk');
@@ -2894,7 +2912,7 @@ function applyStoredOverrides(tabId) {{
 function updateResetBtn(tabId) {{
   var rows   = document.querySelectorAll('#tbl-' + tabId + ' tbody tr');
   var hasAny = Array.from(rows).some(function(r) {{
-    return getSharedState('override_'  + r.dataset.id) ||
+    return readOverride(r.dataset.id) !== null ||
            getSharedState('uninvite_'  + r.dataset.id) ||
            getSharedState('attended_'  + r.dataset.id) ||
            getSharedState('sendconf_'  + r.dataset.id);
