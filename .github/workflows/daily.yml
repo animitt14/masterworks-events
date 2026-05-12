@@ -32,6 +32,7 @@ jobs:
           ROCKETREACH_API_KEY: ${{ secrets.ROCKETREACH_API_KEY }}
           GOOGLE_API_KEY:  ${{ secrets.GOOGLE_API_KEY }}
           GOOGLE_CSE_ID:   ${{ secrets.GOOGLE_CSE_ID }}
+          CENSUS_API_KEY: ${{ secrets.CENSUS_API_KEY }}
           GITHUB_REPO: ${{ github.repository }}
         run: python generate_rsvp.py
 

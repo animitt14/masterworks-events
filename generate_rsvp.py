@@ -36,6 +36,7 @@ GOOGLE_CSE_ID      = os.environ.get('GOOGLE_CSE_ID', '')
 # professional contacts because RocketReach pulls from LinkedIn primarily,
 # not Twitter/X.
 ROCKETREACH_API_KEY = os.environ.get('ROCKETREACH_API_KEY', '').strip()
+CENSUS_API_KEY      = os.environ.get('CENSUS_API_KEY', '').strip()
 GOOGLE_SEARCH_URL  = 'https://www.googleapis.com/customsearch/v1'
 ENRICH_LIMIT       = 95   # stay just under the 100/day free quota
 
@@ -834,17 +835,51 @@ def fetch_pluto_value(address: str, city: str, zip_code: str) -> str | None:
         return None
 
 
+def fetch_census_value(zip_code: str) -> str | None:
+    """Query Census ACS5 for median home value by zip. Returns e.g. '$580K median'."""
+    if not zip_code or not CENSUS_API_KEY:
+        return None
+    cache_key = f'census:{zip_code}'
+    if cache_key in _enrich_cache:
+        return _enrich_cache[cache_key]
+    try:
+        r = requests.get(
+            'https://api.census.gov/data/2022/acs/acs5',
+            params={'get': 'B25077_001E', 'for': f'zip code tabulation area:{zip_code}',
+                    'key': CENSUS_API_KEY},
+            timeout=10)
+        if not r.ok:
+            _enrich_cache[cache_key] = None
+            return None
+        data = r.json()
+        val = int(data[1][0])
+        if val <= 0:
+            _enrich_cache[cache_key] = None
+            return None
+        fmt = f'${val / 1_000_000:.1f}M' if val >= 1_000_000 else f'${round(val / 1_000)}K'
+        result = f'{fmt} median'
+        _enrich_cache[cache_key] = result
+        print(f'  Census {zip_code}: {result}')
+        return result
+    except Exception as e:
+        print(f'  Census exception for {zip_code}: {e}', file=sys.stderr)
+        _enrich_cache[cache_key] = None
+        return None
+
+
 def pluto_enrich_contacts(contacts: list) -> int:
-    """Look up NYC PLUTO property values for today+future contacts with addresses."""
+    """Look up property values: PLUTO for NYC, Census ACS fallback for others."""
     count = 0
     for c in contacts:
         p       = c['properties']
         address  = (p.get('address')  or '').strip()
         city     = (p.get('city')     or '').strip()
         zip_code = (p.get('zip')      or '').strip()
-        if not address:
+        if not address and not zip_code:
             continue
-        val = fetch_pluto_value(address, city, zip_code)
+        val = fetch_pluto_value(address, city, zip_code) if address else None
+        if val is None and zip_code:
+            val = fetch_census_value(zip_code)
         if val is not None:
             p['_pluto_val'] = val
             count += 1
@@ -3037,7 +3072,7 @@ async function _fetchCensusValue(zip) {{
   if (!zip) return null;
   if (_censusCache[zip] !== undefined) return _censusCache[zip];
   try {{
-    var url = 'https://api.census.gov/data/2022/acs/acs5?get=B25077_001E&for=zip%20code%20tabulation%20area:' + zip;
+    var url = 'https://api.census.gov/data/2022/acs/acs5?get=B25077_001E&for=zip%20code%20tabulation%20area:' + zip + '&key={escape(CENSUS_API_KEY)}';
     var res = await fetch(url);
     var data = await res.json();
     var val = parseInt(data[1][0]);
