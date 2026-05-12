@@ -2164,7 +2164,7 @@ def render_panel(date_str: str, contacts: list, tab_id: str, active: bool, past:
         <th style="width:34px">#</th>
         <th>Name</th>
         <th>Title / Company</th>
-        <th>Likelihood <span style="font-size:0.6rem;opacity:0.6">(click to override)</span></th>
+        <th>Score</th>
         <th>Threshold</th>
         <th>Links</th>
         <th>Status</th>
