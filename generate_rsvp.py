@@ -1878,7 +1878,7 @@ def render_detail_row(p: dict, per: str, nw: str) -> str:
 
     return (
         f'<tr class="detail-row" style="display:none">'
-        f'<td colspan="9" style="padding:0;border-bottom:1px solid #eef1f7;width:100%">'
+        f'<td colspan="8" style="padding:0;border-bottom:1px solid #eef1f7;width:100%">'
         f'<div class="detail-inner">'
         f'<div class="detail-cell">'
         f'<p class="detail-cell-label">Persona</p>'
@@ -2003,10 +2003,9 @@ def render_row(idx: int, c: dict, show_dropdown: bool = False, show_unk: bool = 
         f'<td>{name_cell}</td>'
         f'<td>{tc_html}</td>'
         f'<td style="text-align:center" class="score-cell">{score_badge_html(sc)}{dq_qp_tag_html(p) if show_dropdown else ""}</td>'
-        f'<td style="text-align:center">'
+        f'<td style="text-align:center;white-space:nowrap">'
         f'<a href="{li_url(name, company, p)}" target="_blank" '
-        f'style="color:#0a66c2;font-weight:700;text-decoration:none;font-size:0.8rem">LI↗</a></td>'
-        f'<td style="text-align:center">'
+        f'style="color:#0a66c2;font-weight:700;text-decoration:none;font-size:0.8rem;margin-right:8px">LI↗</a>'
         f'<a href="{hs_url(cid)}" target="_blank" '
         f'style="color:#ff7a59;font-weight:700;text-decoration:none;font-size:0.8rem">HS↗</a></td>'
         f'<td style="text-align:center">'
@@ -2111,8 +2110,7 @@ def render_panel(date_str: str, contacts: list, tab_id: str, active: bool, past:
         <th>Name</th>
         <th>Title / Company</th>
         <th>Likelihood</th>
-        <th>LinkedIn</th>
-        <th>HubSpot</th>
+        <th>Links</th>
       </tr></thead>
       <tbody id="tbody-{tab_id}"></tbody>
     </table>
@@ -2161,8 +2159,7 @@ def render_panel(date_str: str, contacts: list, tab_id: str, active: bool, past:
         <th>Name</th>
         <th>Title / Company</th>
         <th>Likelihood <span style="font-size:0.6rem;opacity:0.6">(click to override)</span></th>
-        <th>LinkedIn</th>
-        <th>HubSpot</th>
+        <th>Links</th>
         <th>Uninvite<br><span id="uninvite-count-{tab_id}" style="font-size:0.65rem;color:#c04040;font-weight:400">{uninvite_count if uninvite_count else ''}</span></th>
         <th>Attended<br><span id="attended-count-{tab_id}" style="font-size:0.65rem;color:#1a7a45;font-weight:400">{attended_count if attended_count else ''}</span></th>
         <th>Send Confirmation?<br><span id="sendconf-count-{tab_id}" style="font-size:0.65rem;color:#1a5fa8;font-weight:400">{send_conf_count if send_conf_count else ''}</span></th>
@@ -2596,15 +2593,14 @@ function renderPastTab(tabId) {{
     var badge = '<span style="background:' + m.bg + ';color:' + m.fg + ';border:1px solid ' + m.fg + '55;' +
                 'padding:4px 11px;border-radius:12px;font-size:0.78rem;font-weight:700">' +
                 c.score + ' \u2014 ' + m.label + '</span>';
-    var liCell = c.li ? '<a href="' + escHtml(c.li) + '" target="_blank" rel="noopener" style="color:#0077b5;font-size:0.78rem">LinkedIn</a>' : '\u2014';
-    var hsCell = '<a href="' + escHtml(c.hs) + '" target="_blank" rel="noopener" style="font-size:0.78rem;color:#c9a84c">HS</a>';
+    var liLink = c.li ? '<a href="' + escHtml(c.li) + '" target="_blank" rel="noopener" style="color:#0a66c2;font-weight:700;text-decoration:none;font-size:0.8rem;margin-right:8px">LI\u2197</a>' : '';
+    var hsLink = '<a href="' + escHtml(c.hs) + '" target="_blank" rel="noopener" style="color:#ff7a59;font-weight:700;text-decoration:none;font-size:0.8rem">HS\u2197</a>';
     html += '<tr>' +
       '<td style="color:#9aaac0;font-size:0.78rem">' + (i + 1) + '</td>' +
       '<td style="font-weight:600">' + escHtml(c.name) + '</td>' +
       '<td>' + titleHtml + '</td>' +
       '<td>' + badge + '</td>' +
-      '<td>' + liCell + '</td>' +
-      '<td>' + hsCell + '</td>' +
+      '<td style="text-align:center;white-space:nowrap">' + liLink + hsLink + '</td>' +
     '</tr>';
   }}
   tbody.innerHTML = html;
