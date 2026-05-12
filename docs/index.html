@@ -139,7 +139,7 @@ header{background:#1b3c6e;padding:16px 28px;position:sticky;top:0;z-index:100;
     <div>
       <div class="brand">Masterworks · Outbound</div>
       <div class="title">RSVP Lead Dashboard</div>
-      <div class="meta">Updated May 12, 2026 at 5:55 PM UTC</div>
+      <div class="meta">Updated May 12, 2026 at 5:56 PM UTC</div>
     </div>
     <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
       <div class="date-jump-wrap">
@@ -1739,7 +1739,7 @@ function renderPastTab(tabId) {
   for (var i = 0; i < contacts.length; i++) {
     var c = contacts[i];
     var m = SCORE_META[c.score] || {label:'—', fg:'#666', bg:'#eee'};
-    var coFlagHtml = c.coFlag ? '<span title="Email domain (' + escHtml(c.emailDom) + ') doesn't match company" style="color:#c94040;font-size:0.65rem;margin-left:4px;cursor:help">⚑</span>' : '';
+    var coFlagHtml = c.coFlag ? '<span title="Email domain (' + escHtml(c.emailDom) + ') does not match company" style="color:#c94040;font-size:0.65rem;margin-left:4px;cursor:help">⚑</span>' : '';
     var titleHtml = (c.jobtitle ? '<div style="font-size:0.82rem">' + escHtml(c.jobtitle) + '</div>' : '') +
                     (c.company  ? '<div style="font-size:0.75rem;color:#7a94b8">' + escHtml(c.company) + coFlagHtml + '</div>' : '');
     var propHtml = '';
