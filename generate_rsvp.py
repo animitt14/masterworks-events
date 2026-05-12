@@ -897,12 +897,14 @@ def pluto_enrich_contacts(contacts: list) -> int:
         zip_code = (p.get('zip')      or '').strip()
         if not address and not zip_code:
             continue
-        val = fetch_pluto_value(address, city, zip_code) if address else None
+        if _COMMERCIAL_KEYWORDS.search(address):
+            val = 'Commercial'
+        elif address:
+            val = fetch_pluto_value(address, city, zip_code)
+        else:
+            val = None
         if val is None and zip_code:
-            if _COMMERCIAL_KEYWORDS.search(address):
-                val = 'Commercial'
-            else:
-                val = fetch_census_value(zip_code)
+            val = fetch_census_value(zip_code)
         if val is not None:
             p['_pluto_val'] = val
             count += 1
