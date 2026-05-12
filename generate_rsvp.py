@@ -1345,11 +1345,11 @@ def dq_qp_tag(p: dict) -> str:
 
 
 def dq_qp_tag_html(p: dict) -> str:
-    """Renders the DQ/QP pill — blank for UNCERTAIN and Guest contacts."""
-    if (p.get('unknown_rsvp') or '').strip() == 'Guest':
-        return ''
+    """Renders the DQ/QP pill — blank for UNCERTAIN. Guests can be QP but not DQ."""
     tag = dq_qp_tag(p)
     if not tag or tag == 'UNCERTAIN':
+        return ''
+    if tag == 'DQ' and (p.get('unknown_rsvp') or '').strip() == 'Guest':
         return ''
     fg, bg = TAG_STYLES[tag]
     return (
