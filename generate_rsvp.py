@@ -2011,7 +2011,7 @@ def render_row(idx: int, c: dict, show_dropdown: bool = False, show_unk: bool = 
         f'<td>{tc_html}</td>'
         f'<td style="text-align:center" class="score-cell">{score_badge_html(sc)}</td>'
         + (f'<td style="text-align:center">{dq_qp_tag_html(p)}</td>' if show_dropdown else '')
-        f'<td style="text-align:center;white-space:nowrap">'
+        + f'<td style="text-align:center;white-space:nowrap">'
         f'<a href="{li_url(name, company, p)}" target="_blank" '
         f'style="color:#0a66c2;font-weight:700;text-decoration:none;font-size:0.8rem;margin-right:8px">LI↗</a>'
         f'<a href="{hs_url(cid)}" target="_blank" '
