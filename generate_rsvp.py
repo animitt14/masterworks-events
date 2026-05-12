@@ -2028,8 +2028,6 @@ def render_row(idx: int, c: dict, show_dropdown: bool = False, show_unk: bool = 
     pluto_val = (p.get('_pluto_val') or '').strip()
     if pluto_val and pluto_val != 'Commercial':
         prop_html = f'<span style="font-size:0.75rem">{escape(pluto_val)}</span>'
-    elif pluto_val == 'Commercial':
-        prop_html = '<span style="font-size:0.72rem;color:#8a6800">Commercial</span>'
     else:
         prop_html = '<span style="color:#c0ccd8">—</span>'
 
@@ -2665,8 +2663,6 @@ function renderPastTab(tabId) {{
     var propHtml = '';
     if (c.pluto && c.pluto !== 'Commercial') {{
       propHtml = '<span style="font-size:0.75rem">' + escHtml(c.pluto) + '</span>';
-    }} else if (c.pluto === 'Commercial') {{
-      propHtml = '<span style="font-size:0.72rem;color:#8a6800">Commercial</span>';
     }} else {{
       propHtml = '<span style="color:#c0ccd8">\u2014</span>';
     }}
