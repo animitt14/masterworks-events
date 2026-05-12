@@ -1877,7 +1877,7 @@ def render_detail_row(p: dict, per: str, nw: str) -> str:
 
     return (
         f'<tr class="detail-row" style="display:none">'
-        f'<td colspan="8" style="padding:0;border-bottom:1px solid #eef1f7;width:100%">'
+        f'<td colspan="9" style="padding:0;border-bottom:1px solid #eef1f7;width:100%">'
         f'<div class="detail-inner">'
         f'<div class="detail-cell">'
         f'<p class="detail-cell-label">Persona</p>'
@@ -2009,7 +2009,8 @@ def render_row(idx: int, c: dict, show_dropdown: bool = False, show_unk: bool = 
         f'<td style="color:#aabcd4;text-align:center">{idx}</td>'
         f'<td>{name_cell}</td>'
         f'<td>{tc_html}</td>'
-        f'<td style="text-align:center" class="score-cell">{score_badge_html(sc)}{dq_qp_tag_html(p) if show_dropdown else ""}</td>'
+        f'<td style="text-align:center" class="score-cell">{score_badge_html(sc)}</td>'
+        + (f'<td style="text-align:center">{dq_qp_tag_html(p)}</td>' if show_dropdown else '')
         f'<td style="text-align:center;white-space:nowrap">'
         f'<a href="{li_url(name, company, p)}" target="_blank" '
         f'style="color:#0a66c2;font-weight:700;text-decoration:none;font-size:0.8rem;margin-right:8px">LI↗</a>'
@@ -2166,6 +2167,7 @@ def render_panel(date_str: str, contacts: list, tab_id: str, active: bool, past:
         <th>Name</th>
         <th>Title / Company</th>
         <th>Likelihood <span style="font-size:0.6rem;opacity:0.6">(click to override)</span></th>
+        <th>Threshold</th>
         <th>Links</th>
         <th>Uninvite<br><span id="uninvite-count-{tab_id}" style="font-size:0.65rem;color:#c04040;font-weight:400">{uninvite_count if uninvite_count else ''}</span></th>
         <th>Attended<br><span id="attended-count-{tab_id}" style="font-size:0.65rem;color:#1a7a45;font-weight:400">{attended_count if attended_count else ''}</span></th>
