@@ -1877,7 +1877,7 @@ def render_detail_row(p: dict, per: str, nw: str) -> str:
 
     return (
         f'<tr class="detail-row" style="display:none">'
-        f'<td colspan="9" style="padding:0;border-bottom:1px solid #eef1f7;width:100%">'
+        f'<td colspan="8" style="padding:0;border-bottom:1px solid #eef1f7;width:100%">'
         f'<div class="detail-inner">'
         f'<div class="detail-cell">'
         f'<p class="detail-cell-label">Persona</p>'
@@ -2017,16 +2017,14 @@ def render_row(idx: int, c: dict, show_dropdown: bool = False, show_unk: bool = 
         f'<a href="{hs_url(cid)}" target="_blank" '
         f'style="color:#ff7a59;font-weight:700;text-decoration:none;font-size:0.8rem">HS↗</a></td>'
         f'<td style="text-align:center">'
-        f'<input type="checkbox" class="uninvite-chk" {uninvite_chk} onchange="toggleUninvite(this)" '
-        f'style="width:16px;height:16px;cursor:pointer;accent-color:#c94040" title="Uninvite"></td>'
+        f'<div class="status-slider" data-state="{"uninvite" if disqualified else "conf" if send_conf else "neutral"}">'
+        f'<div class="slider-track"><div class="slider-thumb"></div></div>'
+        f'<div class="slider-labels"><span class="sl-conf">✓</span><span class="sl-uninv">✕</span></div>'
+        f'</div></td>'
         f'<td style="text-align:center">'
         f'<input type="checkbox" class="attended-chk" {attended_chk} '
         f'onchange="toggleAttended(this)" '
         f'style="width:16px;height:16px;cursor:pointer;accent-color:#1a7a45"></td>'
-        f'<td style="text-align:center">'
-        f'<input type="checkbox" class="sendconf-chk" {send_conf_chk} '
-        f'onchange="toggleSendConfirmation(this)" '
-        f'style="width:16px;height:16px;cursor:pointer;accent-color:#1a5fa8" title="Send Confirmation"></td>'
         f'</tr>\n'
         f'{detail_row}'
     )
@@ -2169,9 +2167,8 @@ def render_panel(date_str: str, contacts: list, tab_id: str, active: bool, past:
         <th>Likelihood <span style="font-size:0.6rem;opacity:0.6">(click to override)</span></th>
         <th>Threshold</th>
         <th>Links</th>
-        <th>Uninvite<br><span id="uninvite-count-{tab_id}" style="font-size:0.65rem;color:#c04040;font-weight:400">{uninvite_count if uninvite_count else ''}</span></th>
+        <th>Status</th>
         <th>Attended<br><span id="attended-count-{tab_id}" style="font-size:0.65rem;color:#1a7a45;font-weight:400">{attended_count if attended_count else ''}</span></th>
-        <th>Conf?</th>
       </tr></thead>
       <tbody>{rows_html}</tbody>
     </table>
@@ -2340,6 +2337,19 @@ header{{background:#1b3c6e;padding:16px 28px;position:sticky;top:0;z-index:100;
                 justify-content:center;font-weight:700;font-size:0.78rem;flex-shrink:0}}
 
 .rsvp-table tbody tr.uninvited{{opacity:0.35;text-decoration:line-through}}
+
+/* Three-state status slider */
+.status-slider{{position:relative;width:48px;height:20px;display:inline-block;cursor:pointer;user-select:none}}
+.slider-track{{position:absolute;top:3px;left:0;right:0;height:14px;background:#d0d5dd;border-radius:7px;transition:background 0.2s}}
+.slider-thumb{{position:absolute;top:1px;left:16px;width:12px;height:12px;background:#fff;border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,0.3);transition:left 0.15s}}
+.slider-labels{{position:absolute;top:2px;left:0;right:0;height:16px;display:flex;justify-content:space-between;align-items:center;padding:0 3px;pointer-events:none;font-size:0.55rem;font-weight:700}}
+.sl-conf{{color:#1a7a45;opacity:0}} .sl-uninv{{color:#a83030;opacity:0}}
+.status-slider[data-state="conf"] .slider-track{{background:#c0e8d0}}
+.status-slider[data-state="conf"] .slider-thumb{{left:2px}}
+.status-slider[data-state="conf"] .sl-conf{{opacity:1}}
+.status-slider[data-state="uninvite"] .slider-track{{background:#f5c4c4}}
+.status-slider[data-state="uninvite"] .slider-thumb{{left:33px}}
+.status-slider[data-state="uninvite"] .sl-uninv{{opacity:1}}
 
 /* ── Contact detail dropdown (today + future events only) ── */
 .expand-chevron{{font-size:9px;color:#aaa;display:inline-block;transition:transform .15s;cursor:pointer}}
@@ -2629,6 +2639,7 @@ function switchTab(id) {{
   if (el) el.style.display = 'block';
   renderPastTab(id);
   applyStoredOverrides(id);
+  initSliders();
   updateResetBtn(id);
 }}
 
@@ -2810,18 +2821,43 @@ function reorderTab(tabId) {{
   }});
 }}
 
-function toggleUninvite(chk) {{
-  var row = chk.closest('tr');
+function initSliders() {{
+  document.querySelectorAll('.status-slider').forEach(function(sl) {{
+    sl.addEventListener('click', function(e) {{
+      var rect = sl.getBoundingClientRect();
+      var x = e.clientX - rect.left;
+      var third = rect.width / 3;
+      var newState;
+      if (x < third) newState = 'conf';
+      else if (x > third * 2) newState = 'uninvite';
+      else newState = 'neutral';
+      setSliderState(sl, newState);
+    }});
+  }});
+}}
+
+function setSliderState(sl, state) {{
+  var row = sl.closest('tr');
   var cid = row.dataset.id;
   var tid = row.closest('.tab-panel').id.replace('tab-','');
-  if (chk.checked) {{
+  var prev = sl.getAttribute('data-state');
+  sl.setAttribute('data-state', state);
+
+  if (state === 'uninvite') {{
     saveSharedState('uninvite_' + cid, '1');
+    removeSharedState('sendconf_' + cid);
     row.classList.add('uninvited');
+  }} else if (state === 'conf') {{
+    saveSharedState('sendconf_' + cid, '1');
+    removeSharedState('uninvite_' + cid);
+    row.classList.remove('uninvited');
   }} else {{
     removeSharedState('uninvite_' + cid);
+    removeSharedState('sendconf_' + cid);
     row.classList.remove('uninvited');
   }}
   _syncUninvitesToGist();
+  _syncSharedStateToGist();
   reorderTab(tid);
   refreshHeader(tid);
   updateResetBtn(tid);
@@ -2842,19 +2878,6 @@ function toggleAttended(chk) {{
   updateResetBtn(tid);
 }}
 
-function toggleSendConfirmation(chk) {{
-  var row = chk.closest('tr');
-  var cid = row.dataset.id;
-  var tid = row.closest('.tab-panel').id.replace('tab-','');
-  if (chk.checked) {{
-    saveSharedState('sendconf_' + cid, '1');
-  }} else {{
-    removeSharedState('sendconf_' + cid);
-  }}
-  _syncSharedStateToGist();
-  refreshHeader(tid);
-  updateResetBtn(tid);
-}}
 
 function refreshHeader(tabId) {{
   var el = document.getElementById('attended-score-' + tabId);
@@ -2870,17 +2893,9 @@ function refreshHeader(tabId) {{
   var attEl = document.getElementById('attended-count-' + tabId);
   if (attEl) attEl.textContent = attCount || '';
 
-  var uninvCount = document.querySelectorAll('#tbl-' + tabId + ' .uninvite-chk:checked').length;
-  var uninvEl = document.getElementById('uninvite-count-' + tabId);
-  if (uninvEl) uninvEl.textContent = uninvCount || '';
-
-  var sendConfCount = document.querySelectorAll('#tbl-' + tabId + ' .sendconf-chk:checked').length;
-  var sendConfEl = document.getElementById('sendconf-count-' + tabId);
-  if (sendConfEl) sendConfEl.textContent = sendConfCount || '';
-
   var dayScore = 0;
   document.querySelectorAll('#tbl-' + tabId + ' tbody tr').forEach(function(row) {{
-    if (!row.querySelector('.uninvite-chk:checked')) {{
+    if (!row.classList.contains('uninvited')) {{
       dayScore += parseInt(row.dataset.score) || 0;
     }}
   }});
@@ -2894,18 +2909,18 @@ function applyStoredOverrides(tabId) {{
     var cid = row.dataset.id;
     var val = readOverride(cid);
     if (val !== null) applyOverride(cid, val, tabId);
-    if (getSharedState('uninvite_' + cid)) {{
-      row.classList.add('uninvited');
-      var uchk = row.querySelector('.uninvite-chk');
-      if (uchk) uchk.checked = true;
+    var sl = row.querySelector('.status-slider');
+    if (sl) {{
+      if (getSharedState('uninvite_' + cid)) {{
+        sl.setAttribute('data-state', 'uninvite');
+        row.classList.add('uninvited');
+      }} else if (getSharedState('sendconf_' + cid)) {{
+        sl.setAttribute('data-state', 'conf');
+      }}
     }}
     if (getSharedState('attended_' + cid)) {{
       var achk = row.querySelector('.attended-chk');
       if (achk) achk.checked = true;
-    }}
-    if (getSharedState('sendconf_' + cid)) {{
-      var schk = row.querySelector('.sendconf-chk');
-      if (schk) schk.checked = true;
     }}
   }});
   refreshHeader(tabId);
@@ -2937,12 +2952,10 @@ function resetOverrides(tabId) {{
     removeSharedState('sendconf_' + cid);
     applyOverride(cid, auto, tabId);
     row.classList.remove('uninvited');
-    var uchk = row.querySelector('.uninvite-chk');
-    if (uchk) uchk.checked = false;
+    var sl = row.querySelector('.status-slider');
+    if (sl) sl.setAttribute('data-state', 'neutral');
     var achk = row.querySelector('.attended-chk');
     if (achk) achk.checked = false;
-    var schk = row.querySelector('.sendconf-chk');
-    if (schk) schk.checked = false;
     if (wasUninvited) _patchHubSpot(cid, {{outbound_event_attendee_disqualified: ''}});
     if (wasAttended)  _patchHubSpot(cid, {{attended_outbound_event: ''}});
     if (wasSendConf)  _syncSharedStateToGist();
@@ -3070,6 +3083,7 @@ document.querySelectorAll('tr[data-contact]').forEach(function(row) {{
       applyStoredOverrides(defaultTab);
       updateResetBtn(defaultTab);
     }}
+    initSliders();
     if ('{past_default_label}' && defaultTab === '{default_tab}') {{
       document.querySelectorAll('.past-opt').forEach(function(o) {{
         if (o.dataset.tid === defaultTab) o.classList.add('active-past');
