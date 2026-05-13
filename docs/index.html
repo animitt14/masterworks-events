@@ -139,7 +139,7 @@ header{background:#1b3c6e;padding:16px 28px;position:sticky;top:0;z-index:100;
     <div>
       <div class="brand">Masterworks · Outbound</div>
       <div class="title">RSVP Lead Dashboard</div>
-      <div class="meta">Updated May 13, 2026 at 5:22 PM ET</div>
+      <div class="meta">Updated May 13, 2026 at 6:21 PM ET</div>
     </div>
     <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
       <div class="date-jump-wrap">
@@ -159,6 +159,10 @@ header{background:#1b3c6e;padding:16px 28px;position:sticky;top:0;z-index:100;
   <button class="tab-btn past-dropdown-btn" id="pastDropBtn"
           style="color:#9aaac0;"
           onclick="togglePastDropdown(event)">Past Events ▾</button>
+  <div style="flex:1"></div>
+  <button class="tab-btn" data-tab="pipeline" onclick="switchTab('pipeline')"
+    style="border-bottom:3px solid transparent;color:#7a94b8;font-weight:normal;border-left:1px solid #e2e8f4;padding-left:20px;">
+    Pipeline Review</button>
 </div>
 <div class="no-date-msg" id="noDateMsg">No RSVP data for this date in the current window.</div>
 
@@ -212,6 +216,10 @@ header{background:#1b3c6e;padding:16px 28px;position:sticky;top:0;z-index:100;
 <button class="past-opt" data-tid="20260302" onclick="selectPast('20260302','Mon, Mar 2')">Mon, Mar 2 <span style="opacity:0.6;font-size:0.7rem">(36)</span></button>
 <button class="past-opt" data-tid="20260227" onclick="selectPast('20260227','Fri, Feb 27')">Fri, Feb 27 <span style="opacity:0.6;font-size:0.7rem">(43)</span></button>
 <button class="past-opt" data-tid="20260223" onclick="selectPast('20260223','Mon, Feb 23')">Mon, Feb 23 <span style="opacity:0.6;font-size:0.7rem">(38)</span></button>
+</div>
+
+<div id="tab-pipeline" class="tab-panel" style="display:none">
+  <iframe src="pipeline.html" style="width:100%;height:calc(100vh - 130px);border:none;display:block"></iframe>
 </div>
 
 <div class="content">
@@ -293,7 +301,7 @@ header{background:#1b3c6e;padding:16px 28px;position:sticky;top:0;z-index:100;
     <div>
       <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">
         <span class="rsvp-count">29 RSVPs <span style="font-size:0.72rem;color:#9aaac0">(past)</span></span>
-        <span style="font-size:0.78rem;color:#7a94b8">Day score: <strong style="color:#1b3c6e">91</strong></span>
+        <span style="font-size:0.78rem;color:#7a94b8">Day score: <strong style="color:#1b3c6e">89</strong></span>
         <span style="font-size:0.78rem;color:#1a7a45;font-weight:700" id="attended-score-20260511">Attended score: 48</span>
       </div>
       <div class="score-pills" style="margin-top:6px"><span style="background:#0a2f6b;color:#ffffff;padding:2px 9px;border-radius:10px;font-size:0.68rem;font-weight:700;border:1px solid #ffffff44">3× High</span> <span style="background:#1a5fa8;color:#ffffff;padding:2px 9px;border-radius:10px;font-size:0.68rem;font-weight:700;border:1px solid #ffffff44">15× Medium-High</span> <span style="background:#a3c9f0;color:#1a5fa8;padding:2px 9px;border-radius:10px;font-size:0.68rem;font-weight:700;border:1px solid #1a5fa844">7× Medium</span> <span style="background:#d4e6f9;color:#2b6cb0;padding:2px 9px;border-radius:10px;font-size:0.68rem;font-weight:700;border:1px solid #2b6cb044">4× Low-Medium</span></div>
