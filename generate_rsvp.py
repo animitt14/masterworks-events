@@ -2601,7 +2601,7 @@ header{{background:#1b3c6e;padding:16px 28px;position:sticky;top:0;z-index:100;
 .page-tabs{{display:flex;margin-top:2px;border-top:1px solid rgba(255,255,255,0.1)}}
 .page-tab{{padding:10px 22px;font-size:0.7rem;letter-spacing:0.09em;text-transform:uppercase;
            text-decoration:none;color:rgba(255,255,255,0.42);border-bottom:2px solid transparent;
-           transition:all 0.15s;white-space:nowrap}}
+           transition:all 0.15s;white-space:nowrap;background:none;border-top:none;border-left:none;border-right:none;cursor:pointer;font-family:inherit}}
 .page-tab:hover{{color:rgba(255,255,255,0.8);border-bottom-color:rgba(255,255,255,0.25)}}
 .page-tab.active-tab{{color:#fff;border-bottom-color:#c9a84c;font-weight:700}}
 .refresh-btn{{background:none;border:1px solid rgba(255,255,255,0.22);border-radius:6px;
@@ -2641,23 +2641,20 @@ header{{background:#1b3c6e;padding:16px 28px;position:sticky;top:0;z-index:100;
     </div>
   </div>
   <div class="page-tabs">
-    <a href="index.html"   class="page-tab active-tab">RSVP Dashboard</a>
+    <button class="page-tab active-tab" id="pageTabRSVP" onclick="showRSVPMode()">RSVP Dashboard</button>
+    <button class="page-tab" id="pageTabPipeline" onclick="showPipelineMode()">Pipeline Review</button>
   </div>
 </header>
 
 <div class="tab-bar" id="tabBar">
   {''.join(tab_btns)}
   {past_btn_html}
-  <div style="flex:1"></div>
-  <button class="tab-btn" data-tab="pipeline" onclick="switchTab('pipeline')"
-    style="border-bottom:3px solid transparent;color:#7a94b8;font-weight:normal;border-left:1px solid #e2e8f4;padding-left:20px;">
-    Pipeline Review</button>
 </div>
 <div class="no-date-msg" id="noDateMsg">No RSVP data for this date in the current window.</div>
 
 {past_menu_html}
 
-<div id="tab-pipeline" class="tab-panel" style="display:none">
+<div id="pipelinePanel" style="display:none">
   <iframe src="pipeline.html" style="width:100%;height:calc(100vh - 130px);border:none;display:block"></iframe>
 </div>
 
@@ -3329,6 +3326,23 @@ document.querySelectorAll('tr[data-contact]').forEach(function(row) {{
     }}
   }});
 }})();
+
+function showPipelineMode() {{
+  document.getElementById('tabBar').style.display    = 'none';
+  document.getElementById('noDateMsg').style.display = 'none';
+  document.querySelectorAll('.content, .past-dropdown-menu').forEach(function(el) {{ el.style.display = 'none'; }});
+  document.getElementById('pipelinePanel').style.display = 'block';
+  document.getElementById('pageTabRSVP').classList.remove('active-tab');
+  document.getElementById('pageTabPipeline').classList.add('active-tab');
+}}
+
+function showRSVPMode() {{
+  document.getElementById('pipelinePanel').style.display = 'none';
+  document.getElementById('tabBar').style.display    = '';
+  document.querySelectorAll('.content').forEach(function(el) {{ el.style.display = ''; }});
+  document.getElementById('pageTabPipeline').classList.remove('active-tab');
+  document.getElementById('pageTabRSVP').classList.add('active-tab');
+}}
 </script>
 
 <!-- Photo modal — shown when an avatar is clicked -->
