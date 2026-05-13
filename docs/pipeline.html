@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gallery Leads — Pipeline Review</title>
+<style>
+:root {
+  --bg:#141420;--surface:#1E1E30;--surface2:#252538;
+  --border:#2E2E45;--border2:#3A3A55;
+  --text:#F0F0F8;--text2:#8888AA;--text3:#555570;
+  --purple:#7B6FD4;--green:#5BBF7A;--red:#E05A5A;--amber:#E8A84C;
+  --bpp:#1E1A35;--bpt:#9B8FE4;--bap:#261E10;--bat:#E8A84C;
+  --brp:#2A1A1A;--brt:#E05A5A;--bgp:#152515;--bgt:#5BBF7A;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--text);padding:24px;font-size:13px;}
+.dash{max-width:1100px;margin:0 auto;}
+.hdr{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:1.5px solid var(--purple);padding-bottom:12px;margin-bottom:20px;}
+.hdr h1{font-size:20px;font-weight:500;}
+.hdr p{font-size:12px;color:var(--text2);margin-top:3px;}
+.slabel{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text2);border-bottom:.5px solid var(--border);padding-bottom:4px;margin:0 0 10px;}
+.g6{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin-bottom:18px;}
+.kc{background:var(--surface);border-radius:10px;padding:12px 12px 10px;border:.5px solid var(--border);border-top:2px solid var(--purple);}
+.kv{font-size:22px;font-weight:500;line-height:1.1;}
+.kl{font-size:11px;color:var(--text2);margin-top:4px;}
+.ks{font-size:10px;color:var(--text3);font-style:italic;margin-top:2px;}
+.frow{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin-bottom:18px;}
+.fc{background:var(--surface);border:.5px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:10px;}
+.fc-bw{flex:1;}
+.fc-lbl{font-size:11px;color:var(--text2);margin-bottom:5px;}
+.fc-bg{height:4px;background:var(--border);border-radius:2px;}
+.fc-fill{height:4px;border-radius:2px;}
+.fc-nums{text-align:right;white-space:nowrap;}
+.fc-pct{font-size:17px;font-weight:500;line-height:1;}
+.fc-cnt{font-size:10px;color:var(--text3);margin-top:2px;}
+.g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:16px;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;}
+.card{background:var(--surface);border:.5px solid var(--border);border-radius:12px;padding:14px;}
+.ctitle{font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:9px;}
+.sbig{font-size:24px;font-weight:500;color:var(--purple);text-align:center;}
+.ssub{font-size:10px;color:var(--text3);text-align:center;margin-top:3px;border-bottom:.5px solid var(--border);padding-bottom:9px;margin-bottom:11px;}
+table{width:100%;border-collapse:collapse;font-size:11px;}
+th{font-size:10px;color:var(--text2);text-align:left;padding:4px 6px;border-bottom:.5px solid var(--border);background:var(--surface2);font-weight:500;}
+td{padding:5px 6px;border-bottom:.5px solid var(--border);color:var(--text);}
+tr:last-child td{border-bottom:none;}
+tr:nth-child(even) td{background:var(--surface2);}
+.badge{display:inline-block;font-size:9px;font-weight:600;padding:2px 6px;border-radius:6px;}
+.bp{background:var(--bpp);color:var(--bpt);}
+.ba{background:var(--bap);color:var(--bat);}
+.br{background:var(--brp);color:var(--brt);}
+.fg{background:var(--surface2);border-radius:8px;padding:9px 11px;display:flex;justify-content:space-between;align-items:center;margin:7px 0;}
+.goal-bar-bg{height:7px;background:var(--border);border-radius:4px;margin-bottom:4px;}
+.goal-bar-fill{height:7px;border-radius:4px;background:var(--purple);}
+.g4s{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin-bottom:12px;}
+.stat{background:var(--surface2);border-radius:8px;padding:9px 6px;text-align:center;}
+.sv{font-size:18px;font-weight:500;}
+.sl{font-size:10px;color:var(--text2);margin-top:3px;line-height:1.3;}
+.brow{display:grid;grid-template-columns:1fr 32px 74px 44px;align-items:center;padding:5px 0;border-bottom:.5px solid var(--border);font-size:11px;}
+.brow:last-child{border-bottom:none;}
+.or{display:flex;align-items:center;gap:9px;padding:6px 0;border-bottom:.5px solid var(--border);font-size:11px;}
+.or:last-child{border-bottom:none;}
+.mb{height:3px;border-radius:2px;margin-top:3px;}
+.note{font-size:10px;color:var(--text3);font-style:italic;margin-top:6px;line-height:1.5;}
+.legend{display:flex;gap:14px;margin-bottom:10px;flex-wrap:wrap;}
+.leg{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);}
+.ld{width:10px;height:10px;border-radius:2px;flex-shrink:0;}
+.pgrid{display:grid;grid-template-columns:76px repeat(10,minmax(0,1fr));gap:3px;align-items:center;}
+.dh{font-size:9px;color:var(--text3);text-align:center;padding-bottom:5px;border-bottom:.5px solid var(--border);}
+.rlbl{font-size:11px;font-weight:500;padding:3px 0;color:var(--text);}
+.pcell{display:flex;align-items:flex-end;justify-content:center;height:34px;padding:1px;}
+.pbar{border-radius:3px 3px 0 0;width:100%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:rgba(255,255,255,.9);min-height:3px;}
+.ptotal{font-size:10px;font-weight:600;color:var(--text);text-align:center;padding-top:4px;border-top:.5px solid var(--border);}
+.sr{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:.5px solid var(--border);font-size:11px;gap:9px;}
+.sr:last-child{border-bottom:none;}
+.sbar{height:5px;border-radius:3px;margin-top:3px;}
+.rr{display:grid;grid-template-columns:76px 1fr 26px 28px;gap:5px;align-items:center;padding:5px 0;border-bottom:.5px solid var(--border);font-size:11px;}
+.rr:last-child{border-bottom:none;}
+/* Activity 3-col */
+.act3{display:grid;grid-template-columns:1fr 150px 1fr;gap:12px;margin-bottom:16px;align-items:stretch;}
+.act-card{background:var(--surface);border:.5px solid var(--border);border-radius:12px;padding:13px;}
+.act-rep{display:grid;grid-template-columns:70px 1fr 58px;align-items:center;gap:8px;padding:7px 0;border-bottom:.5px solid var(--border);}
+.act-rep:last-of-type{border-bottom:none;}
+.act-bb{height:6px;background:var(--border);border-radius:3px;}
+.act-bf{height:6px;border-radius:3px;}
+.act-v{font-size:16px;font-weight:500;text-align:right;line-height:1;}
+.act-s{font-size:10px;color:var(--text2);margin-top:2px;text-align:right;}
+.dg{display:grid;grid-template-columns:38px 1fr 1fr;gap:3px;font-size:10px;margin-top:10px;}
+.dhdr{font-size:9px;color:var(--text2);font-weight:500;padding-bottom:3px;border-bottom:.5px solid var(--border);}
+.dc{padding:3px 0;border-bottom:.5px solid var(--border);color:var(--text3);}
+.dc:nth-last-child(-n+3){border-bottom:none;}
+.on{color:var(--text);}
+.hi{font-weight:500;}
+.mid-card{background:var(--surface);border:.5px solid var(--border);border-radius:12px;padding:16px 12px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;}
+.footer{margin-top:16px;padding-top:10px;border-top:.5px solid var(--border);display:flex;justify-content:space-between;font-size:10px;color:var(--text3);font-style:italic;}
+</style>
+</head>
+<body>
+<div class="dash">
+
+<div class="hdr">
+  <div>
+    <h1>Gallery Leads — Pipeline Review</h1>
+    <p>Outbound | Gallery Leads · Week of May 13, 2026 · 30-min review</p>
+  </div>
+  <div style="font-size:10px;color:var(--text3);text-align:right">Goal: $700,000 / month<br>HubSpot · May 13, 2026</div>
+</div>
+
+<!-- 1. PIPELINE HEALTH -->
+<p class="slabel">1 · pipeline health</p>
+<div class="g6">
+  <div class="kc"><div class="kv" style="color:var(--purple)">497</div><div class="kl">Total active deals</div><div class="ks">excl. closed/DQ</div></div>
+  <div class="kc"><div class="kv" style="color:var(--green)">$4.5M</div><div class="kl">Pipeline value</div><div class="ks">open w/ amounts</div></div>
+  <div class="kc"><div class="kv" style="color:var(--red)">32%</div><div class="kl">No value</div><div class="ks">158 of 497 active</div></div>
+  <div class="kc"><div class="kv" style="color:var(--purple)">30.6%</div><div class="kl">Close rate</div><div class="ks">won ÷ decided</div></div>
+  <div class="kc"><div class="kv" style="color:var(--amber)">4.4%</div><div class="kl">Funnel close rate</div><div class="ks">won ÷ all assigned</div></div>
+  <div class="kc"><div class="kv" style="color:var(--purple)">20.1d</div><div class="kl">Avg time to close</div><div class="ks">RSVP → close · 10 deals</div></div>
+</div>
+
+<!-- 2. ACTIVE DEAL FUNNEL -->
+<p class="slabel">2 · active deal funnel</p>
+<div class="frow">
+  <div class="fc"><div class="fc-bw"><div class="fc-lbl">Event Attended</div><div class="fc-bg"><div class="fc-fill" style="width:33%;background:var(--red)"></div></div></div><div class="fc-nums"><div class="fc-pct" style="color:var(--green)">18%</div><div class="fc-cnt">89</div></div></div>
+  <div class="fc"><div class="fc-bw"><div class="fc-lbl">Attem. to Contact</div><div class="fc-bg"><div class="fc-fill" style="width:34%;background:var(--amber)"></div></div></div><div class="fc-nums"><div class="fc-pct" style="color:var(--red)">51%</div><div class="fc-cnt">253</div></div></div>
+  <div class="fc"><div class="fc-bw"><div class="fc-lbl">Contacted</div><div class="fc-bg"><div class="fc-fill" style="width:16%;background:var(--purple)"></div></div></div><div class="fc-nums"><div class="fc-pct" style="color:var(--amber)">18%</div><div class="fc-cnt">89</div></div></div>
+  <div class="fc"><div class="fc-bw"><div class="fc-lbl">Meeting Scheduled</div><div class="fc-bg"><div class="fc-fill" style="width:6%;background:var(--purple)"></div></div></div><div class="fc-nums"><div class="fc-pct" style="color:var(--purple)">6%</div><div class="fc-cnt">29</div></div></div>
+  <div class="fc"><div class="fc-bw"><div class="fc-lbl">Nurture</div><div class="fc-bg"><div class="fc-fill" style="width:5%;background:var(--purple)"></div></div></div><div class="fc-nums"><div class="fc-pct" style="color:var(--purple)">6%</div><div class="fc-cnt">29</div></div></div>
+  <div class="fc"><div class="fc-bw"><div class="fc-lbl">Rec. Made</div><div class="fc-bg"><div class="fc-fill" style="width:2%;background:var(--green)"></div></div></div><div class="fc-nums"><div class="fc-pct" style="color:var(--green)">2%</div><div class="fc-cnt">8</div></div></div>
+</div>
+
+<!-- 3. SALES CLOSED -->
+<p class="slabel">3 · sales closed</p>
+<div class="g3">
+  <div class="card">
+    <div class="ctitle">Current month — May</div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px">
+      <span style="font-size:13px;color:var(--text2)">Closed so far</span>
+      <span style="font-size:24px;font-weight:500;color:var(--purple)">$18,000</span>
+    </div>
+    <div class="goal-bar-bg"><div class="goal-bar-fill" style="width:2.6%"></div></div>
+    <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-bottom:13px"><span>$0</span><span>$700k goal</span></div>
+    <div class="fg">
+      <span style="font-size:12px;color:var(--text2)">Gap to goal</span>
+      <span style="font-size:18px;font-weight:500;color:var(--red)">$682,000</span>
+    </div>
+    <div class="note">2 deals closed this month · 23 days remaining · $650k deal pending HubSpot entry</div>
+  </div>
+  <div class="card">
+    <div class="sbig">$561,860</div><div class="ssub">8 deals · Apr 8–May 8</div>
+    <div class="ctitle">Last 30 days</div>
+    <table><thead><tr><th>Client</th><th>Advisor</th><th style="text-align:right">Amount</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Muoio</strong></td><td style="color:var(--text2)">Bringsjord</td><td style="text-align:right;font-weight:500">$520,000</td></tr>
+      <tr><td>Mallipudi</td><td style="color:var(--text2)">Bringsjord</td><td style="text-align:right">$21,600</td></tr>
+      <tr><td>Parchue</td><td style="color:var(--text2)">Mittal</td><td style="text-align:right">$15,000</td></tr>
+      <tr><td>Hahn</td><td style="color:var(--text2)">Bringsjord</td><td style="text-align:right">$3,000</td></tr>
+      <tr><td>Sheaffer</td><td style="color:var(--text2)">Bringsjord</td><td style="text-align:right">$1,000</td></tr>
+      <tr><td>Peleg</td><td style="color:var(--text2)">Mittal</td><td style="text-align:right">$1,000</td></tr>
+      <tr><td>Davis</td><td style="color:var(--text2)">Mittal</td><td style="text-align:right">$260</td></tr>
+      <tr><td>Lamar</td><td style="color:var(--text2)">Mittal</td><td style="text-align:right;color:var(--text3)">—</td></tr>
+    </tbody></table>
+  </div>
+  <div class="card">
+    <div class="sbig">$572,160</div><div class="ssub">13 deals · Jan 1–May 8</div>
+    <div class="ctitle">YTD — by advisor</div>
+    <table><thead><tr><th>Advisor</th><th style="text-align:right">Closed</th></tr></thead>
+    <tbody>
+      <tr><td>Bringsjord</td><td style="text-align:right;font-weight:500">$555,800</td></tr>
+      <tr><td>Mittal</td><td style="text-align:right">$16,360</td></tr>
+      <tr><td style="color:var(--text3)">Missing amounts</td><td style="text-align:right;color:var(--text3)">—</td></tr>
+    </tbody></table>
+    <div class="note">$650k deal pending HubSpot entry — will update next pull.</div>
+  </div>
+</div>
+
+<!-- 4. STAGE PROGRESSION -->
+<p class="slabel">4 · stage progression — deals advancing</p>
+<div class="g2">
+  <div class="card">
+    <div class="ctitle">Daily advances by advisor</div>
+    <div class="legend">
+      <div class="leg"><div class="ld" style="background:#534AB7"></div>Bringsjord</div>
+      <div class="leg"><div class="ld" style="background:#3B6D11"></div>Mittal</div>
+      <div class="leg"><div class="ld" style="background:#888"></div>Other</div>
+    </div>
+    <div class="pgrid">
+      <div></div>
+      <div class="dh">Apr 28</div><div class="dh">Apr 30</div><div class="dh">May 1</div>
+      <div class="dh">May 4</div><div class="dh">May 5</div><div class="dh">May 6</div>
+      <div class="dh">May 7</div><div class="dh">May 8</div><div class="dh">May 11</div><div class="dh">May 12 ⚠ ⚠</div>
+      <div class="rlbl">Bringsjord</div>
+      <div class="pcell"><div class="pbar" style="height:10%;background:#534AB7">1</div></div>
+      <div class="pcell"><div class="pbar" style="height:0%"></div></div>
+      <div class="pcell"><div class="pbar" style="height:10%;background:#534AB7">1</div></div>
+      <div class="pcell"><div class="pbar" style="height:0%"></div></div>
+      <div class="pcell"><div class="pbar" style="height:0%"></div></div>
+      <div class="pcell"><div class="pbar" style="height:0%"></div></div>
+      <div class="pcell"><div class="pbar" style="height:18%;background:#534AB7">3</div></div>
+      <div class="pcell"><div class="pbar" style="height:10%;background:#534AB7">1</div></div>
+      <div class="pcell"><div class="pbar" style="height:20%;background:#534AB7">4</div></div>
+      <div class="pcell"><div class="pbar" style="height:98%;background:#534AB7">92</div></div>
+      <div class="rlbl">Mittal</div>
+      <div class="pcell"><div class="pbar" style="height:14%;background:#3B6D11">2</div></div>
+      <div class="pcell"><div class="pbar" style="height:18%;background:#3B6D11">3</div></div>
+      <div class="pcell"><div class="pbar" style="height:18%;background:#3B6D11">3</div></div>
+      <div class="pcell"><div class="pbar" style="height:20%;background:#3B6D11">4</div></div>
+      <div class="pcell"><div class="pbar" style="height:25%;background:#3B6D11">6</div></div>
+      <div class="pcell"><div class="pbar" style="height:14%;background:#3B6D11">2</div></div>
+      <div class="pcell"><div class="pbar" style="height:31%;background:#3B6D11">9</div></div>
+      <div class="pcell"><div class="pbar" style="height:20%;background:#3B6D11">4</div></div>
+      <div class="pcell"><div class="pbar" style="height:20%;background:#3B6D11">4</div></div>
+
+      <div class="rlbl" style="color:var(--text3)">Other</div>
+      <div class="pcell"></div><div class="pcell"></div><div class="pcell"></div>
+      <div class="pcell"></div><div class="pcell"></div>
+      <div class="pcell"><div class="pbar" style="height:10%;background:#888">1</div></div>
+      <div class="pcell"><div class="pbar" style="height:18%;background:#888">3</div></div>
+      <div class="pcell"><div class="pbar" style="height:18%;background:#888">3</div></div>
+      <div class="pcell"><div class="pbar" style="height:18%;background:#888">3</div></div>
+      <div class="pcell"></div>
+      <div style="font-size:10px;color:var(--text2);font-weight:500">Total</div>
+      <div class="ptotal">10</div><div class="ptotal">4</div><div class="ptotal">3</div>
+      <div class="ptotal">1</div><div class="ptotal">2</div><div class="ptotal">3</div>
+      <div class="ptotal">3</div><div class="ptotal">5</div><div class="ptotal">7</div><div class="ptotal">8</div>
+    </div>
+    <div class="note">Deals moved into a new forward stage · excludes new deal creation · ⚠ May 12 includes a bulk CRM stage update</div>
+  </div>
+  <div class="card">
+    <div class="ctitle" style="margin-bottom:11px">Last 5 working days (May 6–12)</div>
+    <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px">Advances by advisor</div>
+    <div class="rr" style="font-size:10px;color:var(--text3)"><span>Advisor</span><span></span><span style="text-align:right">Wk</span><span style="text-align:right">Prev</span></div>
+    <div class="rr"><span style="font-weight:500">Mittal</span><div><div style="height:5px;background:var(--green);border-radius:3px;width:100%"></div></div><span style="text-align:right;font-weight:500;color:var(--green)">25</span><span style="text-align:right;color:var(--text3)">—</span></div>
+    <div class="rr"><span style="font-weight:500">Bringsjord</span><div><div style="height:5px;background:var(--purple);border-radius:3px;width:100%"></div></div><span style="text-align:right;font-weight:500;color:var(--purple)">100</span><span style="text-align:right;color:var(--text3)">—</span></div>
+    <div style="margin-top:14px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:7px">Where deals moved to</div>
+    <div class="sr"><div style="flex:1"><span>Attem. to Contact</span><div class="sbar" style="width:100%;background:var(--amber)"></div></div><span style="font-weight:500;white-space:nowrap">106</span></div>
+    <div class="sr"><div style="flex:1"><span>Contacted</span><div class="sbar" style="width:16%;background:var(--purple)"></div></div><span style="font-weight:500;white-space:nowrap">17</span></div>
+    <div class="sr"><div style="flex:1"><span>Meeting Scheduled</span><div class="sbar" style="width:7%;background:var(--purple)"></div></div><span style="font-weight:500;white-space:nowrap">7</span></div>
+    <div class="sr"><div style="flex:1"><span>Nurture</span><div class="sbar" style="width:4%;background:#888"></div></div><span style="font-weight:500;white-space:nowrap">4</span></div>
+    <div class="sr"><div style="flex:1"><span>Rec. Made</span><div class="sbar" style="width:2%;background:var(--green)"></div></div><span style="font-weight:500;white-space:nowrap">2</span></div>
+    <div style="margin-top:11px;padding-top:9px;border-top:.5px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-size:12px;color:var(--text2)">Total advances (last 5 days)</div>
+        <div style="font-size:10px;color:var(--text3);font-style:italic;margin-top:2px">Includes May 12 bulk stage update (92 deals)</div>
+      </div>
+      <span style="font-size:24px;font-weight:500;color:var(--purple)">135</span>
+    </div>
+  </div>
+</div>
+
+<!-- 5. WHALE TRACKER -->
+<p class="slabel">5 · whale tracker — $100k+ deals</p>
+<div class="card" style="margin-bottom:16px">
+  <div class="g4s">
+    <div class="stat"><div class="sv" style="color:var(--purple)">8</div><div class="sl">active at $100k+</div></div>
+    <div class="stat"><div class="sv" style="color:var(--green)">$1.1M</div><div class="sl">combined potential</div></div>
+    <div class="stat"><div class="sv" style="color:var(--red)">5 of 8</div><div class="sl">over 30 days old</div></div>
+    <div class="stat"><div class="sv" style="color:var(--amber)">1 of 8</div><div class="sl">inbound reply</div></div>
+  </div>
+  <div class="note" style="margin-bottom:10px">All 8 owned by Erik Bringsjord · Age = days since RSVP where available, deal created date otherwise · HubSpot data only — rep to provide verbal update</div>
+  <table><thead><tr><th>Deal</th><th>Value</th><th>Stage</th><th>Age</th><th>Calls</th><th>Emails</th><th>Reply</th><th>Last touch</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Priam Sen</strong></td><td>$250k</td><td><span class="badge bp">Mtg Scheduled</span></td><td>21d <small style="color:var(--text3)">rsvp</small></td><td>2</td><td>3</td><td style="color:var(--green)">Yes</td><td>Apr 23</td></tr>
+    <tr><td><strong>Joshua Feldman</strong></td><td>$250k</td><td><span class="badge bp">Contacted</span></td><td>14d</td><td>3</td><td>1</td><td style="color:var(--red)">No</td><td>May 7</td></tr>
+    <tr><td><strong>Chip Krotee</strong></td><td>$100k</td><td><span class="badge bp">Contacted</span></td><td>23d</td><td>2</td><td>1</td><td style="color:var(--red)">No</td><td>Apr 16</td></tr>
+    <tr><td><strong>Michael Ohara</strong></td><td>$100k</td><td><span class="badge br">Event Attended</span></td><td>38d</td><td>3</td><td>1</td><td style="color:var(--red)">No</td><td>Apr 27</td></tr>
+    <tr><td><strong>Jim Russell</strong></td><td>$100k</td><td><span class="badge bp">Contacted</span></td><td>46d</td><td>4</td><td>2</td><td style="color:var(--red)">No</td><td>Apr 13</td></tr>
+    <tr><td><strong>Tom Michaud</strong></td><td>$100k</td><td><span class="badge bp">Mtg Scheduled</span></td><td>42d</td><td>3</td><td>1</td><td style="color:var(--green)">Inbound</td><td>Apr 15</td></tr>
+    <tr><td><strong>Josh Goldberg</strong></td><td>$100k</td><td><span class="badge ba">Attem. Contact</span></td><td>56d <small style="color:var(--text3)">rsvp</small></td><td>5</td><td>4</td><td style="color:var(--green)">Mar 13</td><td>Apr 23</td></tr>
+    <tr><td><strong>Mark Keller</strong></td><td>$100k</td><td><span class="badge bp">Mtg Scheduled</span></td><td>53d</td><td>12</td><td>4</td><td style="color:var(--green)">Apr 15</td><td>May 4</td></tr>
+  </tbody></table>
+</div>
+
+<!-- 6. PIPELINE HYGIENE -->
+<p class="slabel">6 · pipeline hygiene — decisions needed</p>
+<div class="g2">
+  <div class="card">
+    <div class="ctitle">Uncontacted 30+ days — by value band</div>
+    <div class="note" style="margin-bottom:9px">18 deals · $280k at-risk · avg age 43 days</div>
+    <div style="display:grid;grid-template-columns:1fr 32px 74px 44px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;padding-bottom:4px;border-bottom:.5px solid var(--border);margin-bottom:4px"><span>Band</span><span style="text-align:right">Deals</span><span style="text-align:right">Value</span><span style="text-align:right">Avg age</span></div>
+    <div class="brow"><span>$100k+</span><span style="font-weight:600;color:var(--red);text-align:right">1</span><span style="color:var(--text2);text-align:right">$100,000</span><span style="color:var(--text3);text-align:right">35d</span></div>
+    <div class="brow"><span>$25k–$99k</span><span style="font-weight:600;color:var(--red);text-align:right">3</span><span style="color:var(--text2);text-align:right">$75,000</span><span style="color:var(--text3);text-align:right">40d</span></div>
+    <div class="brow"><span>$10k–$24k</span><span style="font-weight:600;color:var(--amber);text-align:right">6</span><span style="color:var(--text2);text-align:right">$70,000</span><span style="color:var(--text3);text-align:right">42d</span></div>
+    <div class="brow"><span>$5k–$9k</span><span style="font-weight:600;color:var(--amber);text-align:right">7</span><span style="color:var(--text2);text-align:right">$35,000</span><span style="color:var(--text3);text-align:right">46d</span></div>
+    <div class="brow"><span>No value</span><span style="color:var(--text3);text-align:right">1</span><span style="color:var(--text3);text-align:right">—</span><span style="color:var(--text3);text-align:right">53d</span></div>
+    <div class="note" style="margin-top:8px">Contact this week or DQ · $100k+ discussed in whale tracker</div>
+  </div>
+  <div class="card">
+    <div class="ctitle">Deals with no value — by rep</div>
+    <div class="note" style="margin-bottom:9px">158 total · all pipeline-verified · $10k floor or DQ</div>
+    <div class="or"><div style="flex:1"><span>Blake Martin</span><div class="mb" style="width:100%;background:var(--red)"></div></div><span style="font-weight:600;color:var(--red);width:24px;text-align:right">61</span><span style="color:var(--text3);font-size:10px;width:30px;text-align:right">39%</span></div>
+    <div class="or"><div style="flex:1"><span>Linna Henry</span><div class="mb" style="width:52%;background:var(--red)"></div></div><span style="font-weight:600;color:var(--red);width:24px;text-align:right">32</span><span style="color:var(--text3);font-size:10px;width:30px;text-align:right">20%</span></div>
+    <div class="or"><div style="flex:1"><span>Anisha Mittal</span><div class="mb" style="width:41%;background:var(--amber)"></div></div><span style="font-weight:600;color:var(--amber);width:24px;text-align:right">25</span><span style="color:var(--text3);font-size:10px;width:30px;text-align:right">16%</span></div>
+    <div class="or"><div style="flex:1"><span style="color:var(--text3)">Other/Unassigned</span><div class="mb" style="width:36%;background:var(--border2)"></div></div><span style="color:var(--text3);width:24px;text-align:right">22</span><span style="color:var(--text3);font-size:10px;width:30px;text-align:right">14%</span></div>
+    <div class="or"><div style="flex:1"><span>Erik Bringsjord</span><div class="mb" style="width:30%;background:var(--green)"></div></div><span style="font-weight:600;color:var(--green);width:24px;text-align:right">18</span><span style="color:var(--text3);font-size:10px;width:30px;text-align:right">11%</span></div>
+    <div class="note" style="margin-top:8px">Must decrease each week · reps own the cleanup · ⚠ Blake Martin (61 active deals) — pending reassignment</div>
+  </div>
+</div>
+
+<!-- 7. LOWER PIPELINE -->
+<p class="slabel">7 · lower pipeline ($10k–$25k) — capacity review</p>
+<div class="card" style="margin-bottom:16px">
+  <div class="g4s">
+    <div class="stat"><div class="sv" style="color:var(--purple)">83</div><div class="sl">deals in $10k–$25k band</div></div>
+    <div class="stat"><div class="sv" style="color:var(--amber)">$1.3M</div><div class="sl">combined face value</div></div>
+    <div class="stat"><div class="sv" style="color:var(--red)">140</div><div class="sl">closes at $5k avg to hit goal</div></div>
+    <div class="stat"><div class="sv" style="color:var(--green)">?</div><div class="sl">deals with capacity above $25k</div></div>
+  </div>
+  <div class="note">Key question: can any rep identify a deal where the investor has capacity beyond the current value? If yes — upgrade the band. If no story — DQ it.</div>
+</div>
+
+<!-- 8. ADVISOR ACTIVITY -->
+<p class="slabel">8 · advisor activity — calls &amp; emails, last 30 days vs last 5 working days</p>
+<div class="act3">
+
+  <div class="act-card">
+    <div class="ctitle">Calls — daily avg</div>
+    <div class="legend">
+      <div class="leg"><div class="ld" style="background:#534AB7"></div>Bringsjord</div>
+      <div class="leg"><div class="ld" style="background:#3B6D11"></div>Mittal</div>
+    </div>
+    <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;">Last 30 days</div>
+    <div class="act-rep">
+      <span style="font-size:12px;font-weight:500">Bringsjord</span>
+      <div><div class="act-bb"><div class="act-bf" style="width:74%;background:#534AB7"></div></div></div>
+      <div><div class="act-v" style="color:#534AB7">18.2<span style="font-size:10px;font-weight:400">/day</span></div><div class="act-s">547 total</div></div>
+    </div>
+    <div class="act-rep" style="border-bottom:.5px solid var(--border);padding-bottom:10px;">
+      <span style="font-size:12px;font-weight:500">Mittal</span>
+      <div><div class="act-bb"><div class="act-bf" style="width:100%;background:#3B6D11"></div></div></div>
+      <div><div class="act-v" style="color:#3B6D11">24.6<span style="font-size:10px;font-weight:400">/day</span></div><div class="act-s">738 total</div></div>
+    </div>
+    <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-top:10px;margin-bottom:6px;">Last 5 working days (May 6–12)</div>
+    <div class="act-rep">
+      <span style="font-size:12px;font-weight:500">Bringsjord</span>
+      <div><div class="act-bb"><div class="act-bf" style="width:12%;background:#534AB7"></div></div></div>
+      <div><div class="act-v" style="color:#534AB7">4.0<span style="font-size:10px;font-weight:400">/day</span></div><div class="act-s">20 total</div></div>
+    </div>
+    <div class="act-rep">
+      <span style="font-size:12px;font-weight:500">Mittal</span>
+      <div><div class="act-bb"><div class="act-bf" style="width:100%;background:#3B6D11"></div></div></div>
+      <div><div class="act-v" style="color:#3B6D11">33.2<span style="font-size:10px;font-weight:400">/day</span></div><div class="act-s">166 total</div></div>
+    </div>
+    <div class="note">HubSpot logged outbound calls only</div>
+  </div>
+
+  <div class="mid-card">
+    <div style="font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);margin-bottom:14px;">Outreach ROI</div>
+    <div style="font-size:56px;font-weight:500;color:#7B6FD4;line-height:1;">$538</div>
+    <div style="font-size:12px;color:var(--text2);margin-top:6px;">per touch</div>
+    <div style="width:100%;border-top:.5px solid var(--border);margin:16px 0;"></div>
+    <div style="font-size:10px;color:var(--text2);line-height:1.7;">~1,047 logged touches<br>$563k confirmed revenue<br>pipeline lifetime</div>
+  </div>
+
+  <div class="act-card">
+    <div class="ctitle">Emails — daily avg</div>
+    <div class="legend">
+      <div class="leg"><div class="ld" style="background:#534AB7"></div>Bringsjord</div>
+      <div class="leg"><div class="ld" style="background:#3B6D11"></div>Mittal</div>
+    </div>
+    <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;">Last 30 days</div>
+    <div class="act-rep">
+      <span style="font-size:12px;font-weight:500">Bringsjord</span>
+      <div><div class="act-bb"><div class="act-bf" style="width:65%;background:#534AB7"></div></div></div>
+      <div><div class="act-v" style="color:#534AB7">9.8<span style="font-size:10px;font-weight:400">/day</span></div><div class="act-s">295 total</div></div>
+    </div>
+    <div class="act-rep" style="border-bottom:.5px solid var(--border);padding-bottom:10px;">
+      <span style="font-size:12px;font-weight:500">Mittal</span>
+      <div><div class="act-bb"><div class="act-bf" style="width:100%;background:#3B6D11"></div></div></div>
+      <div><div class="act-v" style="color:#3B6D11">15.1<span style="font-size:10px;font-weight:400">/day</span></div><div class="act-s">452 total</div></div>
+    </div>
+    <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-top:10px;margin-bottom:6px;">Last 5 working days (May 6–12)</div>
+    <div class="act-rep">
+      <span style="font-size:12px;font-weight:500">Bringsjord</span>
+      <div><div class="act-bb"><div class="act-bf" style="width:39%;background:#534AB7"></div></div></div>
+      <div><div class="act-v" style="color:#534AB7">~10<span style="font-size:10px;font-weight:400">/day</span></div><div class="act-s">est. ~50</div></div>
+    </div>
+    <div class="act-rep">
+      <span style="font-size:12px;font-weight:500">Mittal</span>
+      <div><div class="act-bb"><div class="act-bf" style="width:100%;background:#3B6D11"></div></div></div>
+      <div><div class="act-v" style="color:#3B6D11">~16<span style="font-size:10px;font-weight:400">/day</span></div><div class="act-s">est. ~78</div></div>
+    </div>
+    <div class="note">Manual emails only · last 5 day split estimated proportionally from 30-day ratio</div>
+  </div>
+
+</div>
+
+<div class="footer">
+  <span>Masterworks · Outbound | Gallery Leads · Confidential · Internal Use Only</span>
+  <span>Week of May 13, 2026 · v5.2</span>
+</div>
+
+</div>
+</body>
+</html>

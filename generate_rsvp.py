@@ -2648,10 +2648,18 @@ header{{background:#1b3c6e;padding:16px 28px;position:sticky;top:0;z-index:100;
 <div class="tab-bar" id="tabBar">
   {''.join(tab_btns)}
   {past_btn_html}
+  <div style="flex:1"></div>
+  <button class="tab-btn" data-tab="pipeline" onclick="switchTab('pipeline')"
+    style="border-bottom:3px solid transparent;color:#7a94b8;font-weight:normal;border-left:1px solid #e2e8f4;padding-left:20px;">
+    Pipeline Review</button>
 </div>
 <div class="no-date-msg" id="noDateMsg">No RSVP data for this date in the current window.</div>
 
 {past_menu_html}
+
+<div id="tab-pipeline" class="tab-panel" style="display:none">
+  <iframe src="pipeline.html" style="width:100%;height:calc(100vh - 130px);border:none;display:block"></iframe>
+</div>
 
 <div class="content">
   {''.join(panels)}
