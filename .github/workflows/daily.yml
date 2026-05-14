@@ -36,11 +36,6 @@ jobs:
           GITHUB_REPO: ${{ github.repository }}
         run: python generate_rsvp.py
 
-      - name: Generate pipeline
-        env:
-          HUBSPOT_API_KEY: ${{ secrets.HUBSPOT_API_KEY }}
-        run: python generate_pipeline.py
-
       - name: Commit and push
         run: |
           git config user.name  'github-actions[bot]'
