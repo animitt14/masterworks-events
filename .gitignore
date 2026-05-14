@@ -2,3 +2,4 @@ __pycache__/
 *.pyc
 .env
 docs/pipeline.html
+generate_pipeline.py
