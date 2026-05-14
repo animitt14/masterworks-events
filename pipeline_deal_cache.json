@@ -1,0 +1,3080 @@
+{
+  "results": [
+    {
+      "id": 60239726402,
+      "properties": {
+        "pipeline": "880355706",
+        "hs_object_id": "60239726402",
+        "dealname": "Laurie Sherman",
+        "createdate": "2026-05-13T21:15:36.020Z",
+        "hs_lastmodifieddate": "2026-05-13T21:16:43.904Z",
+        "dealstage": "1321369496"
+      },
+      "displayName": "Laurie Sherman"
+    },
+    {
+      "id": 60198281290,
+      "properties": {
+        "pipeline": "880355706",
+        "hs_object_id": "60198281290",
+        "dealname": "ZahidShaikh",
+        "createdate": "2026-05-12T21:55:43.745Z",
+        "hs_lastmodifieddate": "2026-05-14T14:15:56.216Z",
+        "dealstage": "1339121714"
+      },
+      "displayName": "ZahidShaikh"
+    },
+    {
+      "id": 60196927272,
+      "properties": {
+        "pipeline": "880355706",
+        "hs_object_id": "60196927272",
+        "dealname": "ThomasTuttle",
+        "createdate": "2026-05-12T21:33:15.488Z",
+        "hs_lastmodifieddate": "2026-05-14T13:47:23.835Z",
+        "dealstage": "1339121714"
+      },
+      "displayName": "ThomasTuttle"
+    },
+    {
+      "id": 60189139640,
+      "properties": {
+        "pipeline": "880355706",
+        "hs_object_id": "60189139640",
+        "dealname": "ShawnWallace",
+        "createdate": "2026-05-12T20:40:17.719Z",
+        "hs_lastmodifieddate": "2026-05-14T14:39:29.226Z",
+        "dealstage": "1339121714"
+      },
+      "displayName": "ShawnWallace"
+    },
+    {
+      "id": 60187061919,
+      "properties": {
+        "pipeline": "880355706",
+        "hs_object_id": "60187061919",
+        "dealname": "RobertKrueger",
+        "createdate": "2026-05-11T23:00:30.327Z",
+        "hs_lastmodifieddate": "2026-05-14T14:41:01.177Z",
+        "dealstage": "1339121714"
+      },
+      "displayName": "RobertKrueger"
+    },
+    {
+      "id": 60184290108,
+      "properties": {
+        "pipeline": "880355706",
+        "hs_object_id": "60184290108",
+        "dealname": "BenedictSequeira",
+        "createdate": "2026-05-11T21:24:00.958Z",
+        "hs_lastmodifieddate": "2026-05-13T18:43:00.390Z",
+        "dealstage": "1339121714"
+      },
+      "displayName": "BenedictSequeira"
+    },
+    {
+      "id": 60178368622,
+      "properties": {
+        "pipeline": "880355706",
+        "hs_object_id": "60178368622",
+        "dealname": "DavidNey",
+        "createdate": "2026-05-11T21:23:55.488Z",
+        "hs_lastmodifieddate": "2026-05-13T22:15:37.652Z",
+        "dealstage": "1321369496"
+      },
+      "displayName": "DavidNey"
+    },
+    {
+      "id": 60206592414,
+      "properties": {
+        "pipeline": "880355706",
+        "hs_object_id": "60206592414",
+        "dealname": "WayneHowell",
+        "createdate": "2026-05-11T21:16:23.261Z",
+        "hs_lastmodifieddate": "2026-05-13T14:35:49.292Z",
+        "dealstage": "1321369497"
+      },
+      "displayName": "WayneHowell"
+    },
+    {
+      "id": 60188548151,
+      "properties": {
+        "pipeline": "880355706",
+        "hs_object_id": "60188548151",
+        "dealname": "JosephLovell",
+        "createdate": "2026-05-11T21:08:08.612Z",
+        "hs_lastmodifieddate": "2026-05-13T18:10:23.173Z",
+        "dealstage": "1339121714"
+      },
+      "displayName": "JosephLovell"
+    },
+    {
+      "id": 60110594927,
+      "properties": {
+        "pipeline": "880355706",
+        "hs_object_id": "60110594927",
+        "dealname": "Karen Kasner",
+        "createdate": "2026-05-07T22:29:14.781Z",
+        "hs_lastmodifieddate": "2026-05-11T19:30:51.274Z",
+        "dealstage": "1339121714"
+      },
+      "displayName": "Karen Kasner"
+    },
+    {
+      "id": 60101580627,
+      "properties": {
+        "pipeline": "880355706",
+        "hs_object_id": "60101580627",
+        "dealname": "BarryHamilton",
+        "createdate": "2026-05-07T22:11:50.906Z",
+        "hs_lastmodifieddate": "2026-05-12T17:39:43.285Z",
+        "dealstage": "1339121714"
+      },
+      "displayName": "BarryHamilton"
+    },
+    {
+      "id": 60119179799,
+      "properties": {
+        "pipeline": "880355706",
+        "hs_object_id": "60119179799",
+        "dealname": "MilenaTodorova",
+        "createdate": "2026-05-07T21:18:10.171Z",
+        "hs_lastmodifieddate": "2026-05-13T18:37:02.396Z",
+        "dealstage": "1321369496"
+      },
+      "displayName": "MilenaTodorova"
+    },
+    {
+      "id": 60078259051,
+      "properties": {
+        "pipeline": "880355706",
+        "hs_object_id": "60078259051",
+        "dealname": "ChangGao",
+        "createdate": "2026-05-07T20:26:10.498Z",
+        "hs_lastmodifieddate": "2026-05-11T23:43:16.871Z",
+        "dealstage": "1339121714"
+      },
+      "displayName": "ChangGao"
+    },
+    {
+      "id": 60060460702,
+      "properties": {
+        "pipeline": "880355706",
+        "hs_object_id": "60060460702",
+        "dealname": "DarrenPeck",
+        "createdate": "2026-05-06T22:56:14.280Z",
+        "hs_lastmodifieddate": "2026-05-13T18:36:19.822Z",
+        "dealstage": "1339121714"
+      },
+      "displayName": "DarrenPeck"
+    },
+    {
+      "id": 60060312228,
+      "properties": {
+        "pipeline": "880355706",
+        "hs_object_id": "60060312228",
+        "dealname": "ShainaShagalow",
+        "createdate": "2026-05-06T22:47:23.986Z",
+        "hs_lastmodifieddate": "2026-05-09T17:05:25.012Z",
+        "dealstage": "1321369496"
+      },
+      "displayName": "ShainaShagalow"
+    },
+    {
+      "id": 60058637436,
+      "properties": {
+        "pipeline": "880355706",
+        "hs_object_id": "60058637436",
+        "dealname": "DonPreate",
+        "createdate": "2026-05-06T22:23:25.444Z",
+        "hs_lastmodifieddate": "2026-05-14T14:31:17.814Z",
+        "dealstage": "1321369496"
+      },
+      "displayName": "DonPreate"
+    },
+    {
+      "id": 60057439270,
+      "properties": {
+        "pipeline": "880355706",
+        "hs_object_id": "60057439270",
+        "dealname": "AkintundeOpaleye",
+        "createdate": "2026-05-06T22:03:11.003Z",
+        "hs_lastmodifieddate": "2026-05-13T22:18:47.214Z",
+        "dealstage": "1321369496"
+      },
+      "displayName": "AkintundeOpaleye"
+    },
+    {
+      "id": 60057121439,
+      "properties": {
+        "pipeline": "880355706",
+        "hs_object_id": "60057121439",
+        "dealname": "DannyHaydon",
+        "createdate": "2026-05-06T20:56:11.661Z",
+        "hs_lastmodifieddate": "2026-05-13T17:57:17.880Z",
+        "dealstage": "1339121714"
+      },
+      "displayName": "DannyHaydon"
+    },
+    {
+      "id": 60037836969,
+      "properties": {
+        "pipeline": "880355706",
+        "hs_object_id": "60037836969",
+        "dealname": "MichaelFerro",
+        "createdate": "2026-05-05T23:12:20.560Z",
+        "hs_lastmodifieddate": "2026-05-11T18:20:12.549Z",
+        "dealstage": "1339121714"
+      },
+      "displayName": "MichaelFerro"
+    },
+    {
+      "id": 60037158037,
+      "properties": {
+        "pipeline": "880355706",
+        "hs_object_id": "60037158037",
+        "dealname": "Alan Rothenberg",
+        "createdate": "2026-05-05T21:48:54.242Z",
+        "hs_lastmodifieddate": "2026-05-14T01:28:48.330Z",
+        "dealstage": "1321369497"
+      },
+      "displayName": "Alan Rothenberg"
+    },
+    {
+      "id": 60037118084,
+      "properties": {
+        "pipeline": "880355706",
+        "hs_object_id": "60037118084",
+        "dealname": "CarolynPreiss",
+        "createdate": "2026-05-05T21:34:14.251Z",
+        "hs_lastmodifieddate": "2026-05-11T19:05:17.963Z",
+        "dealstage": "1339121714"
+      },
+      "displayName": "CarolynPreiss"
+    },
+    {
+      "id": 60036993612,
+      "properties": {
+        "pipeline": "880355706",
+        "hs_object_id": "60036993612",
+        "dealname": "ChristopherPruitt",
+        "createdate": "2026-05-05T21:29:22.411Z",
+        "hs_lastmodifieddate": "2026-05-14T14:19:29.768Z",
+        "dealstage": "1321369500"
+      },
+      "displayName": "ChristopherPruitt"
+    },
+    {
+      "id": 60010042381,
+      "properties": {
+        "pipeline": "880355706",
+        "hs_object_id": "60010042381",
+        "dealname": "BenJenkins",
+        "createdate": "2026-05-05T21:25:30.751Z",
+        "hs_lastmodifieddate": "2026-05-12T17:36:49.654Z",
+        "dealstage": "1339121714"
+      },
+      "displayName": "BenJenkins"
+    },
+    {
+      "id": 60036965529,
+      "properties": {
+        "pipeline": "880355706",
+        "hs_object_id": "60036965529",
+        "dealname": "CharlesBuck",
+        "createdate": "2026-05-05T21:04:04.255Z",
+        "hs_lastmodifieddate": "2026-05-09T20:54:44.651Z",
+        "dealstage": "1339121714"
+      },
+      "displayName": "CharlesBuck"
+    },
+    {
+      "id": 60036916353,
+      "properties": {
+        "pipeline": "880355706",
+        "hs_object_id": "60036916353",
+        "dealname": "DavidSchmookler",
+        "createdate": "2026-05-05T20:51:49.154Z",
+        "hs_lastmodifieddate": "2026-05-11T19:12:05.177Z",
+        "dealstage": "1339121714"
+      },
+      "displayName": "DavidSchmookler"
+    },
+    {
+      "id": 60035238268,
+      "properties": {
+        "pipeline": "880355706",
+        "hs_object_id": "60035238268",
+        "dealname": "AndrewMeyers",
+        "createdate": "2026-05-05T20:13:23.749Z",
+        "hs_lastmodifieddate": "2026-05-12T15:05:25.754Z",
+        "dealstage": "1321369497"
+      },
+      "displayName": "AndrewMeyers"
+    },
+    {
+      "id": 60017510196,
+      "properties": {
+        "pipeline": "880355706",
+        "hs_object_id": "60017510196",
+        "dealname": "MaximoLipman",
+        "createdate": "2026-05-04T22:50:52.833Z",
+        "hs_lastmodifieddate": "2026-05-05T18:39:15.020Z",
+        "dealstage": "1321369501"
+      },
+      "displayName": "MaximoLipman"
+    },
+    {
+      "id": 60017951892,
+      "properties": {
+        "pipeline": "880355706",
+        "hs_object_id": "60017951892",
+        "dealname": "AdamReinhart",
+        "createdate": "2026-05-04T22:17:09.757Z",
+        "hs_lastmodifieddate": "2026-05-11T17:56:08.209Z",
+        "dealstage": "1339121714"
+      },
+      "displayName": "AdamReinhart"
+    },
+    {
+      "id": 60017035931,
+      "properties": {
+        "pipeline": "880355706",
+        "hs_object_id": "60017035931",
+        "dealname": "JakiJohnsen",
+        "createdate": "2026-05-04T21:24:37.389Z",
+        "hs_lastmodifieddate": "2026-05-14T01:28:48.330Z",
+        "dealstage": "1321369496"
+      },
+      "displayName": "JakiJohnsen"
+    },
+    {
+      "id": 60014857989,
+      "properties": {
+        "pipeline": "880355706",
+        "hs_object_id": "60014857989",
+        "dealname": "AndrewKaye",
+        "createdate": "2026-05-04T20:38:25.770Z",
+        "hs_lastmodifieddate": "2026-05-14T01:28:48.330Z",
+        "dealstage": "1321369496"
+      },
+      "displayName": "AndrewKaye"
+    },
+    {
+      "id": 59964399260,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "KateWadia",
+        "amount": "4000",
+        "hs_lastmodifieddate": "2026-05-11T18:17:55.466Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59964399260",
+        "createdate": "2026-05-01T23:59:41.471Z"
+      },
+      "displayName": "KateWadia"
+    },
+    {
+      "id": 59948409949,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "FrankRomano",
+        "amount": "4000",
+        "hs_lastmodifieddate": "2026-05-04T15:47:21.050Z",
+        "dealstage": "1321369501",
+        "hs_object_id": "59948409949",
+        "createdate": "2026-05-01T20:01:51.290Z"
+      },
+      "displayName": "FrankRomano"
+    },
+    {
+      "id": 59838317461,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "YingShiau",
+        "amount": "2000",
+        "hs_lastmodifieddate": "2026-05-11T18:26:40.452Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59838317461",
+        "createdate": "2026-04-30T21:52:26.545Z"
+      },
+      "displayName": "YingShiau"
+    },
+    {
+      "id": 59845116786,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "WillPierce",
+        "amount": "2000",
+        "hs_lastmodifieddate": "2026-05-08T20:11:37.522Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59845116786",
+        "createdate": "2026-04-30T21:07:27.220Z"
+      },
+      "displayName": "WillPierce"
+    },
+    {
+      "id": 59862151773,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "RaulTovar",
+        "amount": "3000",
+        "hs_lastmodifieddate": "2026-05-13T01:30:27.982Z",
+        "dealstage": "1321369496",
+        "hs_object_id": "59862151773",
+        "createdate": "2026-04-29T22:14:49.871Z"
+      },
+      "displayName": "RaulTovar"
+    },
+    {
+      "id": 59855450247,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "StephenGulotta",
+        "amount": "10000",
+        "hs_lastmodifieddate": "2026-05-11T18:24:14.698Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59855450247",
+        "createdate": "2026-04-29T22:06:38.974Z"
+      },
+      "displayName": "StephenGulotta"
+    },
+    {
+      "id": 59861528470,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "BryanCrane",
+        "amount": "10000",
+        "hs_lastmodifieddate": "2026-05-11T18:03:37.251Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59861528470",
+        "createdate": "2026-04-29T21:21:53.850Z"
+      },
+      "displayName": "BryanCrane"
+    },
+    {
+      "id": 59844055402,
+      "properties": {
+        "pipeline": "880355706",
+        "hs_object_id": "59844055402",
+        "dealname": "YoavCohen",
+        "createdate": "2026-04-29T21:13:27.447Z",
+        "hs_lastmodifieddate": "2026-05-11T15:57:55.127Z",
+        "dealstage": "1321369501"
+      },
+      "displayName": "YoavCohen"
+    },
+    {
+      "id": 59810627169,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "AlonGeva",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-13T21:54:09.154Z",
+        "dealstage": "1341309466",
+        "hs_object_id": "59810627169",
+        "createdate": "2026-04-29T20:45:41.181Z"
+      },
+      "displayName": "AlonGeva"
+    },
+    {
+      "id": 59821812065,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "JaymeLoftus",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-12T17:35:09.496Z",
+        "dealstage": "1321369496",
+        "hs_object_id": "59821812065",
+        "createdate": "2026-04-29T20:22:13.349Z"
+      },
+      "displayName": "JaymeLoftus"
+    },
+    {
+      "id": 59811249797,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "ShaliniDewan",
+        "amount": "8000",
+        "hs_lastmodifieddate": "2026-05-13T22:02:05.098Z",
+        "dealstage": "1321369496",
+        "hs_object_id": "59811249797",
+        "createdate": "2026-04-29T20:08:49.143Z"
+      },
+      "displayName": "ShaliniDewan"
+    },
+    {
+      "id": 59776646739,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "GiovanniForester",
+        "amount": "18000",
+        "hs_lastmodifieddate": "2026-05-13T21:34:01.566Z",
+        "dealstage": "1321369496",
+        "hs_object_id": "59776646739",
+        "createdate": "2026-04-28T23:04:22.829Z"
+      },
+      "displayName": "GiovanniForester"
+    },
+    {
+      "id": 59767565212,
+      "properties": {
+        "pipeline": "880355706",
+        "hs_object_id": "59767565212",
+        "dealname": "Diarra Lamar",
+        "createdate": "2026-04-28T22:02:39.501Z",
+        "hs_lastmodifieddate": "2026-04-29T17:30:50.378Z",
+        "dealstage": "1321369499"
+      },
+      "displayName": "Diarra Lamar"
+    },
+    {
+      "id": 59684643619,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "CharlesFoley",
+        "amount": "2000",
+        "hs_lastmodifieddate": "2026-05-11T18:06:10.820Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59684643619",
+        "createdate": "2026-04-24T22:40:22.559Z"
+      },
+      "displayName": "CharlesFoley"
+    },
+    {
+      "id": 59688680544,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "LukeRasnake",
+        "amount": "38000",
+        "hs_lastmodifieddate": "2026-05-08T02:02:16.637Z",
+        "dealstage": "1321369496",
+        "hs_object_id": "59688680544",
+        "createdate": "2026-04-24T21:56:25.013Z"
+      },
+      "displayName": "LukeRasnake"
+    },
+    {
+      "id": 59673073572,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "AnjuStarace",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-11T18:01:10.530Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59673073572",
+        "createdate": "2026-04-24T21:29:25.931Z"
+      },
+      "displayName": "AnjuStarace"
+    },
+    {
+      "id": 59548966542,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "DarrenAlfano",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-11T22:32:31.258Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59548966542",
+        "createdate": "2026-04-23T21:43:42.912Z"
+      },
+      "displayName": "DarrenAlfano"
+    },
+    {
+      "id": 59451959705,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "DavidOrowitz",
+        "amount": "25000",
+        "hs_lastmodifieddate": "2026-05-11T16:39:32.069Z",
+        "dealstage": "1321369497",
+        "hs_object_id": "59451959705",
+        "createdate": "2026-04-22T22:13:08.158Z"
+      },
+      "displayName": "DavidOrowitz"
+    },
+    {
+      "id": 59428812311,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "HoyleWang",
+        "amount": "9000",
+        "hs_lastmodifieddate": "2026-05-11T18:16:52.380Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59428812311",
+        "createdate": "2026-04-21T22:07:41.389Z"
+      },
+      "displayName": "HoyleWang"
+    },
+    {
+      "id": 59426384026,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "BrendanCanny",
+        "amount": "19000",
+        "hs_lastmodifieddate": "2026-05-11T15:37:32.077Z",
+        "dealstage": "1321369496",
+        "hs_object_id": "59426384026",
+        "createdate": "2026-04-21T21:10:04.644Z"
+      },
+      "displayName": "BrendanCanny"
+    },
+    {
+      "id": 59385705478,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "AndyBrindle",
+        "amount": "13000",
+        "hs_lastmodifieddate": "2026-05-08T02:02:16.637Z",
+        "dealstage": "1321369496",
+        "hs_object_id": "59385705478",
+        "createdate": "2026-04-20T22:02:17.257Z"
+      },
+      "displayName": "AndyBrindle"
+    },
+    {
+      "id": 59394104490,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "HillmanLam",
+        "amount": "13000",
+        "hs_lastmodifieddate": "2026-05-05T18:32:14.292Z",
+        "dealstage": "1321369500",
+        "hs_object_id": "59394104490",
+        "createdate": "2026-04-20T21:47:19.030Z"
+      },
+      "displayName": "HillmanLam"
+    },
+    {
+      "id": 59216533580,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "DanielBerkowitz",
+        "amount": "15000",
+        "hs_lastmodifieddate": "2026-05-08T22:02:18.876Z",
+        "dealstage": "1321369497",
+        "hs_object_id": "59216533580",
+        "createdate": "2026-04-15T22:20:27.080Z"
+      },
+      "displayName": "DanielBerkowitz"
+    },
+    {
+      "id": 59174013049,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "MarkRinges",
+        "amount": "8000",
+        "hs_lastmodifieddate": "2026-05-11T22:03:28.090Z",
+        "dealstage": "1321369496",
+        "hs_object_id": "59174013049",
+        "createdate": "2026-04-14T22:22:25.458Z"
+      },
+      "displayName": "MarkRinges"
+    },
+    {
+      "id": 59174029692,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "MichaelTorriero",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-13T21:37:04.541Z",
+        "dealstage": "1321369496",
+        "hs_object_id": "59174029692",
+        "createdate": "2026-04-14T21:37:44.990Z"
+      },
+      "displayName": "MichaelTorriero"
+    },
+    {
+      "id": 59172373535,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "BeckSullivan",
+        "amount": "13000",
+        "hs_lastmodifieddate": "2026-05-08T02:02:16.637Z",
+        "dealstage": "1321369496",
+        "hs_object_id": "59172373535",
+        "createdate": "2026-04-14T21:09:04.850Z"
+      },
+      "displayName": "BeckSullivan"
+    },
+    {
+      "id": 59173002896,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "Surbhee Grover",
+        "amount": "13000",
+        "hs_lastmodifieddate": "2026-05-13T23:27:17.143Z",
+        "dealstage": "1321369496",
+        "hs_object_id": "59173002896",
+        "createdate": "2026-04-14T20:59:56.358Z"
+      },
+      "displayName": "Surbhee Grover"
+    },
+    {
+      "id": 59152006299,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "StefanJekel",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-08T02:02:16.637Z",
+        "dealstage": "1321369496",
+        "hs_object_id": "59152006299",
+        "createdate": "2026-04-13T22:14:09.856Z"
+      },
+      "displayName": "StefanJekel"
+    },
+    {
+      "id": 59151978111,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "NoelBerk",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-11T18:22:51.045Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59151978111",
+        "createdate": "2026-04-13T21:50:41.743Z"
+      },
+      "displayName": "NoelBerk"
+    },
+    {
+      "id": 59152859809,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "WilliamPearlstein",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-12T03:34:34.179Z",
+        "dealstage": "1321369501",
+        "hs_object_id": "59152859809",
+        "createdate": "2026-04-13T21:24:32.652Z"
+      },
+      "displayName": "WilliamPearlstein"
+    },
+    {
+      "id": 59140166917,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "GiladRabina",
+        "amount": "25000",
+        "hs_lastmodifieddate": "2026-05-08T20:09:41.284Z",
+        "dealstage": "1321369500",
+        "hs_object_id": "59140166917",
+        "createdate": "2026-04-13T21:07:58.896Z"
+      },
+      "displayName": "GiladRabina"
+    },
+    {
+      "id": 59151623032,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "GilbertTang",
+        "amount": "10000",
+        "hs_lastmodifieddate": "2026-05-11T18:15:50.521Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59151623032",
+        "createdate": "2026-04-13T21:07:52.315Z"
+      },
+      "displayName": "GilbertTang"
+    },
+    {
+      "id": 59083171248,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "AlexBogun",
+        "amount": "25000",
+        "hs_lastmodifieddate": "2026-05-12T12:12:52.192Z",
+        "dealstage": "1321369500",
+        "hs_object_id": "59083171248",
+        "createdate": "2026-04-10T23:08:01.480Z"
+      },
+      "displayName": "AlexBogun"
+    },
+    {
+      "id": 59097464845,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "JasonPruger",
+        "amount": "13000",
+        "hs_lastmodifieddate": "2026-05-13T21:45:30.949Z",
+        "dealstage": "1321369496",
+        "hs_object_id": "59097464845",
+        "createdate": "2026-04-10T22:37:24.218Z"
+      },
+      "displayName": "JasonPruger"
+    },
+    {
+      "id": 59096257409,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "BrianMerritt",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-11T18:03:12.270Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59096257409",
+        "createdate": "2026-04-10T22:05:51.483Z"
+      },
+      "displayName": "BrianMerritt"
+    },
+    {
+      "id": 59078187892,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "HiteshPratap",
+        "amount": "8000",
+        "hs_lastmodifieddate": "2026-05-13T21:46:21.842Z",
+        "dealstage": "1321369496",
+        "hs_object_id": "59078187892",
+        "createdate": "2026-04-10T21:46:34.111Z"
+      },
+      "displayName": "HiteshPratap"
+    },
+    {
+      "id": 59095912505,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "MauricioLopez",
+        "amount": "10000",
+        "hs_lastmodifieddate": "2026-05-11T18:33:29.442Z",
+        "dealstage": "1321369500",
+        "hs_object_id": "59095912505",
+        "createdate": "2026-04-10T21:44:34.554Z"
+      },
+      "displayName": "MauricioLopez"
+    },
+    {
+      "id": 59084908830,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "MichaelWu",
+        "amount": "2000",
+        "hs_lastmodifieddate": "2026-05-11T18:37:15.798Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59084908830",
+        "createdate": "2026-04-10T21:42:18.198Z"
+      },
+      "displayName": "MichaelWu"
+    },
+    {
+      "id": 59093002591,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "ManuelGallegus",
+        "amount": "8000",
+        "hs_lastmodifieddate": "2026-05-08T02:02:16.637Z",
+        "dealstage": "1321369496",
+        "hs_object_id": "59093002591",
+        "createdate": "2026-04-10T21:41:12.971Z"
+      },
+      "displayName": "ManuelGallegus"
+    },
+    {
+      "id": 59081427122,
+      "properties": {
+        "pipeline": "880355706",
+        "hs_object_id": "59081427122",
+        "dealname": "JasonSchuman",
+        "createdate": "2026-04-10T21:23:55.890Z",
+        "hs_lastmodifieddate": "2026-04-13T17:37:34.740Z",
+        "dealstage": "1321369501"
+      },
+      "displayName": "JasonSchuman"
+    },
+    {
+      "id": 59105307656,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "WinstonMa",
+        "amount": "2000",
+        "hs_lastmodifieddate": "2026-05-11T18:26:24.842Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59105307656",
+        "createdate": "2026-04-10T21:12:19.988Z"
+      },
+      "displayName": "WinstonMa"
+    },
+    {
+      "id": 59102825302,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "MichaelCuttitta",
+        "amount": "25000",
+        "hs_lastmodifieddate": "2026-05-08T18:02:09.462Z",
+        "dealstage": "1321369497",
+        "hs_object_id": "59102825302",
+        "createdate": "2026-04-10T20:52:21.712Z"
+      },
+      "displayName": "MichaelCuttitta"
+    },
+    {
+      "id": 59090638734,
+      "properties": {
+        "pipeline": "880355706",
+        "hs_object_id": "59090638734",
+        "dealname": "GabrielaCampoverde",
+        "createdate": "2026-04-10T16:38:29.655Z",
+        "hs_lastmodifieddate": "2026-05-09T01:28:49.823Z",
+        "dealstage": "1321369496"
+      },
+      "displayName": "GabrielaCampoverde"
+    },
+    {
+      "id": 59025891848,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "HaidehHirmand",
+        "amount": "11000",
+        "hs_lastmodifieddate": "2026-05-11T18:45:14.091Z",
+        "dealstage": "1321369501",
+        "hs_object_id": "59025891848",
+        "createdate": "2026-04-09T22:18:31.272Z"
+      },
+      "displayName": "HaidehHirmand"
+    },
+    {
+      "id": 59039335771,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "AltinKadareja",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-11T18:35:58.118Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59039335771",
+        "createdate": "2026-04-09T22:03:31.105Z"
+      },
+      "displayName": "AltinKadareja"
+    },
+    {
+      "id": 59027751608,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "RyanRatelle",
+        "amount": "13000",
+        "hs_lastmodifieddate": "2026-05-11T15:33:39.152Z",
+        "dealstage": "1321369497",
+        "hs_object_id": "59027751608",
+        "createdate": "2026-04-09T21:58:58.072Z"
+      },
+      "displayName": "RyanRatelle"
+    },
+    {
+      "id": 59017589372,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "TimothyArmenta",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-13T22:15:58.091Z",
+        "dealstage": "1321369496",
+        "hs_object_id": "59017589372",
+        "createdate": "2026-04-09T21:48:39.560Z"
+      },
+      "displayName": "TimothyArmenta"
+    },
+    {
+      "id": 59026975287,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "TrevorHamilton",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-11T15:42:24.077Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59026975287",
+        "createdate": "2026-04-09T21:14:28.117Z"
+      },
+      "displayName": "TrevorHamilton"
+    },
+    {
+      "id": 59018217862,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "James Lloyd",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-13T22:47:37.454Z",
+        "dealstage": "1321369496",
+        "hs_object_id": "59018217862",
+        "createdate": "2026-04-09T19:16:50.181Z"
+      },
+      "displayName": "James Lloyd"
+    },
+    {
+      "id": 59034934080,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "YoramEilon",
+        "amount": "13000",
+        "hs_lastmodifieddate": "2026-05-13T22:03:57.232Z",
+        "dealstage": "1321369501",
+        "hs_object_id": "59034934080",
+        "createdate": "2026-04-09T15:33:35.230Z"
+      },
+      "displayName": "YoramEilon"
+    },
+    {
+      "id": 59023180213,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "PierreDubucpierre.dubuc@openclassrooms.com",
+        "amount": "3000",
+        "hs_lastmodifieddate": "2026-05-12T06:52:23.314Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59023180213",
+        "createdate": "2026-04-09T15:24:59.166Z"
+      },
+      "displayName": "PierreDubucpierre.dubuc@openclassrooms.com"
+    },
+    {
+      "id": 59029847055,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "AaronAnleuaanleu@amnh.org",
+        "amount": "13000",
+        "hs_lastmodifieddate": "2026-05-11T15:57:29.355Z",
+        "dealstage": "1321369496",
+        "hs_object_id": "59029847055",
+        "createdate": "2026-04-09T15:24:59.107Z"
+      },
+      "displayName": "AaronAnleuaanleu@amnh.org"
+    },
+    {
+      "id": 59039921698,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "AristotleTorresaristotle@byanymeans.co",
+        "amount": "13000",
+        "hs_lastmodifieddate": "2026-05-11T22:16:45.407Z",
+        "dealstage": "1321369496",
+        "hs_object_id": "59039921698",
+        "createdate": "2026-04-09T15:24:58.890Z"
+      },
+      "displayName": "AristotleTorresaristotle@byanymeans.co"
+    },
+    {
+      "id": 59043804257,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "MikeCavnaughmichael@hivhero.org",
+        "amount": "2000",
+        "hs_lastmodifieddate": "2026-04-22T20:21:10.663Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59043804257",
+        "createdate": "2026-04-09T15:24:58.539Z"
+      },
+      "displayName": "MikeCavnaughmichael@hivhero.org"
+    },
+    {
+      "id": 59017558358,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "ToddSpodektoddspodek@gmail.com",
+        "amount": "8000",
+        "hs_lastmodifieddate": "2026-05-11T15:33:40.735Z",
+        "dealstage": "1321369496",
+        "hs_object_id": "59017558358",
+        "createdate": "2026-04-09T15:24:58.428Z"
+      },
+      "displayName": "ToddSpodektoddspodek@gmail.com"
+    },
+    {
+      "id": 59049856832,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "IllyaShellillyashell@yahoo.com",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-11T15:43:27.037Z",
+        "dealstage": "1321369496",
+        "hs_object_id": "59049856832",
+        "createdate": "2026-04-09T15:24:58.224Z"
+      },
+      "displayName": "IllyaShellillyashell@yahoo.com"
+    },
+    {
+      "id": 59023539317,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "NoahShachtmannoah.shachtman@gmail.com",
+        "amount": "8000",
+        "hs_lastmodifieddate": "2026-05-11T15:42:25.791Z",
+        "dealstage": "1321369497",
+        "hs_object_id": "59023539317",
+        "createdate": "2026-04-09T15:24:58.142Z"
+      },
+      "displayName": "NoahShachtmannoah.shachtman@gmail.com"
+    },
+    {
+      "id": 59040850320,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "AlfredDeingeniisdeingena@yahoo.com",
+        "amount": "2000",
+        "hs_lastmodifieddate": "2026-05-08T02:02:16.637Z",
+        "dealstage": "1321369496",
+        "hs_object_id": "59040850320",
+        "createdate": "2026-04-09T15:24:58.026Z"
+      },
+      "displayName": "AlfredDeingeniisdeingena@yahoo.com"
+    },
+    {
+      "id": 59018952464,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "AnuraagAtlurianuraag.atluri@newtonx.com",
+        "amount": "6000",
+        "hs_lastmodifieddate": "2026-05-11T16:18:18.143Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59018952464",
+        "createdate": "2026-04-09T15:24:57.792Z"
+      },
+      "displayName": "AnuraagAtlurianuraag.atluri@newtonx.com"
+    },
+    {
+      "id": 59036945843,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "JamesAllenjamesedwardallen1@gmail.com",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-11T18:12:54.001Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59036945843",
+        "createdate": "2026-04-09T15:24:57.730Z"
+      },
+      "displayName": "JamesAllenjamesedwardallen1@gmail.com"
+    },
+    {
+      "id": 59028608894,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "JamesWalkerjwalkermobile@gmail.com",
+        "amount": "3000",
+        "hs_lastmodifieddate": "2026-05-11T15:48:38.685Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59028608894",
+        "createdate": "2026-04-09T15:24:57.348Z"
+      },
+      "displayName": "JamesWalkerjwalkermobile@gmail.com"
+    },
+    {
+      "id": 59023849808,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "MeghanDuvalmduval@duvalconsultancy.com",
+        "amount": "3000",
+        "hs_lastmodifieddate": "2026-05-13T22:12:09.493Z",
+        "dealstage": "1321369496",
+        "hs_object_id": "59023849808",
+        "createdate": "2026-04-09T15:24:57.217Z"
+      },
+      "displayName": "MeghanDuvalmduval@duvalconsultancy.com"
+    },
+    {
+      "id": 59032798843,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "AlanMilesmelissaclemons31@gmail.com",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-06T17:52:44.920Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59032798843",
+        "createdate": "2026-04-09T15:24:57.210Z"
+      },
+      "displayName": "AlanMilesmelissaclemons31@gmail.com"
+    },
+    {
+      "id": 59033109042,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "WilliamChinb.chin.0001@gmail.com",
+        "amount": "10000",
+        "hs_lastmodifieddate": "2026-05-11T18:26:08.042Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59033109042",
+        "createdate": "2026-04-09T15:24:57.204Z"
+      },
+      "displayName": "WilliamChinb.chin.0001@gmail.com"
+    },
+    {
+      "id": 59043495236,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "IanBrownian.j.brown@gmail.com",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-13T22:37:05.684Z",
+        "dealstage": "1321369497",
+        "hs_object_id": "59043495236",
+        "createdate": "2026-04-09T15:24:57.181Z"
+      },
+      "displayName": "IanBrownian.j.brown@gmail.com"
+    },
+    {
+      "id": 59022406518,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "MathieuShrontzmathieushrontz@gmail.com",
+        "amount": "3000",
+        "hs_lastmodifieddate": "2026-05-11T18:18:40.538Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59022406518",
+        "createdate": "2026-04-09T15:24:57.169Z"
+      },
+      "displayName": "MathieuShrontzmathieushrontz@gmail.com"
+    },
+    {
+      "id": 59034624365,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "MichaelBelicosemike@campus.edu",
+        "amount": "13000",
+        "hs_lastmodifieddate": "2026-05-08T02:02:16.637Z",
+        "dealstage": "1321369496",
+        "hs_object_id": "59034624365",
+        "createdate": "2026-04-09T15:24:57.161Z"
+      },
+      "displayName": "MichaelBelicosemike@campus.edu"
+    },
+    {
+      "id": 59030940703,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "StevenSeltzerseltzerone@msn.com",
+        "amount": "3000",
+        "hs_lastmodifieddate": "2026-05-11T18:24:24.696Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59030940703",
+        "createdate": "2026-04-09T15:24:57.110Z"
+      },
+      "displayName": "StevenSeltzerseltzerone@msn.com"
+    },
+    {
+      "id": 59041470856,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "AjmalHachimahachim@berkshireglobal.com",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-11T17:56:49.627Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59041470856",
+        "createdate": "2026-04-09T15:24:57.110Z"
+      },
+      "displayName": "AjmalHachimahachim@berkshireglobal.com"
+    },
+    {
+      "id": 59024623177,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "MichaelBlockmichaeleblock@gmail.com",
+        "amount": "2000",
+        "hs_lastmodifieddate": "2026-05-11T15:50:34.530Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59024623177",
+        "createdate": "2026-04-09T15:24:57.052Z"
+      },
+      "displayName": "MichaelBlockmichaeleblock@gmail.com"
+    },
+    {
+      "id": 59022406517,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "StevenBisciellosbllo21@aol.com",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-11T18:37:56.190Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59022406517",
+        "createdate": "2026-04-09T15:24:57.045Z"
+      },
+      "displayName": "StevenBisciellosbllo21@aol.com"
+    },
+    {
+      "id": 59049082896,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "DavidSternds@playgroundentertainment.com",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-06T17:50:46.781Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59049082896",
+        "createdate": "2026-04-09T15:24:57.038Z"
+      },
+      "displayName": "DavidSternds@playgroundentertainment.com"
+    },
+    {
+      "id": 59033418121,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "AnmayDittmananmay.dittman@blackrock.com",
+        "amount": "10000",
+        "hs_lastmodifieddate": "2026-05-12T11:54:50.198Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59033418121",
+        "createdate": "2026-04-09T15:24:57.035Z"
+      },
+      "displayName": "AnmayDittmananmay.dittman@blackrock.com"
+    },
+    {
+      "id": 59033264257,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "JoeRobinsonjoerobinson@iheartmedia.com",
+        "amount": "3000",
+        "hs_lastmodifieddate": "2026-05-06T18:15:08.781Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59033264257",
+        "createdate": "2026-04-09T15:24:57.035Z"
+      },
+      "displayName": "JoeRobinsonjoerobinson@iheartmedia.com"
+    },
+    {
+      "id": 59025087339,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "AshleyDionneashleybdionne@gmail.com",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-11T15:52:19.137Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59025087339",
+        "createdate": "2026-04-09T15:24:57.018Z"
+      },
+      "displayName": "AshleyDionneashleybdionne@gmail.com"
+    },
+    {
+      "id": 59017713268,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "AlbertPerndocajalbert@blewinc.com",
+        "amount": "25000",
+        "hs_lastmodifieddate": "2026-04-22T20:47:32.951Z",
+        "dealstage": "1321369501",
+        "hs_object_id": "59017713268",
+        "createdate": "2026-04-09T15:24:56.991Z"
+      },
+      "displayName": "AlbertPerndocajalbert@blewinc.com"
+    },
+    {
+      "id": 59038064389,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "BenPokhben@nycadsco.com",
+        "amount": "3000",
+        "hs_lastmodifieddate": "2026-05-06T17:29:17.816Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59038064389",
+        "createdate": "2026-04-09T15:24:56.977Z"
+      },
+      "displayName": "BenPokhben@nycadsco.com"
+    },
+    {
+      "id": 59047688848,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "JohnLumpkinjohn.a.lumpkin@gmail.com",
+        "amount": "2000",
+        "hs_lastmodifieddate": "2026-05-06T18:11:33.958Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59047688848",
+        "createdate": "2026-04-09T15:24:56.948Z"
+      },
+      "displayName": "JohnLumpkinjohn.a.lumpkin@gmail.com"
+    },
+    {
+      "id": 59022715715,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "TommyMazzatommy.mazza42@gmail.com",
+        "amount": "3000",
+        "hs_lastmodifieddate": "2026-04-22T20:41:43.201Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59022715715",
+        "createdate": "2026-04-09T15:24:56.932Z"
+      },
+      "displayName": "TommyMazzatommy.mazza42@gmail.com"
+    },
+    {
+      "id": 59038993337,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "CelineSuarezcelinemsuarez@gmail.com",
+        "amount": "10000",
+        "hs_lastmodifieddate": "2026-05-11T15:56:16.764Z",
+        "dealstage": "1321369496",
+        "hs_object_id": "59038993337",
+        "createdate": "2026-04-09T15:24:56.883Z"
+      },
+      "displayName": "CelineSuarezcelinemsuarez@gmail.com"
+    },
+    {
+      "id": 59030785846,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "AaronCunninghamaaron.cunningham@dailymail.com",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-13T22:01:20.950Z",
+        "dealstage": "1321369497",
+        "hs_object_id": "59030785846",
+        "createdate": "2026-04-09T15:24:56.879Z"
+      },
+      "displayName": "AaronCunninghamaaron.cunningham@dailymail.com"
+    },
+    {
+      "id": 59019571497,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "FadiKhouryfadi@fjkdance.com",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-04-22T15:47:31.101Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59019571497",
+        "createdate": "2026-04-09T15:24:56.871Z"
+      },
+      "displayName": "FadiKhouryfadi@fjkdance.com"
+    },
+    {
+      "id": 59036480917,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "AnubhShahanubh.shah@withclarity.com",
+        "amount": "13000",
+        "hs_lastmodifieddate": "2026-05-11T15:53:32.686Z",
+        "dealstage": "1321369496",
+        "hs_object_id": "59036480917",
+        "createdate": "2026-04-09T15:24:56.866Z"
+      },
+      "displayName": "AnubhShahanubh.shah@withclarity.com"
+    },
+    {
+      "id": 59023694082,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "Karim D",
+        "amount": "13000",
+        "hs_lastmodifieddate": "2026-04-23T12:49:01.524Z",
+        "dealstage": "1321369500",
+        "hs_object_id": "59023694082",
+        "createdate": "2026-04-09T15:24:56.835Z"
+      },
+      "displayName": "Karim D"
+    },
+    {
+      "id": 59048927274,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "RonJacobsonronjacobson@gmail.com",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-11T16:44:39.228Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59048927274",
+        "createdate": "2026-04-09T15:24:56.829Z"
+      },
+      "displayName": "RonJacobsonronjacobson@gmail.com"
+    },
+    {
+      "id": 59022406516,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "Drew Glick",
+        "amount": "6000",
+        "hs_lastmodifieddate": "2026-05-11T18:37:34.714Z",
+        "dealstage": "1321369496",
+        "hs_object_id": "59022406516",
+        "createdate": "2026-04-09T15:24:56.825Z"
+      },
+      "displayName": "Drew Glick"
+    },
+    {
+      "id": 59022406515,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "AllenDuanallenduan@post.harvard.edu",
+        "amount": "11000",
+        "hs_lastmodifieddate": "2026-05-11T17:58:45.525Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59022406515",
+        "createdate": "2026-04-09T15:24:56.825Z"
+      },
+      "displayName": "AllenDuanallenduan@post.harvard.edu"
+    },
+    {
+      "id": 59022096711,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "VadimSelitskyvselitsky@gmail.com",
+        "amount": "2000",
+        "hs_lastmodifieddate": "2026-05-11T18:24:52.806Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59022096711",
+        "createdate": "2026-04-09T15:24:56.802Z"
+      },
+      "displayName": "VadimSelitskyvselitsky@gmail.com"
+    },
+    {
+      "id": 59023335948,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "DirkSchulted.schulte@roschmann.group",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-12T01:33:32.202Z",
+        "dealstage": "1321369497",
+        "hs_object_id": "59023335948",
+        "createdate": "2026-04-09T15:24:56.778Z"
+      },
+      "displayName": "DirkSchulted.schulte@roschmann.group"
+    },
+    {
+      "id": 59044423729,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "KenElutokeluto@gmail.com",
+        "amount": "3000",
+        "hs_lastmodifieddate": "2026-04-22T20:48:40.769Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59044423729",
+        "createdate": "2026-04-09T15:24:56.777Z"
+      },
+      "displayName": "KenElutokeluto@gmail.com"
+    },
+    {
+      "id": 59031095707,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "David Baile",
+        "amount": "10000",
+        "hs_lastmodifieddate": "2026-04-27T19:30:24.033Z",
+        "dealstage": "1321369500",
+        "hs_object_id": "59031095707",
+        "createdate": "2026-04-09T15:24:56.754Z"
+      },
+      "displayName": "David Baile"
+    },
+    {
+      "id": 59047069832,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "FilippoBigolinfilippo@bigolin.com",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-11T15:59:37.284Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59047069832",
+        "createdate": "2026-04-09T15:24:56.754Z"
+      },
+      "displayName": "FilippoBigolinfilippo@bigolin.com"
+    },
+    {
+      "id": 59020655271,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "AndrewKorisakoris@periscopewm.com",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-08T02:02:16.637Z",
+        "dealstage": "1321369497",
+        "hs_object_id": "59020655271",
+        "createdate": "2026-04-09T15:24:56.748Z"
+      },
+      "displayName": "AndrewKorisakoris@periscopewm.com"
+    },
+    {
+      "id": 59023849805,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "AndrewEdgecliffe-Johnsonaedgecliffe@semafor.com",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-12T02:52:58.179Z",
+        "dealstage": "1321369501",
+        "hs_object_id": "59023849805",
+        "createdate": "2026-04-09T15:24:56.744Z"
+      },
+      "displayName": "AndrewEdgecliffe-Johnsonaedgecliffe@semafor.com"
+    },
+    {
+      "id": 59030476915,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "AsherUchiyamaasher@thursdayboots.com",
+        "amount": "3000",
+        "hs_lastmodifieddate": "2026-05-11T15:56:11.885Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59030476915",
+        "createdate": "2026-04-09T15:24:56.744Z"
+      },
+      "displayName": "AsherUchiyamaasher@thursdayboots.com"
+    },
+    {
+      "id": 59038993336,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "PatrickEhlenpatrick@loop.ai",
+        "amount": "2000",
+        "hs_lastmodifieddate": "2026-05-11T18:23:24.951Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59038993336",
+        "createdate": "2026-04-09T15:24:56.743Z"
+      },
+      "displayName": "PatrickEhlenpatrick@loop.ai"
+    },
+    {
+      "id": 59032180365,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "RomanKosinovrkosinov@gmail.com",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-11T15:52:15.403Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59032180365",
+        "createdate": "2026-04-09T15:24:56.739Z"
+      },
+      "displayName": "RomanKosinovrkosinov@gmail.com"
+    },
+    {
+      "id": 59037909628,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "DouglasRanieridoug.ranieri@strategicmechny.com",
+        "amount": "11000",
+        "hs_lastmodifieddate": "2026-05-11T15:40:35.655Z",
+        "dealstage": "1321369496",
+        "hs_object_id": "59037909628",
+        "createdate": "2026-04-09T15:24:56.731Z"
+      },
+      "displayName": "DouglasRanieridoug.ranieri@strategicmechny.com"
+    },
+    {
+      "id": 59036636429,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "EricGrobergegroberg@gmail.com",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-11T18:15:39.146Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59036636429",
+        "createdate": "2026-04-09T15:24:56.710Z"
+      },
+      "displayName": "EricGrobergegroberg@gmail.com"
+    },
+    {
+      "id": 59039302799,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "Richard Chandler",
+        "amount": "2000",
+        "hs_lastmodifieddate": "2026-05-12T01:33:32.202Z",
+        "dealstage": "1321369497",
+        "hs_object_id": "59039302799",
+        "createdate": "2026-04-09T15:24:56.705Z"
+      },
+      "displayName": "Richard Chandler"
+    },
+    {
+      "id": 59024778316,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "AtanuSahaatarye@yahoo.com",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-11T15:55:19.530Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59024778316",
+        "createdate": "2026-04-09T15:24:56.686Z"
+      },
+      "displayName": "AtanuSahaatarye@yahoo.com"
+    },
+    {
+      "id": 59051095644,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "DonCitarelladon@bulc.info",
+        "amount": "3000",
+        "hs_lastmodifieddate": "2026-04-22T15:47:40.737Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59051095644",
+        "createdate": "2026-04-09T15:24:56.678Z"
+      },
+      "displayName": "DonCitarelladon@bulc.info"
+    },
+    {
+      "id": 59026944106,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "BenMalinskybm@curbcutpartners.com",
+        "amount": "9000",
+        "hs_lastmodifieddate": "2026-05-11T15:54:21.684Z",
+        "dealstage": "1321369496",
+        "hs_object_id": "59026944106",
+        "createdate": "2026-04-09T15:24:56.652Z"
+      },
+      "displayName": "BenMalinskybm@curbcutpartners.com"
+    },
+    {
+      "id": 59017403830,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "CliveWilliamsclive@goodfindrecords.com",
+        "amount": "3000",
+        "hs_lastmodifieddate": "2026-04-22T15:47:41.664Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59017403830",
+        "createdate": "2026-04-09T15:24:56.641Z"
+      },
+      "displayName": "CliveWilliamsclive@goodfindrecords.com"
+    },
+    {
+      "id": 59038374220,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "JamesMagidjamie.magid@gmail.com",
+        "amount": "2000",
+        "hs_lastmodifieddate": "2026-05-08T02:02:16.637Z",
+        "dealstage": "1321369496",
+        "hs_object_id": "59038374220",
+        "createdate": "2026-04-09T15:24:56.631Z"
+      },
+      "displayName": "JamesMagidjamie.magid@gmail.com"
+    },
+    {
+      "id": 59040232241,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "DavidMaundrelldmaundinc@gmail.com",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-11T15:46:30.008Z",
+        "dealstage": "1321369496",
+        "hs_object_id": "59040232241",
+        "createdate": "2026-04-09T15:24:56.630Z"
+      },
+      "displayName": "DavidMaundrelldmaundinc@gmail.com"
+    },
+    {
+      "id": 59017558356,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "Alejandro Alvarez",
+        "amount": "19000",
+        "hs_lastmodifieddate": "2026-05-11T18:32:30.208Z",
+        "dealstage": "1321369500",
+        "hs_object_id": "59017558356",
+        "createdate": "2026-04-09T15:24:56.625Z"
+      },
+      "displayName": "Alejandro Alvarez"
+    },
+    {
+      "id": 59028453536,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "PeterLeungpeterleung05@gmail.com",
+        "amount": "8000",
+        "hs_lastmodifieddate": "2026-05-11T17:13:58.805Z",
+        "dealstage": "1321369496",
+        "hs_object_id": "59028453536",
+        "createdate": "2026-04-09T15:24:56.618Z"
+      },
+      "displayName": "PeterLeungpeterleung05@gmail.com"
+    },
+    {
+      "id": 59045043588,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "CavanKlinskyklinskyc@gmail.com",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-11T18:57:44.328Z",
+        "dealstage": "1321369496",
+        "hs_object_id": "59045043588",
+        "createdate": "2026-04-09T15:24:56.614Z"
+      },
+      "displayName": "CavanKlinskyklinskyc@gmail.com"
+    },
+    {
+      "id": 59023335947,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "ChrisDevroncdevron@regis.org",
+        "amount": "3000",
+        "hs_lastmodifieddate": "2026-05-11T15:51:12.165Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59023335947",
+        "createdate": "2026-04-09T15:24:56.610Z"
+      },
+      "displayName": "ChrisDevroncdevron@regis.org"
+    },
+    {
+      "id": 59050011685,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "CaythaJentiscaytha@foxmeadowfilms.com",
+        "amount": "25000",
+        "hs_lastmodifieddate": "2026-05-11T15:51:32.093Z",
+        "dealstage": "1321369501",
+        "hs_object_id": "59050011685",
+        "createdate": "2026-04-09T15:24:56.603Z"
+      },
+      "displayName": "CaythaJentiscaytha@foxmeadowfilms.com"
+    },
+    {
+      "id": 59024623174,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "DavidPotterdavidhpotter@dhpotter.com",
+        "amount": "3000",
+        "hs_lastmodifieddate": "2026-05-11T18:15:19.543Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59024623174",
+        "createdate": "2026-04-09T15:24:56.600Z"
+      },
+      "displayName": "DavidPotterdavidhpotter@dhpotter.com"
+    },
+    {
+      "id": 59034624363,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "NickLorenzinilorenzininick@gmail.com",
+        "amount": "3000",
+        "hs_lastmodifieddate": "2026-05-11T20:16:33.598Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59034624363",
+        "createdate": "2026-04-09T15:24:56.597Z"
+      },
+      "displayName": "NickLorenzinilorenzininick@gmail.com"
+    },
+    {
+      "id": 59051249756,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "AlexMargoliesamargolies@fortress.com",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-08T02:02:16.637Z",
+        "dealstage": "1321369496",
+        "hs_object_id": "59051249756",
+        "createdate": "2026-04-09T15:24:56.590Z"
+      },
+      "displayName": "AlexMargoliesamargolies@fortress.com"
+    },
+    {
+      "id": 59025087338,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "AdamFelsenthaladam.felsenthal@enfusion.com",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-11T17:55:41.524Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59025087338",
+        "createdate": "2026-04-09T15:24:56.589Z"
+      },
+      "displayName": "AdamFelsenthaladam.felsenthal@enfusion.com"
+    },
+    {
+      "id": 59038527881,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "David Zales",
+        "amount": "15000",
+        "hs_lastmodifieddate": "2026-05-08T02:02:16.637Z",
+        "dealstage": "1321369497",
+        "hs_object_id": "59038527881",
+        "createdate": "2026-04-09T15:24:56.584Z"
+      },
+      "displayName": "David Zales"
+    },
+    {
+      "id": 59026479907,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "SydneyFerlegersferleger11@gmail.com",
+        "amount": "3000",
+        "hs_lastmodifieddate": "2026-05-11T15:44:33.684Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59026479907",
+        "createdate": "2026-04-09T15:24:56.566Z"
+      },
+      "displayName": "SydneyFerlegersferleger11@gmail.com"
+    },
+    {
+      "id": 59035088509,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "BruceGelbgelbmd@yahoo.com",
+        "amount": "3000",
+        "hs_lastmodifieddate": "2026-05-11T18:03:18.950Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59035088509",
+        "createdate": "2026-04-09T15:24:56.562Z"
+      },
+      "displayName": "BruceGelbgelbmd@yahoo.com"
+    },
+    {
+      "id": 59034778660,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "YoavZurelyoav@pontera.com",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-11T18:27:01.273Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59034778660",
+        "createdate": "2026-04-09T15:24:56.551Z"
+      },
+      "displayName": "YoavZurelyoav@pontera.com"
+    },
+    {
+      "id": 59038374219,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "AlonGrinshpoonalon@echo3d.com",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-04-23T23:41:46.689Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59038374219",
+        "createdate": "2026-04-09T15:24:56.523Z"
+      },
+      "displayName": "AlonGrinshpoonalon@echo3d.com"
+    },
+    {
+      "id": 59027408230,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "CraigBergercraig@arealtycap.com",
+        "amount": "19000",
+        "hs_lastmodifieddate": "2026-05-11T17:52:42.362Z",
+        "dealstage": "1321369496",
+        "hs_object_id": "59027408230",
+        "createdate": "2026-04-09T15:24:56.521Z"
+      },
+      "displayName": "CraigBergercraig@arealtycap.com"
+    },
+    {
+      "id": 59033418120,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "JaronEamesjaroneames@gmail.com",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-11T22:29:33.762Z",
+        "dealstage": "1321369496",
+        "hs_object_id": "59033418120",
+        "createdate": "2026-04-09T15:24:56.519Z"
+      },
+      "displayName": "JaronEamesjaroneames@gmail.com"
+    },
+    {
+      "id": 59025705326,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "StevenDanielpoursteven.danielpour@hok.com",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-11T20:27:57.793Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59025705326",
+        "createdate": "2026-04-09T15:24:56.512Z"
+      },
+      "displayName": "StevenDanielpoursteven.danielpour@hok.com"
+    },
+    {
+      "id": 59026325045,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "DominicLaRattadominic.laratta@chase.com",
+        "amount": "10000",
+        "hs_lastmodifieddate": "2026-05-12T12:40:29.317Z",
+        "dealstage": "1321369497",
+        "hs_object_id": "59026325045",
+        "createdate": "2026-04-09T15:24:56.504Z"
+      },
+      "displayName": "DominicLaRattadominic.laratta@chase.com"
+    },
+    {
+      "id": 59050011684,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "David Storper",
+        "amount": "100000",
+        "hs_lastmodifieddate": "2026-05-13T19:26:07.080Z",
+        "dealstage": "1321369500",
+        "hs_object_id": "59050011684",
+        "createdate": "2026-04-09T15:24:56.500Z"
+      },
+      "displayName": "David Storper"
+    },
+    {
+      "id": 59024778315,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "BarbaraGreenbergbgreenberg@philanthropicgroup.com",
+        "amount": "8000",
+        "hs_lastmodifieddate": "2026-05-11T16:00:35.501Z",
+        "dealstage": "1321369496",
+        "hs_object_id": "59024778315",
+        "createdate": "2026-04-09T15:24:56.500Z"
+      },
+      "displayName": "BarbaraGreenbergbgreenberg@philanthropicgroup.com"
+    },
+    {
+      "id": 59043804256,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "JohnBalljohnjamesball@yahoo.com",
+        "amount": "1000",
+        "hs_lastmodifieddate": "2026-05-11T15:45:22.281Z",
+        "dealstage": "1321369496",
+        "hs_object_id": "59043804256",
+        "createdate": "2026-04-09T15:24:56.500Z"
+      },
+      "displayName": "JohnBalljohnjamesball@yahoo.com"
+    },
+    {
+      "id": 59025860015,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "RicoCipriasorico_cipriaso@yahoo.com",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-06T18:28:26.066Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59025860015",
+        "createdate": "2026-04-09T15:24:56.495Z"
+      },
+      "displayName": "RicoCipriasorico_cipriaso@yahoo.com"
+    },
+    {
+      "id": 59024159233,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "MatthewSchultematt@brit.co",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-11T18:19:32.516Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59024159233",
+        "createdate": "2026-04-09T15:24:56.493Z"
+      },
+      "displayName": "MatthewSchultematt@brit.co"
+    },
+    {
+      "id": 59039613496,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "BruceMeyersonbmeyerson1@gmail.com",
+        "amount": "19000",
+        "hs_lastmodifieddate": "2026-05-04T18:06:09.001Z",
+        "dealstage": "1321369500",
+        "hs_object_id": "59039613496",
+        "createdate": "2026-04-09T15:24:56.479Z"
+      },
+      "displayName": "BruceMeyersonbmeyerson1@gmail.com"
+    },
+    {
+      "id": 59023024402,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "FrankChristensenfce@vipp.com",
+        "amount": "3000",
+        "hs_lastmodifieddate": "2026-05-06T18:36:15.565Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59023024402",
+        "createdate": "2026-04-09T15:24:56.479Z"
+      },
+      "displayName": "FrankChristensenfce@vipp.com"
+    },
+    {
+      "id": 59048773178,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "DennisGonzalezarbtrader@gmail.com",
+        "amount": "3000",
+        "hs_lastmodifieddate": "2026-05-11T16:01:19.001Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59048773178",
+        "createdate": "2026-04-09T15:24:56.478Z"
+      },
+      "displayName": "DennisGonzalezarbtrader@gmail.com"
+    },
+    {
+      "id": 59039767346,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "Sang Lee",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-12T23:00:45.206Z",
+        "dealstage": "1321369497",
+        "hs_object_id": "59039767346",
+        "createdate": "2026-04-09T15:24:56.471Z"
+      },
+      "displayName": "Sang Lee"
+    },
+    {
+      "id": 59020965205,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "AlexanderCherryacherry831@gmail.com",
+        "amount": "2000",
+        "hs_lastmodifieddate": "2026-05-11T17:58:21.091Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59020965205",
+        "createdate": "2026-04-09T15:24:56.465Z"
+      },
+      "displayName": "AlexanderCherryacherry831@gmail.com"
+    },
+    {
+      "id": 59051405217,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "ChadGrenierchad.grenier@gmail.com",
+        "amount": "3000",
+        "hs_lastmodifieddate": "2026-05-11T18:05:25.165Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59051405217",
+        "createdate": "2026-04-09T15:24:56.462Z"
+      },
+      "displayName": "ChadGrenierchad.grenier@gmail.com"
+    },
+    {
+      "id": 59033109041,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "MichaelJuradomjhomecare@aol.com",
+        "amount": "2000",
+        "hs_lastmodifieddate": "2026-05-11T18:20:40.637Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59033109041",
+        "createdate": "2026-04-09T15:24:56.452Z"
+      },
+      "displayName": "MichaelJuradomjhomecare@aol.com"
+    },
+    {
+      "id": 59043495235,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "Eugene Feldman",
+        "amount": "25000",
+        "hs_lastmodifieddate": "2026-05-08T02:02:16.637Z",
+        "dealstage": "1321369497",
+        "hs_object_id": "59043495235",
+        "createdate": "2026-04-09T15:24:56.433Z"
+      },
+      "displayName": "Eugene Feldman"
+    },
+    {
+      "id": 59020965204,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "LamboJayapalanlambo.j@gmail.com",
+        "amount": "2000",
+        "hs_lastmodifieddate": "2026-05-11T15:42:34.771Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59020965204",
+        "createdate": "2026-04-09T15:24:56.432Z"
+      },
+      "displayName": "LamboJayapalanlambo.j@gmail.com"
+    },
+    {
+      "id": 59023539315,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "JohnChanjohnchan@gmail.com",
+        "amount": "10000",
+        "hs_lastmodifieddate": "2026-05-06T17:09:19.501Z",
+        "dealstage": "1321369501",
+        "hs_object_id": "59023539315",
+        "createdate": "2026-04-09T15:24:56.427Z"
+      },
+      "displayName": "JohnChanjohnchan@gmail.com"
+    },
+    {
+      "id": 59040387250,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "FranckPiersonfranck@soilairselection.com",
+        "amount": "3000",
+        "hs_lastmodifieddate": "2026-05-06T18:23:27.243Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59040387250",
+        "createdate": "2026-04-09T15:24:56.417Z"
+      },
+      "displayName": "FranckPiersonfranck@soilairselection.com"
+    },
+    {
+      "id": 59040850318,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "DanielPlengedaniel@plural.nyc",
+        "amount": "4000",
+        "hs_lastmodifieddate": "2026-05-11T18:08:04.463Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59040850318",
+        "createdate": "2026-04-09T15:24:56.417Z"
+      },
+      "displayName": "DanielPlengedaniel@plural.nyc"
+    },
+    {
+      "id": 59040696445,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "CiprianTututzutzanu@gmail.com",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-11T15:53:55.441Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59040696445",
+        "createdate": "2026-04-09T15:24:56.417Z"
+      },
+      "displayName": "CiprianTututzutzanu@gmail.com"
+    },
+    {
+      "id": 59035552133,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "RobertSchagrinbobby@crushwineco.com",
+        "amount": "2000",
+        "hs_lastmodifieddate": "2026-04-23T21:09:15.408Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59035552133",
+        "createdate": "2026-04-09T15:24:56.404Z"
+      },
+      "displayName": "RobertSchagrinbobby@crushwineco.com"
+    },
+    {
+      "id": 59047069831,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "BenjaminRosnerben@esommelier.com",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-11T15:58:42.056Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59047069831",
+        "createdate": "2026-04-09T15:24:56.403Z"
+      },
+      "displayName": "BenjaminRosnerben@esommelier.com"
+    },
+    {
+      "id": 59023849804,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "RichardChenrchen@duscany.com",
+        "amount": "8000",
+        "hs_lastmodifieddate": "2026-05-11T15:56:13.928Z",
+        "dealstage": "1321369496",
+        "hs_object_id": "59023849804",
+        "createdate": "2026-04-09T15:24:56.401Z"
+      },
+      "displayName": "RichardChenrchen@duscany.com"
+    },
+    {
+      "id": 59049082895,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "Rodney James",
+        "amount": "25000",
+        "hs_lastmodifieddate": "2026-05-11T17:29:12.355Z",
+        "dealstage": "1321369502",
+        "hs_object_id": "59049082895",
+        "createdate": "2026-04-09T15:24:56.391Z"
+      },
+      "displayName": "Rodney James"
+    },
+    {
+      "id": 59028608893,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "KeshavLewiskeshavlewis@gmail.com",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-04T18:35:40.431Z",
+        "dealstage": "1321369501",
+        "hs_object_id": "59028608893",
+        "createdate": "2026-04-09T15:24:56.375Z"
+      },
+      "displayName": "KeshavLewiskeshavlewis@gmail.com"
+    },
+    {
+      "id": 59033264254,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "JuanEstevezjuan.estevez@aecom.com",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-06T18:12:10.744Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59033264254",
+        "createdate": "2026-04-09T15:24:56.361Z"
+      },
+      "displayName": "JuanEstevezjuan.estevez@aecom.com"
+    },
+    {
+      "id": 59029692683,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "EricSimpsoneric@bethmorrisonprojects.org",
+        "amount": "13000",
+        "hs_lastmodifieddate": "2026-05-08T02:02:16.637Z",
+        "dealstage": "1321369496",
+        "hs_object_id": "59029692683",
+        "createdate": "2026-04-09T15:24:56.357Z"
+      },
+      "displayName": "EricSimpsoneric@bethmorrisonprojects.org"
+    },
+    {
+      "id": 59047534450,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "JoshSandersjosh@seabreezesyrups.com",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-08T02:02:16.637Z",
+        "dealstage": "1321369496",
+        "hs_object_id": "59047534450",
+        "createdate": "2026-04-09T15:24:56.357Z"
+      },
+      "displayName": "JoshSandersjosh@seabreezesyrups.com"
+    },
+    {
+      "id": 59034314607,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "HarveyHudesharvey_hudes@yahoo.com",
+        "amount": "2000",
+        "hs_lastmodifieddate": "2026-05-11T21:27:58.758Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59034314607",
+        "createdate": "2026-04-09T15:24:56.353Z"
+      },
+      "displayName": "HarveyHudesharvey_hudes@yahoo.com"
+    },
+    {
+      "id": 59032180363,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "EddyBogaerteddybogaert007@gmail.com",
+        "amount": "3000",
+        "hs_lastmodifieddate": "2026-04-23T20:07:09.373Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59032180363",
+        "createdate": "2026-04-09T15:24:56.348Z"
+      },
+      "displayName": "EddyBogaerteddybogaert007@gmail.com"
+    },
+    {
+      "id": 59036791735,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "JesseKohenjkohen@wilmingtontrust.com",
+        "amount": "1000",
+        "hs_lastmodifieddate": "2026-05-06T18:32:05.352Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59036791735",
+        "createdate": "2026-04-09T15:24:56.334Z"
+      },
+      "displayName": "JesseKohenjkohen@wilmingtontrust.com"
+    },
+    {
+      "id": 59022251114,
+      "properties": {
+        "pipeline": "880355706",
+        "hs_object_id": "59022251114",
+        "dealname": "AmeliaCottrellameliacottrell@gmail.com",
+        "createdate": "2026-04-09T15:24:56.319Z",
+        "hs_lastmodifieddate": "2026-04-10T18:20:10.770Z",
+        "dealstage": "1321369501"
+      },
+      "displayName": "AmeliaCottrellameliacottrell@gmail.com"
+    },
+    {
+      "id": 59023335945,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "DanKohlerkohdan@gmail.com",
+        "amount": "3000",
+        "hs_lastmodifieddate": "2026-05-08T02:02:16.637Z",
+        "dealstage": "1321369496",
+        "hs_object_id": "59023335945",
+        "createdate": "2026-04-09T15:24:56.318Z"
+      },
+      "displayName": "DanKohlerkohdan@gmail.com"
+    },
+    {
+      "id": 59027718433,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "BogdanKnezevicknezevicbogdan@gmail.com",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-11T18:03:07.545Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59027718433",
+        "createdate": "2026-04-09T15:24:56.315Z"
+      },
+      "displayName": "BogdanKnezevicknezevicbogdan@gmail.com"
+    },
+    {
+      "id": 59050940256,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "ElliotBogodebogod@aol.com",
+        "amount": "1000",
+        "hs_lastmodifieddate": "2026-05-06T19:29:36.229Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59050940256",
+        "createdate": "2026-04-09T15:24:56.307Z"
+      },
+      "displayName": "ElliotBogodebogod@aol.com"
+    },
+    {
+      "id": 59048463510,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "FritzDietlfritzdietl@gmail.com",
+        "amount": "2000",
+        "hs_lastmodifieddate": "2026-05-13T14:52:23.372Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59048463510",
+        "createdate": "2026-04-09T15:24:56.291Z"
+      },
+      "displayName": "FritzDietlfritzdietl@gmail.com"
+    },
+    {
+      "id": 59044268384,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "Ed Sonderling",
+        "amount": "19000",
+        "hs_lastmodifieddate": "2026-05-08T20:39:59.296Z",
+        "dealstage": "1321369500",
+        "hs_object_id": "59044268384",
+        "createdate": "2026-04-09T15:24:56.289Z"
+      },
+      "displayName": "Ed Sonderling"
+    },
+    {
+      "id": 59019881088,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "PaulSaydahpaulsaydah@gmail.com",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-06T18:28:22.395Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59019881088",
+        "createdate": "2026-04-09T15:24:56.278Z"
+      },
+      "displayName": "PaulSaydahpaulsaydah@gmail.com"
+    },
+    {
+      "id": 59024623173,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "AubreyBishaiaubrey.bishai@gmail.com",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-11T18:01:39.014Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59024623173",
+        "createdate": "2026-04-09T15:24:56.276Z"
+      },
+      "displayName": "AubreyBishaiaubrey.bishai@gmail.com"
+    },
+    {
+      "id": 59042875017,
+      "properties": {
+        "pipeline": "880355706",
+        "hs_object_id": "59042875017",
+        "dealname": "MatthiasWulfmatthewwulf@wulfcasting.com",
+        "createdate": "2026-04-09T15:24:56.270Z",
+        "hs_lastmodifieddate": "2026-05-11T15:48:02.495Z",
+        "dealstage": "1321369501"
+      },
+      "displayName": "MatthiasWulfmatthewwulf@wulfcasting.com"
+    },
+    {
+      "id": 59048773177,
+      "properties": {
+        "pipeline": "880355706",
+        "hs_object_id": "59048773177",
+        "dealname": "DanPetersondlpeters@gmail.com",
+        "createdate": "2026-04-09T15:24:56.264Z",
+        "hs_lastmodifieddate": "2026-05-12T20:24:01.459Z",
+        "dealstage": "1321369501"
+      },
+      "displayName": "DanPetersondlpeters@gmail.com"
+    },
+    {
+      "id": 59042566402,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "HolmanGaoholman@boostmyschool.com",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-11T16:00:40.544Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59042566402",
+        "createdate": "2026-04-09T15:24:56.254Z"
+      },
+      "displayName": "HolmanGaoholman@boostmyschool.com"
+    },
+    {
+      "id": 59040696444,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "WendyCampolattarowendycamp100@gmail.com",
+        "amount": "2000",
+        "hs_lastmodifieddate": "2026-05-11T18:25:41.973Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59040696444",
+        "createdate": "2026-04-09T15:24:56.228Z"
+      },
+      "displayName": "WendyCampolattarowendycamp100@gmail.com"
+    },
+    {
+      "id": 59047843608,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "JoeyGreinerjggreiner@gmail.com",
+        "amount": "2000",
+        "hs_lastmodifieddate": "2026-04-22T15:48:10.634Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59047843608",
+        "createdate": "2026-04-09T15:24:56.219Z"
+      },
+      "displayName": "JoeyGreinerjggreiner@gmail.com"
+    },
+    {
+      "id": 59044423727,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "ErickHerculeserick@herculesnewyork.com",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-11T18:12:00.599Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59044423727",
+        "createdate": "2026-04-09T15:24:56.215Z"
+      },
+      "displayName": "ErickHerculeserick@herculesnewyork.com"
+    },
+    {
+      "id": 59040232240,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "IvanCohendricohen@aol.com",
+        "amount": "6000",
+        "hs_lastmodifieddate": "2026-05-06T18:37:56.776Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59040232240",
+        "createdate": "2026-04-09T15:24:56.210Z"
+      },
+      "displayName": "IvanCohendricohen@aol.com"
+    },
+    {
+      "id": 59050166319,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "DavidSternthedsternfamily@mac.com",
+        "amount": "3000",
+        "hs_lastmodifieddate": "2026-05-12T01:50:22.158Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59050166319",
+        "createdate": "2026-04-09T15:24:56.210Z"
+      },
+      "displayName": "DavidSternthedsternfamily@mac.com"
+    },
+    {
+      "id": 59032644111,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "TalChalozintal@chalozin.com",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-11T18:59:01.339Z",
+        "dealstage": "1321369496",
+        "hs_object_id": "59032644111",
+        "createdate": "2026-04-09T15:24:56.205Z"
+      },
+      "displayName": "TalChalozintal@chalozin.com"
+    },
+    {
+      "id": 59019106839,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "MichaelWellsmwells@princetonbcp.com",
+        "amount": "3000",
+        "hs_lastmodifieddate": "2026-04-22T15:48:13.106Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59019106839",
+        "createdate": "2026-04-09T15:24:56.202Z"
+      }
+    },
+    {
+      "id": 59051405216,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "AdrienKirschfinkakirschfink@hotmail.com",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-11T17:57:01.822Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59051405216",
+        "createdate": "2026-04-09T15:24:56.183Z"
+      }
+    },
+    {
+      "id": 59020190073,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "AbrahamCooperabraham.cooper@pollyparkcapital.com",
+        "amount": "2000",
+        "hs_lastmodifieddate": "2026-05-11T15:59:33.677Z",
+        "dealstage": "1321369497",
+        "hs_object_id": "59020190073",
+        "createdate": "2026-04-09T15:24:56.146Z"
+      }
+    },
+    {
+      "id": 59043030419,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "NicholasDawesdawesstx@aol.com",
+        "hs_lastmodifieddate": "2026-04-10T18:19:37.444Z",
+        "dealstage": "1321369501",
+        "hs_object_id": "59043030419",
+        "createdate": "2026-04-09T15:24:56.130Z"
+      }
+    },
+    {
+      "id": 59017868204,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "ChristopherMcdevittmcdevitt.christopher@gmail.com",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-11T18:07:49.386Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59017868204",
+        "createdate": "2026-04-09T15:24:56.126Z"
+      }
+    },
+    {
+      "id": 59044423726,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "AlexIosilevichalex@alignmentgrowth.com",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-11T17:57:57.010Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59044423726",
+        "createdate": "2026-04-09T15:24:56.121Z"
+      }
+    },
+    {
+      "id": 59031405644,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "PriscillaIncorvaiapriscilla.incorvaia@citi.com",
+        "hs_lastmodifieddate": "2026-05-12T12:08:12.812Z",
+        "dealstage": "1321369501",
+        "hs_object_id": "59031405644",
+        "createdate": "2026-04-09T15:24:56.120Z"
+      }
+    },
+    {
+      "id": 59038993334,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "TimothyAdamsontimothy.adamson@citi.com",
+        "amount": "13000",
+        "hs_lastmodifieddate": "2026-05-12T10:52:13.860Z",
+        "dealstage": "1321369496",
+        "hs_object_id": "59038993334",
+        "createdate": "2026-04-09T15:24:56.111Z"
+      }
+    },
+    {
+      "id": 59031405643,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "ChrisTuffinc.tuffin@gmail.com",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-11T18:06:26.197Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59031405643",
+        "createdate": "2026-04-09T15:24:56.109Z"
+      }
+    },
+    {
+      "id": 59050476623,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "GeorgeWhitegeorgewhite@me.com",
+        "amount": "19000",
+        "hs_lastmodifieddate": "2026-05-08T02:02:16.637Z",
+        "dealstage": "1321369496",
+        "hs_object_id": "59050476623",
+        "createdate": "2026-04-09T15:24:56.078Z"
+      }
+    },
+    {
+      "id": 59028918697,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "DuncanQuinnduncan@duncanquinn.com",
+        "amount": "3000",
+        "hs_lastmodifieddate": "2026-05-11T16:22:54.416Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59028918697",
+        "createdate": "2026-04-09T15:24:56.071Z"
+      }
+    },
+    {
+      "id": 59017403829,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "LucBesnierlb@reflexgroup.com",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-04-23T06:52:52.452Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59017403829",
+        "createdate": "2026-04-09T15:24:56.067Z"
+      }
+    },
+    {
+      "id": 59039148360,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "BryanDodsonbryan@choreografx.com",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-11T18:03:48.316Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59039148360",
+        "createdate": "2026-04-09T15:24:56.067Z"
+      }
+    },
+    {
+      "id": 59042566401,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "AmmonBendallammon.bendall@citi.com",
+        "amount": "10000",
+        "hs_lastmodifieddate": "2026-05-12T12:40:42.920Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59042566401",
+        "createdate": "2026-04-09T15:24:56.061Z"
+      }
+    },
+    {
+      "id": 59038837596,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "JeffreyLebovitzjeffrey.lebovitz@gmail.com",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-11T18:17:33.431Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59038837596",
+        "createdate": "2026-04-09T15:24:56.055Z"
+      }
+    },
+    {
+      "id": 59025087337,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "SteveWeissbergglobalhospit@aol.com",
+        "amount": "8000",
+        "hs_lastmodifieddate": "2026-05-11T15:57:27.151Z",
+        "dealstage": "1321369496",
+        "hs_object_id": "59025087337",
+        "createdate": "2026-04-09T15:24:56.054Z"
+      }
+    },
+    {
+      "id": 59050630750,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "JonGiacobbejongiacobbe@gmail.com",
+        "amount": "2000",
+        "hs_lastmodifieddate": "2026-05-11T16:02:39.040Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59050630750",
+        "createdate": "2026-04-09T15:24:56.042Z"
+      }
+    },
+    {
+      "id": 59025860013,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "AlexAppelappel.alexander@gmail.com",
+        "amount": "3000",
+        "hs_lastmodifieddate": "2026-05-11T18:12:45.224Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59025860013",
+        "createdate": "2026-04-09T15:24:56.012Z"
+      }
+    },
+    {
+      "id": 59025860014,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "JasonCohenjcohen@dorflaw.com",
+        "amount": "10000",
+        "hs_lastmodifieddate": "2026-05-07T21:42:06.347Z",
+        "dealstage": "1321369501",
+        "hs_object_id": "59025860014",
+        "createdate": "2026-04-09T15:24:56.011Z"
+      }
+    },
+    {
+      "id": 59039613493,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "JosephDiGregoriojdigregorio@bmmfirm.com",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-06T18:53:51.345Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59039613493",
+        "createdate": "2026-04-09T15:24:55.997Z"
+      }
+    },
+    {
+      "id": 59026944105,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "MattKliegmanmattkliegman@gmail.com",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-11T15:50:10.753Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59026944105",
+        "createdate": "2026-04-09T15:24:55.970Z"
+      }
+    },
+    {
+      "id": 59037600026,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "ChrisBurtonchrisb@executiveitforums.com",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-11T15:53:20.431Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59037600026",
+        "createdate": "2026-04-09T15:24:55.966Z"
+      }
+    },
+    {
+      "id": 59048307756,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "DanielMesznikdaniel@mccabeswine.com",
+        "amount": "8000",
+        "hs_lastmodifieddate": "2026-05-11T16:01:27.845Z",
+        "dealstage": "1321369496",
+        "hs_object_id": "59048307756",
+        "createdate": "2026-04-09T15:24:55.959Z"
+      }
+    },
+    {
+      "id": 59047688845,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "RenatoPintorenato@adtalks.com.br",
+        "amount": "13000",
+        "hs_lastmodifieddate": "2026-05-11T15:50:35.993Z",
+        "dealstage": "1321369496",
+        "hs_object_id": "59047688845",
+        "createdate": "2026-04-09T15:24:55.861Z"
+      }
+    },
+    {
+      "id": 59050011683,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "PavelGroismanpavel.groisman@gmail.com",
+        "amount": "10000",
+        "hs_lastmodifieddate": "2026-05-11T18:44:07.809Z",
+        "dealstage": "1321369501",
+        "hs_object_id": "59050011683",
+        "createdate": "2026-04-09T15:24:55.833Z"
+      }
+    },
+    {
+      "id": 59049391966,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "AmirBibawyabibawy@marketplace.org",
+        "amount": "3000",
+        "hs_lastmodifieddate": "2026-05-11T17:59:31.621Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59049391966",
+        "createdate": "2026-04-09T15:24:55.832Z"
+      }
+    },
+    {
+      "id": 59034469459,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "Roman Matthewsroman@aforumforlife.org",
+        "hs_lastmodifieddate": "2026-04-09T18:55:46.676Z",
+        "dealstage": "1321369501",
+        "hs_object_id": "59034469459",
+        "createdate": "2026-04-09T15:24:55.827Z"
+      }
+    },
+    {
+      "id": 59042090567,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "MatthewMolmatthew.mol@mac.com",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-11T18:18:48.246Z",
+        "dealstage": "1339121714",
+        "hs_object_id": "59042090567",
+        "createdate": "2026-04-09T15:24:55.785Z"
+      }
+    },
+    {
+      "id": 58902471191,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "Ryan Asato",
+        "hs_lastmodifieddate": "2026-05-12T12:29:45.673Z",
+        "dealstage": "1321369501",
+        "hs_object_id": "58902471191",
+        "createdate": "2026-04-08T15:43:48.719Z"
+      }
+    },
+    {
+      "id": 58906019987,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "Ben Peleg",
+        "amount": "1000",
+        "hs_lastmodifieddate": "2026-04-10T22:24:24.976Z",
+        "dealstage": "1321369499",
+        "hs_object_id": "58906019987",
+        "createdate": "2026-04-07T20:22:31.024Z"
+      }
+    },
+    {
+      "id": 58902446907,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "Justin Holder - Placeholder Company - New Deal",
+        "amount": "10000",
+        "hs_lastmodifieddate": "2026-05-08T02:02:16.637Z",
+        "dealstage": "1321369497",
+        "hs_object_id": "58902446907",
+        "createdate": "2026-04-07T20:20:39.370Z"
+      }
+    },
+    {
+      "id": 58902000538,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "Fernando Romero",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-13T16:55:55.339Z",
+        "dealstage": "1321369500",
+        "hs_object_id": "58902000538",
+        "createdate": "2026-04-07T17:01:37.576Z"
+      }
+    },
+    {
+      "id": 58899344037,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "Jacqueline Davis",
+        "amount": "260",
+        "hs_lastmodifieddate": "2026-04-11T14:15:01.442Z",
+        "dealstage": "1321369499",
+        "hs_object_id": "58899344037",
+        "createdate": "2026-04-07T15:13:15.635Z"
+      }
+    },
+    {
+      "id": 58686445485,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "Rodrigo Valles",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-05-08T02:02:16.637Z",
+        "dealstage": "1321369496",
+        "hs_object_id": "58686445485",
+        "createdate": "2026-04-02T17:42:53.034Z"
+      }
+    },
+    {
+      "id": 58685891751,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "Adam Parchue",
+        "amount": "15000",
+        "hs_lastmodifieddate": "2026-05-10T17:43:43.643Z",
+        "dealstage": "1321369499",
+        "hs_object_id": "58685891751",
+        "createdate": "2026-04-02T17:23:23.174Z"
+      }
+    },
+    {
+      "id": 58404117610,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "Peter Brockman",
+        "amount": "100",
+        "hs_lastmodifieddate": "2026-04-09T15:50:58.288Z",
+        "dealstage": "1321369499",
+        "hs_object_id": "58404117610",
+        "createdate": "2026-03-26T18:27:32.454Z"
+      }
+    },
+    {
+      "id": 58332122890,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "Dominik Kalinski",
+        "amount": "500",
+        "hs_lastmodifieddate": "2026-04-20T19:32:27.182Z",
+        "dealstage": "1321369501",
+        "hs_object_id": "58332122890",
+        "createdate": "2026-03-26T15:53:12.594Z"
+      }
+    },
+    {
+      "id": 58368992572,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "Jorge Delgado",
+        "amount": "8000",
+        "hs_lastmodifieddate": "2026-05-12T13:17:41.475Z",
+        "dealstage": "1321369500",
+        "hs_object_id": "58368992572",
+        "createdate": "2026-03-25T19:34:45.819Z"
+      }
+    },
+    {
+      "id": 58025445236,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "Harrison Steinberg",
+        "amount": "10000",
+        "hs_lastmodifieddate": "2026-05-08T17:48:57.008Z",
+        "dealstage": "1321369502",
+        "hs_object_id": "58025445236",
+        "createdate": "2026-03-17T21:49:15.997Z"
+      }
+    },
+    {
+      "id": 58025466511,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "Adrian Suarez",
+        "amount": "15000",
+        "hs_lastmodifieddate": "2026-05-08T02:02:16.637Z",
+        "dealstage": "1321369497",
+        "hs_object_id": "58025466511",
+        "createdate": "2026-03-16T19:19:41.275Z"
+      }
+    },
+    {
+      "id": 58025332225,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "Adel Grobler",
+        "amount": "13000",
+        "hs_lastmodifieddate": "2026-05-11T18:33:14.995Z",
+        "dealstage": "1321369500",
+        "hs_object_id": "58025332225",
+        "createdate": "2026-03-16T15:18:44.635Z"
+      }
+    },
+    {
+      "id": 57941168688,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "Aaron Passell - Placeholder Company - New Deal",
+        "amount": "5000",
+        "hs_lastmodifieddate": "2026-04-22T15:48:29.346Z",
+        "dealstage": "1321369500",
+        "hs_object_id": "57941168688",
+        "createdate": "2026-03-12T21:07:59.472Z"
+      }
+    },
+    {
+      "id": 56981721616,
+      "properties": {
+        "pipeline": "880355706",
+        "dealname": "Cindy Fields",
+        "amount": "3000",
+        "hs_lastmodifieddate": "2026-04-22T15:48:29.820Z",
+        "dealstage": "1321369500",
+        "hs_object_id": "56981721616",
+        "createdate": "2026-02-24T21:17:08.288Z"
+      }
+    }
+  ],
+  "fetched_at": "2026-05-14"
+}
