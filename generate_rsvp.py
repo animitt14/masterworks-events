@@ -64,6 +64,21 @@ INACTIVE_OWNERS = {
     '52728646',  '74718843',  '51117431', '1329531581',
 }
 
+# Email-confirmation detection
+LINNA_OWNER_ID = '202057506'  # HubSpot owner ID for Linna Henry
+EMAIL_CONFIRM_PHRASES = [
+    "i'll be there", "i will be there", "i'll attend", "i will attend",
+    "plan to attend", "planning to attend", "looking forward to it",
+    "count me in", "yes, i'll", "yes i'll", "yes, i will", "yes i will",
+    "see you there", "see you then", "i'm coming", "i am coming",
+    "will be there", "i'll make it", "i can make it", "i can attend",
+    "definitely attending", "will attend", "confirmed my attendance",
+    "yes, count me", "attending the event", "coming to the event",
+    "yes to the event", "rsvp yes", "rsvp: yes", "i'm in", "i am in",
+    "sounds great", "i'll see you", "see you at", "wouldn't miss it",
+    "wouldn't miss", "planning on it", "absolutely", "definitely",
+]
+
 FINANCE_DOMAINS = {
     'jpmorgan.com', 'gs.com', 'goldmansachs.com', 'ubs.com', 'nb.com',
     'pimco.com', 'kkr.com', 'virtu.com', 'blackrock.com', 'morganstanley.com',
@@ -910,6 +925,80 @@ def pluto_enrich_contacts(contacts: list) -> int:
             count += 1
     _save_enrich_cache()
     return count
+
+
+def fetch_email_confirmations(contacts: list) -> int:
+    """
+    For each today/future contact, check HubSpot email engagements for an
+    inbound reply (from the contact) that:
+      1. Arrived AFTER an outbound email sent by Linna Henry, AND
+      2. Contains attendance-confirming language.
+    Sets c['properties']['_email_confirmed'] = True on matches.
+    Returns the count of confirmed contacts.
+    """
+    if not HUBSPOT_TOKEN:
+        return 0
+
+    headers = {'Authorization': f'Bearer {HUBSPOT_TOKEN}'}
+    today_iso = date.today().isoformat()
+    n_confirmed = 0
+
+    targets = [
+        c for c in contacts
+        if (c['properties'].get('outbound_rsvp_to_event') or '')[:10] >= today_iso
+    ]
+
+    for c in targets:
+        cid = c['id']
+        url = (f'https://api.hubapi.com/engagements/v1/engagements'
+               f'/associated/contact/{cid}/paged')
+        try:
+            resp = requests.get(url, headers=headers,
+                                params={'count': 100, 'type': 'EMAIL'},
+                                timeout=10)
+            if not resp.ok:
+                continue
+
+            results = resp.json().get('results', [])
+
+            # Step 1: collect timestamps of outbound emails from Linna
+            linna_sent_at = sorted(
+                eng['engagement']['timestamp']
+                for item in results
+                for eng in [item.get('engagement', {})]
+                if (eng.get('type') == 'EMAIL'
+                    and str(eng.get('ownerId', '')) == LINNA_OWNER_ID
+                    and item.get('metadata', {}).get('direction', 'EMAIL') != 'INBOUND')
+            )
+            if not linna_sent_at:
+                continue  # no email from Linna → skip
+
+            earliest_linna = min(linna_sent_at)
+
+            # Step 2: look for inbound replies AFTER Linna's email with confirming language
+            for item in results:
+                eng  = item.get('engagement', {})
+                meta = item.get('metadata', {})
+                if eng.get('type') != 'EMAIL':
+                    continue
+                if meta.get('direction') != 'INBOUND':
+                    continue
+                if eng.get('timestamp', 0) < earliest_linna:
+                    continue  # reply predates Linna's email
+
+                body    = (meta.get('text') or '').lower()
+                subject = (meta.get('subject') or '').lower()
+                if any(phrase in body + ' ' + subject
+                       for phrase in EMAIL_CONFIRM_PHRASES):
+                    c['properties']['_email_confirmed'] = True
+                    n_confirmed += 1
+                    break
+
+        except Exception as exc:
+            print(f'  email-confirm check failed for {cid}: {exc}',
+                  file=sys.stderr)
+
+    return n_confirmed
 
 
 def fetch_contacts(start: date, end: date) -> list:
@@ -2077,7 +2166,7 @@ def render_detail_row(p: dict, per: str, nw: str, sc: int = 0, flags: list = Non
 
     return (
         f'<tr class="detail-row" style="display:none">'
-        f'<td colspan="9" style="padding:0;border-bottom:1px solid #eef1f7;width:100%">'
+        f'<td colspan="10" style="padding:0;border-bottom:1px solid #eef1f7;width:100%">'
         f'<div class="detail-inner">'
         f'<div class="detail-cell">'
         f'<p class="detail-cell-label">Persona</p>'
@@ -2200,13 +2289,20 @@ def render_row(idx: int, c: dict, show_dropdown: bool = False, show_unk: bool = 
     else:
         prop_html = '<span style="color:#c0ccd8">—</span>'
 
+    email_confirmed_badge = (
+        ' <span style="display:inline-block;font-size:0.62rem;'
+        'background:#e8f5e9;color:#2e7d32;border:1px solid #81c784;'
+        'border-radius:10px;padding:1px 7px;font-weight:700;'
+        'vertical-align:middle;margin-left:4px">&#10003;&nbsp;Replied</span>'
+        if p.get('_email_confirmed') else ''
+    )
     nw_cell = f'<strong style="font-size:0.85rem">{escape(nw)}</strong>'
 
     name_cell = (
         f'<div style="display:flex;align-items:center;gap:10px">'
         f'{avatar_html(p, name)}'
         f'<div style="min-width:0">'
-        f'{opp_star}<strong>{escape(name)}</strong>{invested_badge}{unknown_badge}'
+        f'{opp_star}<strong>{escape(name)}</strong>{email_confirmed_badge}{invested_badge}{unknown_badge}'
         f'{loc_html}{ns_html}'
         f'</div>'
         f'</div>'
@@ -2234,14 +2330,16 @@ def render_row(idx: int, c: dict, show_dropdown: bool = False, show_unk: bool = 
         f'<a href="{hs_url(cid)}" target="_blank" '
         f'style="color:#ff7a59;font-weight:700;text-decoration:none;font-size:0.8rem">HS↗</a></td>'
         f'<td style="text-align:center">'
-        f'<div class="status-slider" data-state="{"uninvite" if disqualified else "conf" if send_conf else "neutral"}">'
-        f'<div class="slider-track"><div class="slider-thumb"></div></div>'
-        f'<div class="slider-labels"><span class="sl-conf">✓</span><span class="sl-uninv">✕</span></div>'
-        f'</div></td>'
+        f'<input type="checkbox" class="uninvite-chk" {uninvite_chk} onchange="toggleUninvite(this)" '
+        f'style="width:16px;height:16px;cursor:pointer;accent-color:#c94040" title="Uninvite"></td>'
         f'<td style="text-align:center">'
         f'<input type="checkbox" class="attended-chk" {attended_chk} '
         f'onchange="toggleAttended(this)" '
         f'style="width:16px;height:16px;cursor:pointer;accent-color:#1a7a45"></td>'
+        f'<td style="text-align:center">'
+        f'<input type="checkbox" class="sendconf-chk" {send_conf_chk} '
+        f'onchange="toggleSendConfirmation(this)" '
+        f'style="width:16px;height:16px;cursor:pointer;accent-color:#1a5fa8" title="Send Confirmation"></td>'
         f'</tr>\n'
         f'{detail_row}'
     )
@@ -2386,8 +2484,9 @@ def render_panel(date_str: str, contacts: list, tab_id: str, active: bool, past:
         <th style="width:120px">Tier</th>
         <th style="width:120px">Threshold</th>
         <th style="width:120px">Links</th>
-        <th style="width:120px">Email F/U</th>
+        <th>Uninvite<br><span id="uninvite-count-{tab_id}" style="font-size:0.65rem;color:#c04040;font-weight:400">{uninvite_count if uninvite_count else ''}</span></th>
         <th style="width:120px">Attended<br><span id="attended-count-{tab_id}" style="font-size:0.65rem;color:#1a7a45;font-weight:400">{attended_count if attended_count else ''}</span></th>
+        <th>Conf?</th>
       </tr></thead>
       <tbody>{rows_html}</tbody>
     </table>
@@ -2560,18 +2659,6 @@ header{{background:#1b3c6e;padding:16px 28px;position:sticky;top:0;z-index:100;
 
 .rsvp-table tbody tr.uninvited{{opacity:0.35;text-decoration:line-through}}
 
-/* Three-state status slider */
-.status-slider{{position:relative;width:48px;height:20px;display:inline-block;cursor:pointer;user-select:none}}
-.slider-track{{position:absolute;top:3px;left:0;right:0;height:14px;background:#d0d5dd;border-radius:7px;transition:background 0.2s}}
-.slider-thumb{{position:absolute;top:1px;left:16px;width:12px;height:12px;background:#fff;border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,0.3);transition:left 0.15s}}
-.slider-labels{{position:absolute;top:2px;left:0;right:0;height:16px;display:flex;justify-content:space-between;align-items:center;padding:0 3px;pointer-events:none;font-size:0.55rem;font-weight:700}}
-.sl-conf{{color:#1a7a45;opacity:0}} .sl-uninv{{color:#a83030;opacity:0}}
-.status-slider[data-state="conf"] .slider-track{{background:#c0e8d0}}
-.status-slider[data-state="conf"] .slider-thumb{{left:2px}}
-.status-slider[data-state="conf"] .sl-conf{{opacity:1}}
-.status-slider[data-state="uninvite"] .slider-track{{background:#f5c4c4}}
-.status-slider[data-state="uninvite"] .slider-thumb{{left:33px}}
-.status-slider[data-state="uninvite"] .sl-uninv{{opacity:1}}
 
 /* ── Contact detail dropdown (today + future events only) ── */
 .expand-chevron{{font-size:9px;color:#aaa;display:inline-block;transition:transform .15s;cursor:pointer}}
@@ -2869,7 +2956,7 @@ function switchTab(id) {{
   if (el) el.style.display = 'block';
   renderPastTab(id);
   applyStoredOverrides(id);
-  initSliders();
+
   updateResetBtn(id);
 }}
 
@@ -3051,44 +3138,33 @@ function reorderTab(tabId) {{
   }});
 }}
 
-function initSliders() {{
-  document.querySelectorAll('.status-slider').forEach(function(sl) {{
-    sl.addEventListener('click', function(e) {{
-      var rect = sl.getBoundingClientRect();
-      var x = e.clientX - rect.left;
-      var third = rect.width / 3;
-      var newState;
-      if (x < third) newState = 'conf';
-      else if (x > third * 2) newState = 'uninvite';
-      else newState = 'neutral';
-      setSliderState(sl, newState);
-    }});
-  }});
-}}
-
-function setSliderState(sl, state) {{
-  var row = sl.closest('tr');
+function toggleUninvite(chk) {{
+  var row = chk.closest('tr');
   var cid = row.dataset.id;
   var tid = row.closest('.tab-panel').id.replace('tab-','');
-  var prev = sl.getAttribute('data-state');
-  sl.setAttribute('data-state', state);
-
-  if (state === 'uninvite') {{
+  if (chk.checked) {{
     saveSharedState('uninvite_' + cid, '1');
-    removeSharedState('sendconf_' + cid);
     row.classList.add('uninvited');
-  }} else if (state === 'conf') {{
-    saveSharedState('sendconf_' + cid, '1');
-    removeSharedState('uninvite_' + cid);
-    row.classList.remove('uninvited');
   }} else {{
     removeSharedState('uninvite_' + cid);
-    removeSharedState('sendconf_' + cid);
     row.classList.remove('uninvited');
   }}
   _syncUninvitesToGist();
-  _syncSharedStateToGist();
   reorderTab(tid);
+  refreshHeader(tid);
+  updateResetBtn(tid);
+}}
+
+function toggleSendConfirmation(chk) {{
+  var row = chk.closest('tr');
+  var cid = row.dataset.id;
+  var tid = row.closest('.tab-panel').id.replace('tab-','');
+  if (chk.checked) {{
+    saveSharedState('sendconf_' + cid, '1');
+  }} else {{
+    removeSharedState('sendconf_' + cid);
+  }}
+  _syncSharedStateToGist();
   refreshHeader(tid);
   updateResetBtn(tid);
 }}
@@ -3123,9 +3199,17 @@ function refreshHeader(tabId) {{
   var attEl = document.getElementById('attended-count-' + tabId);
   if (attEl) attEl.textContent = attCount || '';
 
+  var uninvCount = document.querySelectorAll('#tbl-' + tabId + ' .uninvite-chk:checked').length;
+  var uninvEl = document.getElementById('uninvite-count-' + tabId);
+  if (uninvEl) uninvEl.textContent = uninvCount || '';
+
+  var sendConfCount = document.querySelectorAll('#tbl-' + tabId + ' .sendconf-chk:checked').length;
+  var sendConfEl = document.getElementById('sendconf-count-' + tabId);
+  if (sendConfEl) sendConfEl.textContent = sendConfCount || '';
+
   var dayScore = 0;
   document.querySelectorAll('#tbl-' + tabId + ' tbody tr').forEach(function(row) {{
-    if (!row.classList.contains('uninvited')) {{
+    if (!row.querySelector('.uninvite-chk:checked')) {{
       dayScore += parseInt(row.dataset.score) || 0;
     }}
   }});
@@ -3139,18 +3223,18 @@ function applyStoredOverrides(tabId) {{
     var cid = row.dataset.id;
     var val = readOverride(cid);
     if (val !== null) applyOverride(cid, val, tabId);
-    var sl = row.querySelector('.status-slider');
-    if (sl) {{
-      if (getSharedState('uninvite_' + cid)) {{
-        sl.setAttribute('data-state', 'uninvite');
-        row.classList.add('uninvited');
-      }} else if (getSharedState('sendconf_' + cid)) {{
-        sl.setAttribute('data-state', 'conf');
-      }}
+    if (getSharedState('uninvite_' + cid)) {{
+      row.classList.add('uninvited');
+      var uchk = row.querySelector('.uninvite-chk');
+      if (uchk) uchk.checked = true;
     }}
     if (getSharedState('attended_' + cid)) {{
       var achk = row.querySelector('.attended-chk');
       if (achk) achk.checked = true;
+    }}
+    if (getSharedState('sendconf_' + cid)) {{
+      var schk = row.querySelector('.sendconf-chk');
+      if (schk) schk.checked = true;
     }}
   }});
   refreshHeader(tabId);
@@ -3182,10 +3266,12 @@ function resetOverrides(tabId) {{
     removeSharedState('sendconf_' + cid);
     applyOverride(cid, auto, tabId);
     row.classList.remove('uninvited');
-    var sl = row.querySelector('.status-slider');
-    if (sl) sl.setAttribute('data-state', 'neutral');
+    var uchk = row.querySelector('.uninvite-chk');
+    if (uchk) uchk.checked = false;
     var achk = row.querySelector('.attended-chk');
     if (achk) achk.checked = false;
+    var schk = row.querySelector('.sendconf-chk');
+    if (schk) schk.checked = false;
     if (wasUninvited) _patchHubSpot(cid, {{outbound_event_attendee_disqualified: ''}});
     if (wasAttended)  _patchHubSpot(cid, {{attended_outbound_event: ''}});
     if (wasSendConf)  _syncSharedStateToGist();
@@ -3313,7 +3399,7 @@ document.querySelectorAll('tr[data-contact]').forEach(function(row) {{
       applyStoredOverrides(defaultTab);
       updateResetBtn(defaultTab);
     }}
-    initSliders();
+  
     if ('{past_default_label}' && defaultTab === '{default_tab}') {{
       document.querySelectorAll('.past-opt').forEach(function(o) {{
         if (o.dataset.tid === defaultTab) o.classList.add('active-past');
@@ -4332,6 +4418,10 @@ def main():
     n_proxycurl = proxycurl_enrich_photos(contacts_to_enrich)
     if n_proxycurl:
         print(f'RocketReach: fetched profile photos for {n_proxycurl} contacts')
+
+    n_email_confirmed = fetch_email_confirmations(contacts_to_enrich)
+    if n_email_confirmed:
+        print(f'Email confirmations detected: {n_email_confirmed}')
 
     by_date = defaultdict(list)
     for c in contacts:
