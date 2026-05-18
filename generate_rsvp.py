@@ -972,8 +972,9 @@ def fetch_email_confirmations(contacts: list) -> int:
                 json={
                     'inputs': [{'id': eid} for eid in email_ids[:100]],
                     'properties': ['hs_email_direction', 'hs_email_text',
-                                   'hs_email_subject', 'hs_timestamp',
-                                   'hubspot_owner_id', 'hs_email_from_email'],
+                                   'hs_email_html', 'hs_email_subject',
+                                   'hs_timestamp', 'hubspot_owner_id',
+                                   'hs_email_from_email'],
                 },
                 timeout=15,
             )
@@ -1006,7 +1007,12 @@ def fetch_email_confirmations(contacts: list) -> int:
 
             earliest_linna = min(linna_sent_at)
 
-            # Step 4: look for inbound replies AFTER Linna's email with confirming language
+            # Step 4: look for inbound replies AFTER Linna's email.
+            # Two triggers count as confirmation:
+            #   A) The inbound subject starts with "Re:" — the contact replied
+            #      to Linna's email at all (body text is often absent for
+            #      Gmail/Outlook-connected inbound emails in HubSpot).
+            #   B) The body or subject contains an explicit confirmation phrase.
             # Inbound emails have hs_email_direction == 'INCOMING_EMAIL'
             for e in emails:
                 props = e['properties']
@@ -1015,10 +1021,20 @@ def fetch_email_confirmations(contacts: list) -> int:
                 if (props.get('hs_timestamp') or '') < earliest_linna:
                     continue  # reply predates Linna's email
 
-                body    = (props.get('hs_email_text') or '').lower()
                 subject = (props.get('hs_email_subject') or '').lower()
-                if any(phrase in body + ' ' + subject
-                       for phrase in EMAIL_CONFIRM_PHRASES):
+
+                # Trigger A: any "Re:" reply is itself confirmation
+                is_reply_subject = subject.lstrip().startswith('re:')
+
+                # Trigger B: explicit phrase in body or subject
+                # hs_email_text may be empty; fall back to hs_email_html
+                raw_text = (props.get('hs_email_text') or '').strip()
+                raw_html = (props.get('hs_email_html') or '').strip()
+                body = (raw_text or re.sub(r'<[^>]+>', ' ', raw_html)).lower()
+                has_confirm_phrase = any(phrase in body + ' ' + subject
+                                         for phrase in EMAIL_CONFIRM_PHRASES)
+
+                if is_reply_subject or has_confirm_phrase:
                     c['properties']['_email_confirmed'] = True
                     n_confirmed += 1
                     break
