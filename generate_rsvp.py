@@ -929,7 +929,7 @@ def pluto_enrich_contacts(contacts: list) -> int:
 
 def fetch_email_confirmations(contacts: list) -> int:
     """
-    For each today/future contact, check HubSpot email engagements for an
+    For each today/future contact, check HubSpot CRM emails (v3 API) for an
     inbound reply (from the contact) that:
       1. Arrived AFTER an outbound email sent by Linna Henry, AND
       2. Contains attendance-confirming language.
@@ -939,7 +939,10 @@ def fetch_email_confirmations(contacts: list) -> int:
     if not HUBSPOT_TOKEN:
         return 0
 
-    headers = {'Authorization': f'Bearer {HUBSPOT_TOKEN}'}
+    headers = {
+        'Authorization': f'Bearer {HUBSPOT_TOKEN}',
+        'Content-Type': 'application/json',
+    }
     today_iso = date.today().isoformat()
     n_confirmed = 0
 
@@ -950,44 +953,58 @@ def fetch_email_confirmations(contacts: list) -> int:
 
     for c in targets:
         cid = c['id']
-        url = (f'https://api.hubapi.com/engagements/v1/engagements'
-               f'/associated/contact/{cid}/paged')
         try:
-            resp = requests.get(url, headers=headers,
-                                params={'count': 100, 'type': 'EMAIL'},
-                                timeout=10)
-            if not resp.ok:
+            # Step 1: get email IDs associated with this contact
+            assoc_url = (f'https://api.hubapi.com/crm/v3/objects/contacts'
+                         f'/{cid}/associations/emails')
+            assoc_resp = requests.get(assoc_url, headers=headers, timeout=10)
+            if not assoc_resp.ok:
+                continue
+            email_ids = [r['id'] for r in assoc_resp.json().get('results', [])]
+            if not email_ids:
                 continue
 
-            results = resp.json().get('results', [])
+            # Step 2: batch-fetch those emails with relevant properties
+            batch_url = 'https://api.hubapi.com/crm/v3/objects/emails/batch/read'
+            batch_resp = requests.post(
+                batch_url, headers=headers,
+                json={
+                    'inputs': [{'id': eid} for eid in email_ids[:100]],
+                    'properties': ['hs_email_direction', 'hs_email_text',
+                                   'hs_email_subject', 'hs_timestamp',
+                                   'hubspot_owner_id'],
+                },
+                timeout=15,
+            )
+            if not batch_resp.ok:
+                continue
 
-            # Step 1: collect timestamps of outbound emails from Linna
+            emails = batch_resp.json().get('results', [])
+
+            # Step 3: find earliest outbound email from Linna
+            # Outbound emails have hs_email_direction == 'EMAIL'
             linna_sent_at = sorted(
-                eng['engagement']['timestamp']
-                for item in results
-                for eng in [item.get('engagement', {})]
-                if (eng.get('type') == 'EMAIL'
-                    and str(eng.get('ownerId', '')) == LINNA_OWNER_ID
-                    and item.get('metadata', {}).get('direction', 'EMAIL') != 'INBOUND')
+                e['properties']['hs_timestamp']
+                for e in emails
+                if (e['properties'].get('hubspot_owner_id') == LINNA_OWNER_ID
+                    and e['properties'].get('hs_email_direction') == 'EMAIL')
             )
             if not linna_sent_at:
                 continue  # no email from Linna → skip
 
             earliest_linna = min(linna_sent_at)
 
-            # Step 2: look for inbound replies AFTER Linna's email with confirming language
-            for item in results:
-                eng  = item.get('engagement', {})
-                meta = item.get('metadata', {})
-                if eng.get('type') != 'EMAIL':
+            # Step 4: look for inbound replies AFTER Linna's email with confirming language
+            # Inbound emails have hs_email_direction == 'INCOMING_EMAIL'
+            for e in emails:
+                props = e['properties']
+                if props.get('hs_email_direction') != 'INCOMING_EMAIL':
                     continue
-                if meta.get('direction') != 'INBOUND':
-                    continue
-                if eng.get('timestamp', 0) < earliest_linna:
+                if (props.get('hs_timestamp') or '') < earliest_linna:
                     continue  # reply predates Linna's email
 
-                body    = (meta.get('text') or '').lower()
-                subject = (meta.get('subject') or '').lower()
+                body    = (props.get('hs_email_text') or '').lower()
+                subject = (props.get('hs_email_subject') or '').lower()
                 if any(phrase in body + ' ' + subject
                        for phrase in EMAIL_CONFIRM_PHRASES):
                     c['properties']['_email_confirmed'] = True
