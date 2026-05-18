@@ -65,7 +65,8 @@ INACTIVE_OWNERS = {
 }
 
 # Email-confirmation detection
-LINNA_OWNER_ID = '202057506'  # HubSpot owner ID for Linna Henry
+LINNA_OWNER_ID = '202057506'          # HubSpot owner ID for Linna Henry
+LINNA_EMAIL    = 'lhenry@masterworks.com'  # Linna's sender address (used to identify outbound emails)
 EMAIL_CONFIRM_PHRASES = [
     "i'll be there", "i will be there", "i'll attend", "i will attend",
     "plan to attend", "planning to attend", "looking forward to it",
@@ -972,7 +973,7 @@ def fetch_email_confirmations(contacts: list) -> int:
                     'inputs': [{'id': eid} for eid in email_ids[:100]],
                     'properties': ['hs_email_direction', 'hs_email_text',
                                    'hs_email_subject', 'hs_timestamp',
-                                   'hubspot_owner_id'],
+                                   'hubspot_owner_id', 'hs_email_from_email'],
                 },
                 timeout=15,
             )
@@ -981,13 +982,24 @@ def fetch_email_confirmations(contacts: list) -> int:
 
             emails = batch_resp.json().get('results', [])
 
-            # Step 3: find earliest outbound email from Linna
-            # Outbound emails have hs_email_direction == 'EMAIL'
+            # Step 3: find earliest outbound email from Linna.
+            # Primary check: hs_email_from_email matches Linna's address.
+            # Fallback: hubspot_owner_id matches (less reliable — this field
+            # stores the contact's assigned owner, not necessarily the sender,
+            # but may still match when Linna owns the contact).
+            def _is_linna_outbound(e: dict) -> bool:
+                props = e['properties']
+                if props.get('hs_email_direction') not in ('EMAIL', 'SENT'):
+                    return False
+                from_email = (props.get('hs_email_from_email') or '').lower().strip()
+                if from_email == LINNA_EMAIL.lower():
+                    return True
+                return props.get('hubspot_owner_id') == LINNA_OWNER_ID
+
             linna_sent_at = sorted(
                 e['properties']['hs_timestamp']
                 for e in emails
-                if (e['properties'].get('hubspot_owner_id') == LINNA_OWNER_ID
-                    and e['properties'].get('hs_email_direction') == 'EMAIL')
+                if _is_linna_outbound(e)
             )
             if not linna_sent_at:
                 continue  # no email from Linna → skip
