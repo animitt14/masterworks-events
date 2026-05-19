@@ -1077,7 +1077,7 @@ def fetch_contacts(start: date, end: date) -> list:
                 'hs_linkedin_url', 'linkedin_personal_url', 'outbound_team___linkedin_url', 'pipl_linkedin',
                 'linkedin_image_url',
                 'hs_email_open', 'hs_email_delivered', 'hs_email_first_reply_date',
-                'outbound_event_host_name',
+                'outbound_event_host_name', 'work_email',
             ],
             'limit': 200,
             'sorts': [{'propertyName': 'outbound_rsvp_to_event', 'direction': 'ASCENDING'}],
@@ -2504,15 +2504,20 @@ def render_panel(date_str: str, contacts: list, tab_id: str, active: bool, past:
                 continue
             result.append((c, False))
             used.add(i)
-            host_email = (c['properties'].get('email') or '').strip().lower()
-            if not host_email:
+            cp = c['properties']
+            host_emails = {
+                e.strip().lower()
+                for e in [cp.get('email') or '', cp.get('work_email') or '']
+                if e.strip()
+            }
+            if not host_emails:
                 continue
             for j, guest in enumerate(sorted_cs):
                 if j in used:
                     continue
                 gp = guest['properties']
                 declared_host = (gp.get('outbound_event_host_name') or '').strip().lower()
-                if declared_host and declared_host == host_email:
+                if declared_host and declared_host in host_emails:
                     result.append((guest, True))
                     used.add(j)
         return result
