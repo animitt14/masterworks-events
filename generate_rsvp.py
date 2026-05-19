@@ -2495,11 +2495,7 @@ def render_panel(date_str: str, contacts: list, tab_id: str, active: bool, past:
     event_date = datetime.strptime(date_str, '%Y-%m-%d').date()
     show_replied = event_date in (today, today + timedelta(days=1))
 
-    # Group guests under their host using outbound_event_host_name
-    def _contact_name(c):
-        p = c['properties']
-        return f"{p.get('firstname', '')} {p.get('lastname', '')}".strip()
-
+    # Group guests under their host using outbound_event_host_name (stores host's email)
     def _group_guests(sorted_cs):
         used = set()
         result = []
@@ -2508,13 +2504,15 @@ def render_panel(date_str: str, contacts: list, tab_id: str, active: bool, past:
                 continue
             result.append((c, False))
             used.add(i)
-            host_name = _contact_name(c).lower()
+            host_email = (c['properties'].get('email') or '').strip().lower()
+            if not host_email:
+                continue
             for j, guest in enumerate(sorted_cs):
                 if j in used:
                     continue
                 gp = guest['properties']
                 declared_host = (gp.get('outbound_event_host_name') or '').strip().lower()
-                if declared_host and declared_host == host_name:
+                if declared_host and declared_host == host_email:
                     result.append((guest, True))
                     used.add(j)
         return result
