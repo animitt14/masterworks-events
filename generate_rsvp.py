@@ -1077,6 +1077,7 @@ def fetch_contacts(start: date, end: date) -> list:
                 'hs_linkedin_url', 'linkedin_personal_url', 'outbound_team___linkedin_url', 'pipl_linkedin',
                 'linkedin_image_url',
                 'hs_email_open', 'hs_email_delivered', 'hs_email_first_reply_date',
+                'outbound_event_host_name',
             ],
             'limit': 200,
             'sorts': [{'propertyName': 'outbound_rsvp_to_event', 'direction': 'ASCENDING'}],
@@ -2240,7 +2241,7 @@ def render_detail_row(p: dict, per: str, nw: str, sc: int = 0, flags: list = Non
     )
 
 
-def render_row(idx: int, c: dict, show_dropdown: bool = False, show_unk: bool = False) -> str:
+def render_row(idx: int, c: dict, show_dropdown: bool = False, show_unk: bool = False, show_replied: bool = False, is_plus_one: bool = False) -> str:
     p        = c['properties']
     cid      = c['id']
     fname    = p.get('firstname') or ''
@@ -2339,12 +2340,13 @@ def render_row(idx: int, c: dict, show_dropdown: bool = False, show_unk: bool = 
         'background:#e8f5e9;color:#2e7d32;border:1px solid #81c784;'
         'border-radius:10px;padding:1px 7px;font-weight:700;'
         'vertical-align:middle;margin-left:4px">&#10003;&nbsp;Replied</span>'
-        if p.get('_email_confirmed') else ''
+        if p.get('_email_confirmed') and show_replied else ''
     )
     nw_cell = f'<strong style="font-size:0.85rem">{escape(nw)}</strong>'
 
+    plus_one_indent = 'padding-left:28px;border-left:3px solid #dde3ee;margin-left:8px' if is_plus_one else ''
     name_cell = (
-        f'<div style="display:flex;align-items:center;gap:10px">'
+        f'<div style="display:flex;align-items:center;gap:10px{(";"+plus_one_indent) if is_plus_one else ""}">'
         f'{avatar_html(p, name)}'
         f'<div style="min-width:0">'
         f'{opp_star}<strong>{escape(name)}</strong>{email_confirmed_badge}{invested_badge}{unknown_badge}'
@@ -2356,12 +2358,13 @@ def render_row(idx: int, c: dict, show_dropdown: bool = False, show_unk: bool = 
     chevron_td = '<td style="text-align:center;padding:11px 4px"><span class="expand-chevron">▼</span></td>' if show_dropdown else ''
     tr_attrs   = (f'data-contact="{escape(cid)}" style="cursor:pointer" ' if show_dropdown else '')
     detail_row = render_detail_row(p, per, nw, sc, flags) if show_dropdown else ''
+    plus_one_row_style = 'background:#f8f9fd;' if is_plus_one else ''
 
     return (
         f'<tr data-id="{escape(cid)}" data-auto="{sc}" '
         f'data-persona="{escape(per)}" data-score="{sc}" '
         f'data-disqualified="{"1" if disqualified else "0"}" '
-        f'{tr_attrs}class="{uninvite_class.strip()}">'
+        f'{tr_attrs}class="{uninvite_class.strip()}" style="{plus_one_row_style}">'
         f'{chevron_td}'
         f'<td style="color:#aabcd4;text-align:center">{idx}</td>'
         f'<td>{name_cell}</td>'
@@ -2487,7 +2490,40 @@ def render_panel(date_str: str, contacts: list, tab_id: str, active: bool, past:
     # ── Future / today: full interactive panel ────────────────────────────────
     show_dropdown = not is_past(date_str)
     show_unk = date_str >= '2026-04-20'
-    rows_html = ''.join(render_row(i + 1, c, show_dropdown, show_unk) for i, c in enumerate(sorted_contacts))
+
+    today = date.today()
+    event_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+    show_replied = event_date in (today, today + timedelta(days=1))
+
+    # Group guests under their host using outbound_event_host_name
+    def _contact_name(c):
+        p = c['properties']
+        return f"{p.get('firstname', '')} {p.get('lastname', '')}".strip()
+
+    def _group_guests(sorted_cs):
+        used = set()
+        result = []
+        for i, c in enumerate(sorted_cs):
+            if i in used:
+                continue
+            result.append((c, False))
+            used.add(i)
+            host_name = _contact_name(c).lower()
+            for j, guest in enumerate(sorted_cs):
+                if j in used:
+                    continue
+                gp = guest['properties']
+                declared_host = (gp.get('outbound_event_host_name') or '').strip().lower()
+                if declared_host and declared_host == host_name:
+                    result.append((guest, True))
+                    used.add(j)
+        return result
+
+    grouped = _group_guests(sorted_contacts)
+    rows_html = ''.join(
+        render_row(i + 1, c, show_dropdown, show_unk, show_replied, is_plus_one)
+        for i, (c, is_plus_one) in enumerate(grouped)
+    )
 
     opts = '<option value="">All Tiers</option>\n' + '\n'.join(
         f'<option value="{s}">{s} — {SCORE_LABELS[s]}</option>'
