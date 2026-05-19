@@ -928,6 +928,33 @@ def pluto_enrich_contacts(contacts: list) -> int:
     return count
 
 
+def backfill_work_emails(contacts: list) -> None:
+    """Batch-read work_email for all contacts and merge into their properties.
+    HubSpot's search API doesn't reliably return work_email, so we fetch it separately."""
+    if not contacts:
+        return
+    headers = {'Authorization': f'Bearer {HUBSPOT_TOKEN}', 'Content-Type': 'application/json'}
+    batch_url = 'https://api.hubapi.com/crm/v3/objects/contacts/batch/read'
+    id_to_contact = {c['id']: c for c in contacts}
+    ids = list(id_to_contact.keys())
+    for i in range(0, len(ids), 100):
+        chunk = ids[i:i + 100]
+        payload = {
+            'inputs': [{'id': cid} for cid in chunk],
+            'properties': ['work_email'],
+        }
+        try:
+            resp = requests.post(batch_url, headers=headers, json=payload, timeout=30)
+            resp.raise_for_status()
+            for result in resp.json().get('results', []):
+                cid = str(result['id'])
+                we = (result.get('properties') or {}).get('work_email') or ''
+                if we and cid in id_to_contact:
+                    id_to_contact[cid]['properties']['work_email'] = we
+        except Exception as e:
+            print(f'  backfill_work_emails error: {e}', file=sys.stderr)
+
+
 def fetch_email_confirmations(contacts: list) -> int:
     """
     For each today/future contact, check HubSpot CRM emails (v3 API) for an
@@ -4475,6 +4502,7 @@ def main():
     print(f'Fetching RSVPs {start} → {end}  (DAYS_BACK={DAYS_BACK}, DAYS_AHEAD={DAYS_AHEAD})')
     contacts = fetch_contacts(start, end)
     print(f'Got {len(contacts)} contacts')
+    backfill_work_emails(contacts)
     sync_uninvites_from_gist(contacts)
     sync_send_confirmations_from_gist(contacts)
 
