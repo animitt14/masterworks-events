@@ -928,31 +928,51 @@ def pluto_enrich_contacts(contacts: list) -> int:
     return count
 
 
-def backfill_work_emails(contacts: list) -> None:
-    """Batch-read work_email for all contacts and merge into their properties.
-    HubSpot's search API doesn't reliably return work_email, so we fetch it separately."""
-    if not contacts:
+def resolve_host_contacts(contacts: list) -> None:
+    """For guests with outbound_event_host_name set, search HubSpot for the host
+    contact by that email (checking both email and work_email fields) and store
+    the resolved contact ID as _resolved_host_id.  Matching in render_panel then
+    uses IDs, sidestepping any API property-return inconsistencies."""
+    host_emails = set()
+    for c in contacts:
+        val = (c['properties'].get('outbound_event_host_name') or '').strip().lower()
+        if val:
+            host_emails.add(val)
+    if not host_emails:
         return
+
     headers = {'Authorization': f'Bearer {HUBSPOT_TOKEN}', 'Content-Type': 'application/json'}
-    batch_url = 'https://api.hubapi.com/crm/v3/objects/contacts/batch/read'
-    id_to_contact = {c['id']: c for c in contacts}
-    ids = list(id_to_contact.keys())
-    for i in range(0, len(ids), 100):
-        chunk = ids[i:i + 100]
+    email_to_id: dict = {}
+    host_list = list(host_emails)
+
+    for i in range(0, len(host_list), 50):
+        chunk = host_list[i:i + 50]
         payload = {
-            'inputs': [{'id': cid} for cid in chunk],
-            'properties': ['work_email'],
+            'filterGroups': [
+                {'filters': [{'propertyName': 'email',      'operator': 'IN', 'values': chunk}]},
+                {'filters': [{'propertyName': 'work_email', 'operator': 'IN', 'values': chunk}]},
+            ],
+            'properties': ['email', 'work_email'],
+            'limit': 200,
         }
         try:
-            resp = requests.post(batch_url, headers=headers, json=payload, timeout=30)
+            resp = requests.post(SEARCH_URL, headers=headers, json=payload, timeout=30)
             resp.raise_for_status()
             for result in resp.json().get('results', []):
-                cid = str(result['id'])
-                we = (result.get('properties') or {}).get('work_email') or ''
-                if we and cid in id_to_contact:
-                    id_to_contact[cid]['properties']['work_email'] = we
+                props = result.get('properties') or {}
+                cid   = str(result['id'])
+                for field in ('email', 'work_email'):
+                    val = (props.get(field) or '').strip().lower()
+                    if val in host_emails:
+                        email_to_id[val] = cid
         except Exception as e:
-            print(f'  backfill_work_emails error: {e}', file=sys.stderr)
+            print(f'  resolve_host_contacts error: {e}', file=sys.stderr)
+
+    print(f'  Host email lookup: {len(email_to_id)}/{len(host_emails)} resolved')
+    for c in contacts:
+        declared = (c['properties'].get('outbound_event_host_name') or '').strip().lower()
+        if declared and declared in email_to_id:
+            c['properties']['_resolved_host_id'] = email_to_id[declared]
 
 
 def fetch_email_confirmations(contacts: list) -> int:
@@ -2522,7 +2542,7 @@ def render_panel(date_str: str, contacts: list, tab_id: str, active: bool, past:
     event_date = datetime.strptime(date_str, '%Y-%m-%d').date()
     show_replied = event_date in (today, today + timedelta(days=1))
 
-    # Group guests under their host using outbound_event_host_name (stores host's email)
+    # Group guests under their host using _resolved_host_id (set by resolve_host_contacts)
     def _group_guests(sorted_cs):
         used = set()
         result = []
@@ -2531,20 +2551,12 @@ def render_panel(date_str: str, contacts: list, tab_id: str, active: bool, past:
                 continue
             result.append((c, False))
             used.add(i)
-            cp = c['properties']
-            host_emails = {
-                e.strip().lower()
-                for e in [cp.get('email') or '', cp.get('work_email') or '']
-                if e.strip()
-            }
-            if not host_emails:
-                continue
+            host_id = str(c['id'])
             for j, guest in enumerate(sorted_cs):
                 if j in used:
                     continue
-                gp = guest['properties']
-                declared_host = (gp.get('outbound_event_host_name') or '').strip().lower()
-                if declared_host and declared_host in host_emails:
+                resolved = (guest['properties'].get('_resolved_host_id') or '').strip()
+                if resolved and resolved == host_id:
                     result.append((guest, True))
                     used.add(j)
         return result
@@ -4502,7 +4514,7 @@ def main():
     print(f'Fetching RSVPs {start} → {end}  (DAYS_BACK={DAYS_BACK}, DAYS_AHEAD={DAYS_AHEAD})')
     contacts = fetch_contacts(start, end)
     print(f'Got {len(contacts)} contacts')
-    backfill_work_emails(contacts)
+    resolve_host_contacts(contacts)
     sync_uninvites_from_gist(contacts)
     sync_send_confirmations_from_gist(contacts)
 
