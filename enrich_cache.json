@@ -274,7 +274,6 @@
     "company": "Aglit Italy",
     "_enriched": true
   },
-  "Jonathan Camero": {},
   "Farah Ahmed": {
     "jobtitle": "Shareholder, Real Estate Practice",
     "company": "Greenberg Traurig",
@@ -349,5 +348,6 @@
     "jobtitle": "Owner",
     "company": "Upper West Skates",
     "_enriched": true
-  }
+  },
+  "Marlon Regis": {}
 }
