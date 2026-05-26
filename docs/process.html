@@ -117,7 +117,7 @@ code{background:#e8edf5;border-radius:3px;padding:1px 5px;font-size:0.8rem;font-
 
   <h2>5 · Uninviting</h2>
   <div class="card">
-    <p>The dashboard has an uninvite button per contact. Clicking it writes to a shared Gist. The next rebuild syncs those uninvites to HubSpot (sets <code>outbound_event_attendee_disqualified</code>) and clears the Gist. To uninvite in bulk or outside the dashboard, set the property directly in HubSpot.</p>
+    <p>The dashboard has an uninvite checkbox per contact. Checking it writes to a shared Gist. The next rebuild syncs those to HubSpot (sets <code>outbound_event_attendee_disqualified</code>) and clears the Gist. A HubSpot workflow listens for that property change and automatically sends the uninvite email to the contact.</p>
   </div>
 
   <h2>6 · Pipeline &amp; Deal Management</h2>
@@ -128,6 +128,7 @@ code{background:#e8edf5;border-radius:3px;padding:1px 5px;font-size:0.8rem;font-
       <li>Log calls and meetings as activities on the contact record</li>
       <li>Create a deal if a contact expresses interest; link it to the contact</li>
       <li>The pipeline dashboard (separate from this one) shows Group 1 contacts with deal stage, last contact date, tasks, and LinkedIn</li>
+      <li>The <strong>Send Confirmation</strong> checkbox on each contact sets <code>outbound_event_send_confirmation</code> in HubSpot. A HubSpot workflow listens for that property and automatically sends the confirmation email to the contact.</li>
     </ul>
     <p style="margin-top:8px">To generate <strong>deal amount predictions</strong> for Gallery Leads, open Claude Code and ask: <em>"run deal amount predictions."</em> Claude will match deals to associated contacts and output an HTML table with conservative estimates.</p>
   </div>
