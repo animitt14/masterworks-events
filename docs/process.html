@@ -86,7 +86,7 @@ code{background:#e8edf5;border-radius:3px;padding:1px 5px;font-size:0.8rem;font-
 
   <h2>3 · Enrichment</h2>
   <div class="card">
-    <p style="margin-bottom:12px">After import, contacts often have no job title or company. There are two enrichment layers:</p>
+    <p style="margin-bottom:12px">After import, contacts often have no job title or company. There are three enrichment layers:</p>
 
     <h3><span class="tag auto">Auto</span> 8am / 12pm / 4pm daily rebuild</h3>
     <p>Runs via GitHub Actions (<code>daily.yml</code>). Fetches all RSVPs across a 180-day window, searches LinkedIn and other public sources for blank title/company (up to 95 calls/day), looks up NYC property values via PLUTO, enriches photos via RocketReach, fills company from work email domain as a fallback, then rebuilds and publishes <code>index.html</code>.</p>
