@@ -89,7 +89,7 @@ code{background:#e8edf5;border-radius:3px;padding:1px 5px;font-size:0.8rem;font-
     <p style="margin-bottom:12px">After import, contacts often have no job title or company. There are two enrichment layers:</p>
 
     <h3><span class="tag auto">Auto</span> 8am daily rebuild</h3>
-    <p>The script tries Google Custom Search (up to 95 calls/day) to find LinkedIn title/company for each blank contact. Work email domains are used as a company fallback when Google finds nothing (e.g. <code>cohenmo@metroplus.org</code> → MetroPlus).</p>
+    <p>The script searches LinkedIn, company pages, and other public sources to find title/company for each blank contact (up to 95 enrichment calls/day). Work email domains are used as a company fallback when no other data is found.</p>
 
     <hr class="divider">
 
@@ -100,11 +100,6 @@ code{background:#e8edf5;border-radius:3px;padding:1px 5px;font-size:0.8rem;font-
 
     <h3><span class="tag manual">Manual</span> Ad-hoc enrichment</h3>
     <p>Open Claude Code and say <strong>"enrich today's names"</strong> (or the specific event date). Claude will search each remaining blank, patch HubSpot, and rebuild the dashboard. Always does two passes — one broad search, then a second pass on anyone still unresolved.</p>
-    <ul>
-      <li>When multiple LinkedIn profiles match, NYC/tri-state candidates are preferred</li>
-      <li>First-name-only contacts (Amy, Ben, YC) cannot be enriched without a last name</li>
-      <li>Contacts with only a personal email (Gmail, etc.) and no LinkedIn are often unfindable</li>
-    </ul>
   </div>
 
   <h2>4 · Scoring</h2>
