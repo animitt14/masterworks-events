@@ -22,7 +22,7 @@ h2{font-size:0.68rem;letter-spacing:0.16em;text-transform:uppercase;color:#c9a84
    font-weight:700;margin:40px 0 14px;padding-bottom:8px;border-bottom:1px solid #dde3ee}
 h2:first-child{margin-top:0}
 h3{font-size:0.82rem;font-weight:700;color:#1b3c6e;margin:20px 0 6px}
-p,li{font-size:0.85rem;color:#3a5070;line-height:1.65}
+p,li,.step>div{font-size:0.85rem;color:#3a5070;line-height:1.65}
 ul,ol{padding-left:20px;margin:8px 0}
 li{margin-bottom:5px}
 a{color:#1a5fa8;text-decoration:none}
@@ -88,8 +88,8 @@ code{background:#e8edf5;border-radius:3px;padding:1px 5px;font-size:0.8rem;font-
   <div class="card">
     <p style="margin-bottom:12px">After import, contacts often have no job title or company. There are two enrichment layers:</p>
 
-    <h3><span class="tag auto">Auto</span> 8am daily rebuild</h3>
-    <p>The script searches LinkedIn, company pages, and other public sources to find title/company for each blank contact (up to 95 enrichment calls/day). Work email domains are used as a company fallback when no other data is found.</p>
+    <h3><span class="tag auto">Auto</span> 8am / 12pm / 4pm daily rebuild</h3>
+    <p>Runs via GitHub Actions (<code>daily.yml</code>). Fetches all RSVPs across a 180-day window, searches LinkedIn and other public sources for blank title/company (up to 95 calls/day), looks up NYC property values via PLUTO, enriches photos via RocketReach, fills company from work email domain as a fallback, then rebuilds and publishes <code>index.html</code>.</p>
 
     <hr class="divider">
 
@@ -115,9 +115,11 @@ code{background:#e8edf5;border-radius:3px;padding:1px 5px;font-size:0.8rem;font-
     <p style="margin-top:10px">To <strong>override a score</strong> for a specific contact, edit <code>SCORE_OVERRIDES</code> in <code>generate_rsvp.py</code> — add the HubSpot contact ID and the desired score (1–5). Changes go live on the next rebuild.</p>
   </div>
 
-  <h2>5 · Uninviting</h2>
+  <h2>5 · Uninviting &amp; Confirmations</h2>
   <div class="card">
-    <p>The dashboard has an uninvite checkbox per contact. Checking it writes to a shared Gist. The next rebuild syncs those to HubSpot (sets <code>outbound_event_attendee_disqualified</code>) and clears the Gist. A HubSpot workflow listens for that property change and automatically sends the uninvite email to the contact.</p>
+    <p><strong>Uninviting:</strong> The dashboard has an uninvite checkbox per contact. Checking it writes to a shared Gist. The next rebuild syncs those to HubSpot (sets <code>outbound_event_attendee_disqualified</code>) and clears the Gist. A HubSpot workflow listens for that property change and automatically sends the uninvite email to the contact.</p>
+    <hr class="divider">
+    <p><strong>Send confirmation:</strong> The dashboard also has a send-confirmation checkbox. Checking it sets <code>outbound_event_send_confirmation</code> on the contact. A HubSpot workflow listens for that property and automatically sends the confirmation email.</p>
   </div>
 
   <h2>6 · The GitHub Script</h2>
@@ -126,21 +128,11 @@ code{background:#e8edf5;border-radius:3px;padding:1px 5px;font-size:0.8rem;font-
     <ul>
       <li><strong>Adding a score override</strong> — find <code>SCORE_OVERRIDES</code> near the top of the script and add <code>'contact_id': score</code></li>
       <li><strong>Adding a team member</strong> — find the <code>OWNERS</code> dict and add their HubSpot owner ID and name</li>
-      <li><strong>Deploying changes</strong> — commit and push to <code>main</code>; GitHub Actions rebuilds the dashboard automatically within a few minutes</li>
+      <li><strong>Deploying changes</strong> — commit and push to <code>main</code>; GitHub Actions (<code>daily.yml</code>) rebuilds the dashboard automatically within a few minutes</li>
       <li><strong>Don't edit</strong> <code>docs/index.html</code> directly — it gets overwritten on every rebuild</li>
     </ul>
+    <p style="margin-top:8px">Automated schedules: full rebuild at <strong>8am, 12pm, and 4pm ET</strong> via GitHub Actions; enrichment agent at <strong>8:30am ET</strong> via Claude Code. Manage scheduled routines at <a href="https://claude.ai/code/routines" target="_blank">claude.ai/code/routines</a>.</p>
     <p style="margin-top:8px">For anything more involved, open Claude Code in the repo directory and describe the change — it knows the full codebase.</p>
-  </div>
-
-  <h2>7 · Automated Processes (reference)</h2>
-  <div class="card">
-    <ul>
-      <li><span class="tag auto">8:00am ET</span> Full rebuild — fetches all RSVPs (180 days back, 30 days ahead), runs Google enrichment (~95 contacts/day), PLUTO property value lookups for NYC addresses, RocketReach photo enrichment, domain-fallback company fill, outputs and pushes <code>index.html</code></li>
-      <li><span class="tag auto">8:30am ET</span> Enrichment routine — web-searches today's RSVP blanks (title/company), patches HubSpot, two-pass search</li>
-      <li><span class="tag auto">On rebuild</span> Uninvite sync — reads shared Gist, sets disqualified flag in HubSpot, clears Gist</li>
-      <li><span class="tag auto">On rebuild</span> Send-confirmation sync — marks contacts as confirmed if confirmation email was sent</li>
-    </ul>
-    <p style="margin-top:12px">All automated jobs are managed via GitHub Actions (<code>.github/workflows/daily.yml</code>) and the Claude Code scheduled routine. View scheduled routines at <a href="https://claude.ai/code/routines" target="_blank">claude.ai/code/routines</a>.</p>
   </div>
 
 </main>
