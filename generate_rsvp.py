@@ -48,7 +48,7 @@ PERSONAL_DOMAINS = {
 }
 
 # Date window: how many days back/ahead to pull
-DAYS_BACK  = int(os.environ.get('DAYS_BACK',  180))
+DAYS_BACK  = int(os.environ.get('DAYS_BACK',  0))
 DAYS_AHEAD = int(os.environ.get('DAYS_AHEAD', 30))
 
 OWNERS = {

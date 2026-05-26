@@ -18,7 +18,7 @@ header{background:#1b3c6e;padding:16px 28px;position:sticky;top:0;z-index:100;bo
 .page-tab:hover{color:rgba(255,255,255,0.8);border-bottom-color:rgba(255,255,255,0.25)}
 .page-tab.active-tab{color:#fff;border-bottom-color:#c9a84c;font-weight:700}
 main{max-width:820px;margin:36px auto;padding:0 24px 80px}
-h2{font-size:0.68rem;letter-spacing:0.16em;text-transform:uppercase;color:#c9a84c;
+h2{font-size:0.88rem;letter-spacing:0.12em;text-transform:uppercase;color:#c9a84c;
    font-weight:700;margin:40px 0 14px;padding-bottom:8px;border-bottom:1px solid #dde3ee}
 h2:first-child{margin-top:0}
 h3{font-size:0.82rem;font-weight:700;color:#1b3c6e;margin:20px 0 6px}
@@ -56,7 +56,7 @@ code{background:#e8edf5;border-radius:3px;padding:1px 5px;font-size:0.8rem;font-
 
 <main>
 
-  <h2>1 · Pull RSVPs from AdEvents</h2>
+  <h2>1 · Pull RSVPs</h2>
   <div class="card">
     <div class="step">
       <div class="step-num">1</div>
@@ -85,17 +85,13 @@ code{background:#e8edf5;border-radius:3px;padding:1px 5px;font-size:0.8rem;font-
     <p style="margin-bottom:12px">After import, contacts often have no job title or company. There are three enrichment layers:</p>
 
     <h3><span class="tag auto">Auto</span> 8am / 12pm / 4pm daily rebuild</h3>
-    <p>Runs via GitHub Actions (<code>daily.yml</code>). Fetches all RSVPs across a 180-day window, searches LinkedIn and other public sources for blank title/company (up to 95 calls/day), looks up NYC property values via PLUTO, enriches photos via RocketReach, fills company from work email domain as a fallback, then rebuilds and publishes <code>index.html</code>.</p>
+    <p>Runs via GitHub Actions (<code>daily.yml</code>). Fetches RSVPs for today and upcoming events, searches LinkedIn and other public sources for blank title/company (up to 95 calls/day), looks up NYC property values via PLUTO, enriches photos via RocketReach, fills company from work email domain as a fallback, then rebuilds and publishes <code>index.html</code>.</p>
 
     <hr class="divider">
 
     <h3><span class="tag auto">Auto</span> 8:30am enrichment routine</h3>
-    <p>A separate scheduled agent runs after the rebuild. It web-searches today's RSVP contacts still missing title/company (LinkedIn, ZoomInfo, company pages), patches HubSpot directly, and does a second pass on anyone still blank. Runs every day at 8:30am ET.</p>
+    <p>A separate scheduled agent runs after the rebuild. It web-searches today's RSVP contacts still missing title/company (LinkedIn, ZoomInfo, company pages), patches HubSpot directly, and does a second pass on anyone still blank.</p>
 
-    <hr class="divider">
-
-    <h3><span class="tag manual">Manual</span> Ad-hoc enrichment</h3>
-    <p>Open Claude Code and say <strong>"enrich today's names"</strong> (or the specific event date). Claude will search each remaining blank, patch HubSpot, and rebuild the dashboard. Always does two passes — one broad search, then a second pass on anyone still unresolved.</p>
   </div>
 
   <h2>4 · Scoring</h2>
@@ -113,9 +109,13 @@ code{background:#e8edf5;border-radius:3px;padding:1px 5px;font-size:0.8rem;font-
 
   <h2>5 · Uninviting &amp; Confirmations</h2>
   <div class="card">
+    <p>These events are curated — only contacts who can invest <strong>$25k or more</strong> should be in the room. Use the scoring and enrichment data to identify anyone who doesn't meet that bar and uninvite them before the event.</p>
+    <hr class="divider">
     <p><strong>Uninviting:</strong> The dashboard has an uninvite checkbox per contact. Checking it writes to a shared Gist. The next rebuild syncs those to HubSpot (sets <code>outbound_event_attendee_disqualified</code>) and clears the Gist. A HubSpot workflow listens for that property change and automatically sends the uninvite email to the contact.</p>
     <hr class="divider">
     <p><strong>Send confirmation:</strong> The dashboard also has a send-confirmation checkbox. Checking it sets <code>outbound_event_send_confirmation</code> on the contact. A HubSpot workflow listens for that property and automatically sends the confirmation email.</p>
+    <hr class="divider">
+    <p><strong>First-time setup:</strong> The first time you check either box, the dashboard will prompt for a GitHub personal access token. This is required for security so changes can be written to the shared Gist. Ask Ani for the team token — it saves in your browser and you won't be asked again.</p>
   </div>
 
   <h2>6 · Editing the Code</h2>
