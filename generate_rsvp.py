@@ -455,6 +455,7 @@ def enrich_no_data_contacts(contacts: list) -> int:
         if p.get('jobtitle') and p.get('company'):
             continue   # has both — skip
 
+
         fname = p.get('firstname') or ''
         lname = p.get('lastname')  or ''
         name  = f'{fname} {lname}'.strip()
@@ -505,6 +506,26 @@ def enrich_no_data_contacts(contacts: list) -> int:
             enriched += 1
             print(f'  Domain fallback: {name} → company={co_hint}')
             _patch_hubspot_contact(c['id'], {'company': co_hint})
+
+    # Domain fallback pass — runs regardless of quota exhaustion.
+    # Catches contacts skipped by the break above when quota ran out mid-loop.
+    for c in contacts:
+        p     = c['properties']
+        if p.get('company'):
+            continue
+        email    = p.get('email', '')
+        dom      = email_domain(email)
+        personal = dom in PERSONAL_DOMAINS
+        co_hint  = domain_to_company(email) if not personal else ''
+        if not co_hint:
+            continue
+        fname = p.get('firstname') or ''
+        lname = p.get('lastname')  or ''
+        name  = f'{fname} {lname}'.strip()
+        c['properties'] = {**p, 'company': co_hint}
+        enriched += 1
+        print(f'  Domain fallback (quota pass): {name} → company={co_hint}')
+        _patch_hubspot_contact(c['id'], {'company': co_hint})
 
     _save_enrich_cache()
     return enriched
@@ -2858,6 +2879,7 @@ header{{background:#1b3c6e;padding:16px 28px;position:sticky;top:0;z-index:100;
   </div>
   <div class="page-tabs">
     <a href="index.html" class="page-tab active-tab">RSVP Dashboard</a>
+    <a href="process.html" class="page-tab">Process</a>
   </div>
 </header>
 

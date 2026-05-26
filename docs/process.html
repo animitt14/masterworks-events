@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Process — Masterworks Outbound Events</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#f0f3f8;color:#1b3c6e;font-family:-apple-system,'Segoe UI',Georgia,sans-serif;min-height:100vh}
+header{background:#1b3c6e;padding:16px 28px;position:sticky;top:0;z-index:100;box-shadow:0 2px 10px rgba(0,0,0,0.2)}
+.header-row{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.brand{font-size:0.62rem;letter-spacing:0.2em;text-transform:uppercase;color:#c9a84c;font-weight:700}
+.title{font-size:0.98rem;font-weight:700;color:#fff;margin-top:2px}
+.page-tabs{display:flex;margin-top:2px;border-top:1px solid rgba(255,255,255,0.1)}
+.page-tab{padding:10px 22px;font-size:0.7rem;letter-spacing:0.09em;text-transform:uppercase;
+           text-decoration:none;color:rgba(255,255,255,0.42);border-bottom:2px solid transparent;
+           transition:all 0.15s;white-space:nowrap}
+.page-tab:hover{color:rgba(255,255,255,0.8);border-bottom-color:rgba(255,255,255,0.25)}
+.page-tab.active-tab{color:#fff;border-bottom-color:#c9a84c;font-weight:700}
+main{max-width:820px;margin:36px auto;padding:0 24px 80px}
+h2{font-size:0.68rem;letter-spacing:0.16em;text-transform:uppercase;color:#c9a84c;
+   font-weight:700;margin:40px 0 14px;padding-bottom:8px;border-bottom:1px solid #dde3ee}
+h2:first-child{margin-top:0}
+h3{font-size:0.82rem;font-weight:700;color:#1b3c6e;margin:20px 0 6px}
+p,li{font-size:0.85rem;color:#3a5070;line-height:1.65}
+ul,ol{padding-left:20px;margin:8px 0}
+li{margin-bottom:5px}
+a{color:#1a5fa8;text-decoration:none}
+a:hover{text-decoration:underline}
+code{background:#e8edf5;border-radius:3px;padding:1px 5px;font-size:0.8rem;font-family:'Courier New',monospace;color:#1b3c6e}
+.card{background:#fff;border-radius:10px;padding:22px 26px;margin-bottom:4px;
+      box-shadow:0 1px 6px rgba(27,60,110,0.08)}
+.step{display:flex;gap:14px;align-items:flex-start;margin-bottom:12px}
+.step-num{background:#1b3c6e;color:#fff;border-radius:50%;width:22px;height:22px;
+           font-size:0.68rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.tag{display:inline-block;background:#eaf0fb;color:#1a5fa8;border-radius:4px;
+     font-size:0.67rem;font-weight:700;padding:2px 7px;letter-spacing:0.05em;text-transform:uppercase;margin-right:5px}
+.tag.auto{background:#eaf7f0;color:#1a7a45}
+.tag.manual{background:#fdf6e3;color:#8a6800}
+.divider{border:none;border-top:1px solid #e2e8f4;margin:10px 0}
+</style>
+</head>
+<body>
+<header>
+  <div class="header-row">
+    <div>
+      <div class="brand">Masterworks · Outbound</div>
+      <div class="title">RSVP Lead Dashboard</div>
+    </div>
+  </div>
+  <div class="page-tabs">
+    <a href="index.html" class="page-tab">RSVP Dashboard</a>
+    <a href="process.html" class="page-tab active-tab">Process</a>
+  </div>
+</header>
+
+<main>
+
+  <h2>1 · Pull RSVPs from AdEvents</h2>
+  <div class="card">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div>Go to <a href="https://redash.masterworks.com/queries/11069" target="_blank">Redash query #11069</a>. Set the <code>Date</code> parameter to the event date (YYYY-MM-DD) and run the query.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div>Download the results as a <strong>CSV</strong>.</div>
+    </div>
+  </div>
+
+  <h2>2 · Import to HubSpot</h2>
+  <div class="card">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div>In HubSpot, go to <strong>Contacts → Import</strong>. Upload the CSV.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div>Map columns to HubSpot properties. Where prompted, <strong>check "Don't override existing values"</strong> to avoid overwriting any data already in HubSpot.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div>Set <code>outbound_rsvp_to_event</code> to the event date for all imported contacts.</div>
+    </div>
+  </div>
+
+  <h2>3 · Enrichment</h2>
+  <div class="card">
+    <p style="margin-bottom:12px">After import, contacts often have no job title or company. There are two enrichment layers:</p>
+
+    <h3><span class="tag auto">Auto</span> 8am daily rebuild</h3>
+    <p>The script tries Google Custom Search (up to 95 calls/day) to find LinkedIn title/company for each blank contact. Work email domains are used as a company fallback when Google finds nothing (e.g. <code>cohenmo@metroplus.org</code> → MetroPlus).</p>
+
+    <hr class="divider">
+
+    <h3><span class="tag auto">Auto</span> 8:30am enrichment routine</h3>
+    <p>A separate scheduled agent runs after the rebuild. It web-searches today's RSVP contacts still missing title/company (LinkedIn, ZoomInfo, company pages), patches HubSpot directly, and does a second pass on anyone still blank. Runs every day at 8:30am ET.</p>
+
+    <hr class="divider">
+
+    <h3><span class="tag manual">Manual</span> Ad-hoc enrichment</h3>
+    <p>Open Claude Code and say <strong>"enrich today's names"</strong> (or the specific event date). Claude will search each remaining blank, patch HubSpot, and rebuild the dashboard. Always does two passes — one broad search, then a second pass on anyone still unresolved.</p>
+    <ul>
+      <li>When multiple LinkedIn profiles match, NYC/tri-state candidates are preferred</li>
+      <li>First-name-only contacts (Amy, Ben, YC) cannot be enriched without a last name</li>
+      <li>Contacts with only a personal email (Gmail, etc.) and no LinkedIn are often unfindable</li>
+    </ul>
+  </div>
+
+  <h2>4 · Scoring</h2>
+  <div class="card">
+    <p>Every contact gets a score of <strong>1–5</strong> computed automatically from title, company, email domain, estimated net worth, and lifecycle stage.</p>
+    <ul>
+      <li><strong>5 (High)</strong> — Finance domain, physician, C-suite at named top-tier firm, already invested or Opportunity stage</li>
+      <li><strong>4 (Medium-High)</strong> — VP / Director level, finance firm without top-tier signal</li>
+      <li><strong>3 (Medium)</strong> — Senior manager, attorney, mid-tier signals</li>
+      <li><strong>2 (Low-Medium)</strong> — Founders (unverified), analysts, no-shows, no data</li>
+      <li><strong>1 (Low)</strong> — Wealth advisors (refer, don't invest), art world, real estate agents, not interested</li>
+    </ul>
+    <p style="margin-top:10px">To <strong>override a score</strong> for a specific contact, edit <code>SCORE_OVERRIDES</code> in <code>generate_rsvp.py</code> — add the HubSpot contact ID and the desired score (1–5). Changes go live on the next rebuild.</p>
+  </div>
+
+  <h2>5 · Uninviting</h2>
+  <div class="card">
+    <p>The dashboard has an uninvite button per contact. Clicking it writes to a shared Gist. The next rebuild syncs those uninvites to HubSpot (sets <code>outbound_event_attendee_disqualified</code>) and clears the Gist. To uninvite in bulk or outside the dashboard, set the property directly in HubSpot.</p>
+  </div>
+
+  <h2>6 · Pipeline &amp; Deal Management</h2>
+  <div class="card">
+    <p>Deals live in the <strong>Gallery Leads pipeline</strong> in HubSpot. After an event:</p>
+    <ul>
+      <li>Move attended contacts from <em>Event Attended</em> → <em>Contacted</em> once you've followed up</li>
+      <li>Log calls and meetings as activities on the contact record</li>
+      <li>Create a deal if a contact expresses interest; link it to the contact</li>
+      <li>The pipeline dashboard (separate from this one) shows Group 1 contacts with deal stage, last contact date, tasks, and LinkedIn</li>
+    </ul>
+    <p style="margin-top:8px">To generate <strong>deal amount predictions</strong> for Gallery Leads, open Claude Code and ask: <em>"run deal amount predictions."</em> Claude will match deals to associated contacts and output an HTML table with conservative estimates.</p>
+  </div>
+
+  <h2>7 · The GitHub Script</h2>
+  <div class="card">
+    <p>The dashboard is generated by <code>generate_rsvp.py</code> in the <a href="https://github.com/animitt14/masterworks-events" target="_blank">animitt14/masterworks-events</a> repo. You don't need to edit it for day-to-day use.</p>
+    <ul>
+      <li><strong>Adding a score override</strong> — find <code>SCORE_OVERRIDES</code> near the top of the script and add <code>'contact_id': score</code></li>
+      <li><strong>Adding a team member</strong> — find the <code>OWNERS</code> dict and add their HubSpot owner ID and name</li>
+      <li><strong>Deploying changes</strong> — commit and push to <code>main</code>; GitHub Actions rebuilds the dashboard automatically within a few minutes</li>
+      <li><strong>Don't edit</strong> <code>docs/index.html</code> directly — it gets overwritten on every rebuild</li>
+    </ul>
+    <p style="margin-top:8px">For anything more involved, open Claude Code in the repo directory and describe the change — it knows the full codebase.</p>
+  </div>
+
+  <h2>8 · Automated Processes (reference)</h2>
+  <div class="card">
+    <ul>
+      <li><span class="tag auto">8:00am ET</span> Full rebuild — fetches all RSVPs (180 days back, 30 days ahead), runs Google enrichment (~95 contacts/day), PLUTO property value lookups for NYC addresses, RocketReach photo enrichment, domain-fallback company fill, outputs and pushes <code>index.html</code></li>
+      <li><span class="tag auto">8:30am ET</span> Enrichment routine — web-searches today's RSVP blanks (title/company), patches HubSpot, two-pass search</li>
+      <li><span class="tag auto">On rebuild</span> Uninvite sync — reads shared Gist, sets disqualified flag in HubSpot, clears Gist</li>
+      <li><span class="tag auto">On rebuild</span> Send-confirmation sync — marks contacts as confirmed if confirmation email was sent</li>
+    </ul>
+    <p style="margin-top:12px">All automated jobs are managed via GitHub Actions (<code>.github/workflows/daily.yml</code>) and the Claude Code scheduled routine. View scheduled routines at <a href="https://claude.ai/code/routines" target="_blank">claude.ai/code/routines</a>.</p>
+  </div>
+
+</main>
+</body>
+</html>
