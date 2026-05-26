@@ -2988,7 +2988,12 @@ function _patchHubSpot(cid, properties) {{
 }}
 function _syncSharedStateToGist() {{
   var tok = localStorage.getItem('gh_pat');
-  if (!tok) return;
+  if (!tok) {{
+    tok = prompt('Enter the team GitHub token to save changes.\\n(Ask Ani for the token — it will be saved in your browser after first use.)');
+    if (!tok) return;
+    localStorage.setItem('gh_pat', tok.trim());
+    tok = tok.trim();
+  }}
   var state = {{}};
   for (var i = 0; i < localStorage.length; i++) {{
     var k = localStorage.key(i);
