@@ -499,6 +499,12 @@ def enrich_no_data_contacts(contacts: list) -> int:
                 k: v for k, v in result.items()
                 if k in ('jobtitle', 'company') and v and not p.get(k)
             })
+        elif co_hint and not p.get('company'):
+            # Google found nothing but work email gives us the company — write that at minimum
+            c['properties'] = {**p, 'company': co_hint}
+            enriched += 1
+            print(f'  Domain fallback: {name} → company={co_hint}')
+            _patch_hubspot_contact(c['id'], {'company': co_hint})
 
     _save_enrich_cache()
     return enriched
