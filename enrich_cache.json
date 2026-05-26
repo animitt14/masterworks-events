@@ -269,5 +269,85 @@
     "company": "Mastercard",
     "_enriched": true
   },
-  "Isiah Kelly": {}
+  "Isiah Kelly": {
+    "jobtitle": "Promotions Assistant",
+    "company": "Aglit Italy",
+    "_enriched": true
+  },
+  "Jonathan Camero": {},
+  "Farah Ahmed": {
+    "jobtitle": "Shareholder, Real Estate Practice",
+    "company": "Greenberg Traurig",
+    "_enriched": true
+  },
+  "Tahir Amin": {
+    "jobtitle": "Co-Founder & CEO",
+    "company": "I-MAK",
+    "_enriched": true
+  },
+  "Chris Callieri": {
+    "jobtitle": "Chief Supply Chain Officer",
+    "company": "Levi Strauss & Co.",
+    "_enriched": true
+  },
+  "Olek Derowe": {
+    "jobtitle": "Executive Vice President",
+    "company": "The Bancorp",
+    "_enriched": true
+  },
+  "Samantha Heller": {
+    "jobtitle": "PR & Events Assistant",
+    "company": "Tory Burch",
+    "_enriched": true
+  },
+  "Jen Shyu": {
+    "jobtitle": "Vocalist & Composer",
+    "company": "",
+    "_enriched": true
+  },
+  "Richard Allin": {
+    "jobtitle": "Chief Revenue Officer",
+    "company": "ENGAGE XR Holdings",
+    "_enriched": true
+  },
+  "Erin Leamon": {
+    "jobtitle": "Chief Marketing & Business Development Officer",
+    "company": "Cohen & Gresser",
+    "_enriched": true
+  },
+  "Mark Mantione": {
+    "jobtitle": "CEO, North America",
+    "company": "Metrica",
+    "_enriched": true
+  },
+  "Camilo Villota": {
+    "jobtitle": "VP, Creative Director",
+    "company": "Wegmans Food Markets",
+    "_enriched": true
+  },
+  "Robin Chiang": {
+    "jobtitle": "Chief Growth Officer",
+    "company": "OpenTable",
+    "_enriched": true
+  },
+  "Bianca Kunth": {
+    "jobtitle": "Associate Director",
+    "company": "NordLB New York Branch",
+    "_enriched": true
+  },
+  "Danielle Parisi": {
+    "jobtitle": "VP, Sales",
+    "company": "G-III Apparel Group",
+    "_enriched": true
+  },
+  "Clare Pickering": {
+    "jobtitle": "Director, Municipal Strategy",
+    "company": "Barclays",
+    "_enriched": true
+  },
+  "Chris Vidal": {
+    "jobtitle": "Owner",
+    "company": "Upper West Skates",
+    "_enriched": true
+  }
 }
