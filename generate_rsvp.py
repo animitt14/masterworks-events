@@ -577,12 +577,12 @@ def _clean_company_name(name: str) -> str:
     return (name or '').strip().strip('"').strip("'").strip()
 
 
-def _rocketreach_get_photo(*, linkedin_url: str = '', name: str = '',
-                           current_employer: str = '', email: str = ''):
-    """Call RocketReach /person/lookup, poll if needed, return profile_pic URL or None.
+def _rocketreach_get_profile(*, linkedin_url: str = '', name: str = '',
+                             current_employer: str = '', email: str = '') -> dict | None:
+    """Call RocketReach /person/lookup, poll if needed.
 
-    Lookup credits are charged only on success (verified data). Failed lookups
-    return None and cost nothing.
+    Returns a dict with any of {profile_pic, title, company} that are present,
+    or None on failure. Lookup credits are charged only on success.
     """
     if not ROCKETREACH_API_KEY:
         return None
@@ -596,9 +596,21 @@ def _rocketreach_get_photo(*, linkedin_url: str = '', name: str = '',
     elif email:
         params['email'] = email
     else:
-        return None  # No valid input combination
+        return None
 
     headers = {'Api-Key': ROCKETREACH_API_KEY}
+
+    def _extract(d: dict) -> dict | None:
+        out = {}
+        if d.get('profile_pic'):
+            out['profile_pic'] = d['profile_pic']
+        if d.get('current_title'):
+            out['title'] = d['current_title']
+        elif d.get('current_position'):
+            out['title'] = d['current_position']
+        if d.get('current_employer'):
+            out['company'] = d['current_employer']
+        return out if out else None
 
     try:
         r = requests.get(ROCKETREACH_LOOKUP_ENDPOINT, headers=headers,
@@ -616,19 +628,17 @@ def _rocketreach_get_photo(*, linkedin_url: str = '', name: str = '',
             return None
 
         data = r.json()
-        # If data is already complete, return the photo immediately
-        if data.get('profile_pic'):
-            return data['profile_pic']
+        result = _extract(data)
+        if result:
+            return result
 
         status = (data.get('status') or '').lower()
         profile_id = data.get('id')
         if status == 'failed' or status == 'complete':
-            # complete-without-photo means the person has no photo
             return None
         if not profile_id:
-            return None  # nothing to poll
+            return None
 
-        # Poll /checkStatus until complete or we time out (~30s).
         for _attempt in range(6):
             time.sleep(5)
             try:
@@ -647,10 +657,9 @@ def _rocketreach_get_photo(*, linkedin_url: str = '', name: str = '',
                         continue
                     s = (item.get('status') or '').lower()
                     if s == 'complete':
-                        return item.get('profile_pic') or None
+                        return _extract(item)
                     if s == 'failed':
                         return None
-                    # else still pending — keep polling
             except Exception:
                 continue
 
@@ -661,12 +670,20 @@ def _rocketreach_get_photo(*, linkedin_url: str = '', name: str = '',
         return None
 
 
-def proxycurl_enrich_photos(contacts: list) -> int:
-    """Populate linkedin_image_url for contacts that lack it. Returns count enriched.
+def _rocketreach_get_photo(*, linkedin_url: str = '', name: str = '',
+                           current_employer: str = '', email: str = ''):
+    prof = _rocketreach_get_profile(
+        linkedin_url=linkedin_url, name=name,
+        current_employer=current_employer, email=email,
+    )
+    return prof.get('profile_pic') if prof else None
 
-    Function name preserved for caller compatibility, but uses RocketReach
-    under the hood. Successful lookups are written back to HubSpot so future
-    daily runs read the photo from HubSpot for free.
+
+def proxycurl_enrich_photos(contacts: list) -> int:
+    """Populate linkedin_image_url (and missing title/company) via RocketReach.
+
+    Writes all found fields back to HubSpot so future runs read from cache.
+    Function name preserved for caller compatibility.
     """
     if not ROCKETREACH_API_KEY:
         return 0
@@ -674,23 +691,35 @@ def proxycurl_enrich_photos(contacts: list) -> int:
     enriched = 0
     for c in contacts:
         p = c['properties']
-        # Skip if HubSpot already has a photo URL
-        if (p.get('linkedin_image_url') or '').strip():
+        has_photo   = bool((p.get('linkedin_image_url') or '').strip())
+        has_title   = bool((p.get('jobtitle') or '').strip())
+        has_company = bool((p.get('company') or '').strip())
+
+        # Skip if we already have everything
+        if has_photo and has_title and has_company:
             continue
 
-        # Cache by HubSpot contact ID — stable across input paths
         cache_key = f'rocketreach_photo:{c["id"]}'
         if cache_key in _enrich_cache:
             cached = _enrich_cache[cache_key]
-            if cached:
-                p['linkedin_image_url'] = cached
-                enriched += 1
-            continue   # cached miss → don't retry
+            if cached and isinstance(cached, dict):
+                if not has_photo and cached.get('profile_pic'):
+                    p['linkedin_image_url'] = cached['profile_pic']
+                    enriched += 1
+                if not has_title and cached.get('title'):
+                    p['jobtitle'] = cached['title']
+                if not has_company and cached.get('company'):
+                    p['company'] = cached['company']
+            elif cached and isinstance(cached, str):
+                # legacy string cache entry
+                if not has_photo:
+                    p['linkedin_image_url'] = cached
+                    enriched += 1
+            continue
 
-        # Gather every input we have, in priority order
         first = (p.get('firstname') or '').strip()
         last  = (p.get('lastname')  or '').strip()
-        if '@' in first:   # junk first-names that are actually emails
+        if '@' in first:
             first = ''
         full_name = f'{first} {last}'.strip()
         company   = _clean_company_name(p.get('company') or '')
@@ -701,29 +730,35 @@ def proxycurl_enrich_photos(contacts: list) -> int:
             p.get('outbound_team___linkedin_url') or p.get('pipl_linkedin') or ''
         ).strip()
 
-        # Choose the best path: LinkedIn URL > name+company > email
-        photo_url = None
+        prof = None
         if li_url:
-            # Path A: linkedin_url — most accurate
-            photo_url = _rocketreach_get_photo(linkedin_url=li_url)
+            prof = _rocketreach_get_profile(linkedin_url=li_url)
         elif full_name and company:
-            # Path B: name + current employer
-            photo_url = _rocketreach_get_photo(name=full_name, current_employer=company)
+            prof = _rocketreach_get_profile(name=full_name, current_employer=company)
         elif email and not is_personal:
-            # Path C: work email
-            photo_url = _rocketreach_get_photo(email=email)
+            prof = _rocketreach_get_profile(email=email)
         else:
-            # No valid input → cache miss to skip future runs
             _enrich_cache[cache_key] = None
             continue
 
-        _enrich_cache[cache_key] = photo_url
-        if photo_url:
-            p['linkedin_image_url'] = photo_url
-            enriched += 1
-            print(f'  RocketReach: photo found for contact {c["id"]} ({full_name})')
-            # Write back to HubSpot so the next run gets it for free
-            _patch_hubspot_contact(c['id'], {'linkedin_image_url': photo_url})
+        _enrich_cache[cache_key] = prof  # None or dict
+        if prof:
+            patches = {}
+            if not has_photo and prof.get('profile_pic'):
+                p['linkedin_image_url'] = prof['profile_pic']
+                patches['linkedin_image_url'] = prof['profile_pic']
+                enriched += 1
+            if not has_title and prof.get('title'):
+                p['jobtitle'] = prof['title']
+                p['_enriched'] = True
+                patches['jobtitle'] = prof['title']
+            if not has_company and prof.get('company'):
+                p['company'] = prof['company']
+                p['_enriched'] = True
+                patches['company'] = prof['company']
+            if patches:
+                print(f'  RocketReach: {full_name} → {patches}')
+                _patch_hubspot_contact(c['id'], patches)
 
     _save_enrich_cache()
     return enriched
