@@ -1298,7 +1298,7 @@ def score_contact(p: dict) -> tuple:
     state   = (p.get('state')          or '').lower().strip()
 
     flags = []
-    if lc == 'customer' or call == 'order completed':
+    if call == 'order completed':
         flags.append('invested')
     if lc == 'opportunity':
         flags.append('opportunity')
