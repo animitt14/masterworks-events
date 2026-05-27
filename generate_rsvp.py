@@ -688,6 +688,12 @@ def proxycurl_enrich_photos(contacts: list) -> int:
     if not ROCKETREACH_API_KEY:
         return 0
 
+    # Clear cached misses so upcoming contacts are retried each run
+    for c in contacts:
+        key = f'rocketreach_photo:{c["id"]}'
+        if _enrich_cache.get(key) is None and key in _enrich_cache:
+            del _enrich_cache[key]
+
     enriched = 0
     for c in contacts:
         p = c['properties']
