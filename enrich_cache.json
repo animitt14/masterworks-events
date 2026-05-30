@@ -352,5 +352,20 @@
   "rocketreach_photo:224345827471": null,
   "rocketreach_photo:224349365265": null,
   "rocketreach_photo:224349822515": null,
-  "rocketreach_photo:224364188294": null
+  "rocketreach_photo:224364188294": null,
+  "Judith Vargas": {
+    "jobtitle": "Attorney",
+    "company": "Law Offices of Judith Vargas",
+    "_enriched": true
+  },
+  "Katie O'Connor": {
+    "jobtitle": "Senior Vice President",
+    "company": "Teneo",
+    "_enriched": true
+  },
+  "Dov Plawsky": {
+    "jobtitle": "Photographer",
+    "company": "",
+    "_enriched": true
+  }
 }
