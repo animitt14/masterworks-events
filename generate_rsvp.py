@@ -1162,6 +1162,17 @@ def fetch_email_confirmations(contacts: list) -> int:
 
 
 def fetch_contacts(start: date, end: date) -> list:
+    # Local-file override: use pre-fetched contacts when HubSpot API is unreachable
+    local_file = Path('contacts_local.json')
+    if local_file.exists():
+        raw = json.loads(local_file.read_text(encoding='utf-8'))
+        start_str = start.isoformat()
+        end_str   = end.isoformat()
+        filtered  = [c for c in raw
+                     if start_str <= (c.get('properties', {}).get('outbound_rsvp_to_event') or '') <= end_str]
+        print(f'Using local contacts_local.json ({len(filtered)} contacts in window {start_str}→{end_str})')
+        return filtered
+
     if not HUBSPOT_TOKEN:
         print('ERROR: HUBSPOT_API_KEY not set', file=sys.stderr)
         sys.exit(1)
@@ -4592,12 +4603,13 @@ def main():
     sync_uninvites_from_gist(contacts)
     sync_send_confirmations_from_gist(contacts)
 
-    # Enrich only today + future events — skip past events entirely.
-    # Today's contacts go first to max out the quota on what matters most.
+    # Enrich today + future events; also include recent past events in the window
+    # (start date) so that cached enrichments are applied on catch-up runs.
     today_iso = today.isoformat()
+    window_iso = start.isoformat()
     contacts_to_enrich = sorted(
         [c for c in contacts
-         if (c['properties'].get('outbound_rsvp_to_event') or '')[:10] >= today_iso],
+         if (c['properties'].get('outbound_rsvp_to_event') or '')[:10] >= window_iso],
         key=lambda c: (c['properties'].get('outbound_rsvp_to_event') or ''),
     )
 
