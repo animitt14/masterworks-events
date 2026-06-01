@@ -1014,14 +1014,66 @@ def pluto_enrich_contacts(contacts: list) -> int:
 
 # ─── WHITEPAGES HOME VALUE ENRICHMENT ─────────────────────────────────────────
 
-WHITEPAGES_PERSON_URL = 'https://proapi.whitepages.com/3.3/person'
+WHITEPAGES_PERSON_URL   = 'https://api.whitepages.com/v2/person'
+WHITEPAGES_PROPERTY_URL = 'https://api.whitepages.com/v2/property/'
+
+
+def _wp_format_value(val) -> str | None:
+    """Format a numeric home value as '$1.2M' or '$850K'. Returns None if invalid."""
+    try:
+        v = int(val)
+        if v <= 0:
+            return None
+        return f'${v / 1_000_000:.1f}M' if v >= 1_000_000 else f'${v // 1_000}K'
+    except (TypeError, ValueError):
+        return None
+
+
+def _wp_extract_value(obj: dict) -> str | None:
+    """Try multiple field name variants to pull a home value out of a dict."""
+    for field in ('estimated_value', 'value_estimate', 'home_value', 'value',
+                  'assessed_value', 'market_value'):
+        if obj.get(field):
+            return _wp_format_value(obj[field])
+    low  = obj.get('value_low')  or obj.get('value_estimate_low')
+    high = obj.get('value_high') or obj.get('value_estimate_high')
+    if low and high:
+        return _wp_format_value((int(low) + int(high)) // 2)
+    return None
+
+
+def _wp_parse_address(addr_str: str) -> dict:
+    """
+    Parse a formatted address string like '123 Main St, New York, NY 10001'
+    into {'street': ..., 'city': ..., 'state_code': ..., 'zip': ...}.
+    Returns an empty dict if parsing fails.
+    """
+    parts = [p.strip() for p in addr_str.split(',')]
+    if len(parts) < 3:
+        return {}
+    street = parts[0]
+    city   = parts[1]
+    # Last part is typically 'NY 10001' or 'NY'
+    last   = parts[-1].strip().split()
+    state_code = last[0] if last else ''
+    zip_code   = last[1] if len(last) > 1 else ''
+    if not street or not state_code:
+        return {}
+    result = {'street': street, 'state_code': state_code}
+    if city:
+        result['city'] = city
+    if zip_code:
+        result['zip'] = zip_code
+    return result
+
 
 def whitepages_home_value(contacts: list) -> int:
     """
-    For each contact with today's RSVP, query the Whitepages Pro person search
-    API to find an estimated home value.  Results are cached in enrich_cache.json
-    under the key 'wp_hv:<contact_id>' and stored on the contact as _wp_home_value
-    (a formatted string like '$1.2M' or '$850K').
+    For each contact with today's RSVP:
+      1. Reverse-phone lookup (using HubSpot phone) → find their home address.
+      2. Property search on that address → extract estimated home value.
+    Results cached under 'wp_hv:<contact_id>'; stored as _wp_home_value
+    (e.g. '$1.2M' or '$850K').
     """
     if not WHITEPAGES_API_KEY:
         return 0
@@ -1034,13 +1086,14 @@ def whitepages_home_value(contacts: list) -> int:
     if not targets:
         return 0
 
+    wp_headers = {'X-Api-Key': WHITEPAGES_API_KEY}
     count = 0
+
     for c in targets:
-        p        = c['properties']
-        cid      = str(c['id'])
+        p         = c['properties']
+        cid       = str(c['id'])
         cache_key = f'wp_hv:{cid}'
 
-        # Use cached result (None = confirmed miss, dict = hit)
         if cache_key in _enrich_cache:
             cached = _enrich_cache[cache_key]
             if cached:
@@ -1048,72 +1101,74 @@ def whitepages_home_value(contacts: list) -> int:
                 count += 1
             continue
 
-        firstname = (p.get('firstname') or '').strip()
-        lastname  = (p.get('lastname')  or '').strip()
-        if not firstname or not lastname:
+        # Need a phone number for the reverse lookup
+        phone = re.sub(r'\D', '', (p.get('phone') or ''))
+        if not phone:
             _enrich_cache[cache_key] = None
             continue
 
-        city      = (p.get('city')  or '').strip()
-        state     = (p.get('state') or '').strip()
-        zip_code  = (p.get('zip')   or '').strip()
-        email     = (p.get('email') or '').strip()
-
-        params = {
-            'name':    f'{firstname} {lastname}',
-            'api_key': WHITEPAGES_API_KEY,
-        }
-        if city:
-            params['address.city'] = city
-        if state:
-            params['address.state_code'] = state
-        if zip_code:
-            params['address.zip_code'] = zip_code
-        if email:
-            params['email.email'] = email
+        firstname = (p.get('firstname') or '').strip()
+        lastname  = (p.get('lastname')  or '').strip()
 
         try:
-            resp = requests.get(WHITEPAGES_PERSON_URL, params=params, timeout=15)
-            if not resp.ok:
-                print(f'  Whitepages error {resp.status_code} for {firstname} {lastname}',
-                      file=sys.stderr)
+            # ── Step 1: reverse phone lookup ──────────────────────────────────
+            person_resp = requests.get(
+                WHITEPAGES_PERSON_URL,
+                params={'phone': phone},
+                headers=wp_headers,
+                timeout=15,
+            )
+            if not person_resp.ok:
+                print(f'  Whitepages phone lookup {person_resp.status_code} '
+                      f'for {firstname} {lastname}', file=sys.stderr)
                 _enrich_cache[cache_key] = None
                 continue
 
-            data    = resp.json()
-            results = data.get('results') or data.get('person') or []
-            if isinstance(results, dict):
-                results = [results]
+            persons = person_resp.json()
+            if isinstance(persons, dict):
+                persons = persons.get('results') or persons.get('persons') or [persons]
 
-            value_est = None
-            for person in results:
-                # Search current_addresses first, then historical_addresses
-                for addr_key in ('current_addresses', 'historical_addresses'):
-                    for addr in (person.get(addr_key) or []):
-                        prop = addr.get('property') or {}
-                        # Try multiple field name variants across API versions
-                        est = (prop.get('value_estimate')
-                               or prop.get('estimated_value')
-                               or prop.get('home_value'))
-                        low  = prop.get('value_estimate_low')  or prop.get('value_low')
-                        high = prop.get('value_estimate_high') or prop.get('value_high')
-                        if est:
-                            value_est = est
-                            break
-                        if low and high:
-                            value_est = (low + high) // 2
-                            break
-                    if value_est:
+            # Collect candidate addresses from person records
+            candidate_addresses = []
+            for person in persons:
+                for addr in (person.get('current_addresses') or []):
+                    addr_val = addr if isinstance(addr, dict) else {}
+                    # Address may be a structured dict or a formatted string
+                    addr_str = addr_val.get('address') or addr_val.get('full_address') or ''
+                    parsed   = _wp_parse_address(addr_str) if addr_str else {}
+                    # Also try already-structured fields
+                    if not parsed:
+                        parsed = {k: addr_val[k] for k in
+                                  ('street', 'city', 'state_code', 'zip')
+                                  if addr_val.get(k)}
+                    if parsed.get('street') and parsed.get('state_code'):
+                        candidate_addresses.append(parsed)
+
+            # ── Step 2: property search on each candidate address ─────────────
+            formatted = None
+            for addr_params in candidate_addresses:
+                prop_resp = requests.get(
+                    WHITEPAGES_PROPERTY_URL,
+                    params=addr_params,
+                    headers=wp_headers,
+                    timeout=15,
+                )
+                if not prop_resp.ok:
+                    continue
+                prop_data = prop_resp.json()
+                # Response may be a list or a single dict
+                prop_records = prop_data if isinstance(prop_data, list) else [prop_data]
+                for rec in prop_records:
+                    formatted = _wp_extract_value(rec)
+                    if not formatted:
+                        # Value might be nested under a 'property' key
+                        formatted = _wp_extract_value(rec.get('property') or {})
+                    if formatted:
                         break
-                if value_est:
+                if formatted:
                     break
 
-            if value_est:
-                # Format: $1.2M, $850K, etc.
-                if value_est >= 1_000_000:
-                    formatted = f'${value_est / 1_000_000:.1f}M'
-                else:
-                    formatted = f'${value_est // 1_000}K'
+            if formatted:
                 p['_wp_home_value'] = formatted
                 _enrich_cache[cache_key] = formatted
                 count += 1
