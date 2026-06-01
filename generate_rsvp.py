@@ -2650,11 +2650,10 @@ def render_row(idx: int, c: dict, show_dropdown: bool = False, show_unk: bool = 
 
     pluto_val = (p.get('_pluto_val') or '').strip()
     wp_val    = (p.get('_wp_home_value') or '').strip()
-    if pluto_val and pluto_val != 'Commercial':
+    if wp_val:
+        prop_html = f'<span style="font-size:0.75rem">{escape(wp_val)}</span>'
+    elif pluto_val and pluto_val != 'Commercial':
         prop_html = f'<span style="font-size:0.75rem">{escape(pluto_val)}</span>'
-    elif wp_val:
-        prop_html = (f'<span style="font-size:0.75rem">{escape(wp_val)}</span>'
-                     f'<span style="font-size:0.65rem;color:#9aabbd;margin-left:3px">est.</span>')
     else:
         prop_html = '<span style="color:#c0ccd8">—</span>'
 
