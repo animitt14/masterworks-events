@@ -1068,23 +1068,18 @@ def fetch_email_confirmations(contacts: list) -> int:
     ]
     print(f'  Checking email replies for {len(targets)} contacts')
 
-    DEBUG_CID = '225528780101'  # Carl Segal — remove once confirmed working
+    _scope_warning_shown = False
 
     for c in targets:
         cid = c['id']
-        dbg = str(cid) == DEBUG_CID
         try:
             # Step 1: get email IDs associated with this contact
             assoc_url = (f'https://api.hubapi.com/crm/v3/objects/contacts'
                          f'/{cid}/associations/emails')
             assoc_resp = requests.get(assoc_url, headers=headers, timeout=10)
             if not assoc_resp.ok:
-                if dbg:
-                    print(f'  [DBG {cid}] assoc call failed: {assoc_resp.status_code}')
                 continue
             email_ids = [r['id'] for r in assoc_resp.json().get('results', [])]
-            if dbg:
-                print(f'  [DBG {cid}] email_ids={email_ids}')
             if not email_ids:
                 continue
 
@@ -1102,8 +1097,11 @@ def fetch_email_confirmations(contacts: list) -> int:
                 timeout=15,
             )
             if not batch_resp.ok:
-                if dbg:
-                    print(f'  [DBG {cid}] batch read failed: {batch_resp.status_code} {batch_resp.text[:200]}')
+                if batch_resp.status_code == 403 and not _scope_warning_shown:
+                    print('  WARNING: email batch/read returned 403 — '
+                          'add crm.objects.emails.read scope to the HubSpot private app',
+                          file=sys.stderr)
+                    _scope_warning_shown = True
                 continue
 
             emails = batch_resp.json().get('results', [])
@@ -1124,18 +1122,11 @@ def fetch_email_confirmations(contacts: list) -> int:
                     return True
                 return props.get('hubspot_owner_id') == LINNA_OWNER_ID
 
-            if dbg:
-                print(f'  [DBG {cid}] fetched {len(emails)} emails: '
-                      + str([(e["properties"].get("hs_email_direction"),
-                               e["properties"].get("hs_email_from_email"),
-                               e["properties"].get("hs_email_subject","")[:40]) for e in emails]))
             linna_sent_at = sorted(
                 e['properties']['hs_timestamp']
                 for e in emails
                 if _is_linna_outbound(e)
             )
-            if dbg:
-                print(f'  [DBG {cid}] linna_sent_at={linna_sent_at}')
             if not linna_sent_at:
                 continue  # no email from Linna → skip
 
