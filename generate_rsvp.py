@@ -78,6 +78,9 @@ EMAIL_CONFIRM_PHRASES = [
     "yes to the event", "rsvp yes", "rsvp: yes", "i'm in", "i am in",
     "sounds great", "i'll see you", "see you at", "wouldn't miss it",
     "wouldn't miss", "planning on it", "absolutely", "definitely",
+    "see you this", "see you tonight", "see you later", "see you soon",
+    "see you tomorrow", "see you next", "looking forward to seeing",
+    "i'll be attending", "i will be attending", "i plan to be there",
 ]
 
 EMAIL_CANCEL_PHRASES = [
@@ -1167,18 +1170,17 @@ def fetch_email_confirmations(contacts: list) -> int:
                 body = (raw_text or re.sub(r'<[^>]+>', ' ', raw_html)).lower()
                 combined = body + ' ' + subject
 
-                # Cancellation check — takes priority over confirmation
-                if any(phrase in combined for phrase in EMAIL_CANCEL_PHRASES):
+                has_cancel_phrase   = any(p in combined for p in EMAIL_CANCEL_PHRASES)
+                has_confirm_phrase  = any(p in combined for p in EMAIL_CONFIRM_PHRASES)
+                is_reply_subject    = subject.lstrip().startswith('re:')
+
+                # If the reply contains BOTH a cancel and a confirm phrase the
+                # contact is coming but their guest isn't (e.g. "he can't make it
+                # … see you this afternoon") — treat as confirmed, not cancelled.
+                if has_cancel_phrase and not has_confirm_phrase and not is_reply_subject:
                     c['properties']['_email_cancelled'] = True
                     n_confirmed += 1
                     break
-
-                # Trigger A: any "Re:" reply is itself confirmation
-                is_reply_subject = subject.lstrip().startswith('re:')
-
-                # Trigger B: explicit phrase in body or subject
-                has_confirm_phrase = any(phrase in combined
-                                         for phrase in EMAIL_CONFIRM_PHRASES)
 
                 if is_reply_subject or has_confirm_phrase:
                     c['properties']['_email_confirmed'] = True
