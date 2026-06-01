@@ -2621,23 +2621,26 @@ def render_panel(date_str: str, contacts: list, tab_id: str, active: bool, past:
     event_date = datetime.strptime(date_str, '%Y-%m-%d').date()
     show_replied = event_date in (today, today + timedelta(days=1))
 
-    # Group guests under their host using _resolved_host_id (set by resolve_host_contacts)
+    # Group guests under their host using _resolved_host_id (set by resolve_host_contacts).
+    # Pre-classify into standalones vs +1s so ordering in sorted_cs doesn't matter —
+    # a +1 that sorts before their host is still correctly nested.
     def _group_guests(sorted_cs):
-        used = set()
+        panel_ids = {str(c['id']) for c in sorted_cs}
+        plus_one_map: dict = {}   # host_id -> [guest, ...]
+        standalones: list = []
+
+        for c in sorted_cs:
+            resolved = (c['properties'].get('_resolved_host_id') or '').strip()
+            if resolved and resolved in panel_ids:
+                plus_one_map.setdefault(resolved, []).append(c)
+            else:
+                standalones.append(c)
+
         result = []
-        for i, c in enumerate(sorted_cs):
-            if i in used:
-                continue
+        for c in standalones:
             result.append((c, False))
-            used.add(i)
-            host_id = str(c['id'])
-            for j, guest in enumerate(sorted_cs):
-                if j in used:
-                    continue
-                resolved = (guest['properties'].get('_resolved_host_id') or '').strip()
-                if resolved and resolved == host_id:
-                    result.append((guest, True))
-                    used.add(j)
+            for guest in plus_one_map.get(str(c['id']), []):
+                result.append((guest, True))
         return result
 
     grouped = _group_guests(sorted_contacts)
@@ -4633,9 +4636,26 @@ def main():
     if n_email_confirmed:
         print(f'Email confirmations detected: {n_email_confirmed}')
 
+    # Build a contact-ID → RSVP-date map so +1s can be re-homed to their host's date.
+    id_to_date = {}
+    for c in contacts:
+        d = (c['properties'].get('outbound_rsvp_to_event') or '')[:10]
+        if d:
+            id_to_date[str(c['id'])] = d
+
     by_date = defaultdict(list)
     for c in contacts:
-        d = c['properties'].get('outbound_rsvp_to_event')
+        d = (c['properties'].get('outbound_rsvp_to_event') or '')[:10]
+        resolved_host = (c['properties'].get('_resolved_host_id') or '').strip()
+        # If this +1's host has a different RSVP date, move the +1 to the host's
+        # date so they nest correctly instead of appearing orphaned on a separate day.
+        if resolved_host and resolved_host in id_to_date:
+            host_date = id_to_date[resolved_host]
+            if host_date and host_date != d:
+                print(f'  Re-homing +1 {c["properties"].get("firstname","")} '
+                      f'{c["properties"].get("lastname","")} '
+                      f'from {d} → {host_date} (host id {resolved_host})')
+                d = host_date
         if d:
             by_date[d].append(c)
 
