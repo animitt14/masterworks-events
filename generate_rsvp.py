@@ -1088,6 +1088,8 @@ def whitepages_home_value(contacts: list) -> int:
 
     wp_headers = {'X-Api-Key': WHITEPAGES_API_KEY}
     count = 0
+    n_no_phone = 0
+    print(f'  Whitepages: checking {len(targets)} contacts for today')
 
     for c in targets:
         p         = c['properties']
@@ -1104,6 +1106,7 @@ def whitepages_home_value(contacts: list) -> int:
         # Need a phone number for the reverse lookup
         phone = re.sub(r'\D', '', (p.get('phone') or ''))
         if not phone:
+            n_no_phone += 1
             _enrich_cache[cache_key] = None
             continue
 
@@ -1125,6 +1128,9 @@ def whitepages_home_value(contacts: list) -> int:
                 continue
 
             persons = person_resp.json()
+            if count == 0 and n_no_phone == 0:  # log once for first phone-having contact
+                print(f'  Whitepages sample response keys: '
+                      f'{list(persons[0].keys()) if isinstance(persons, list) and persons else type(persons).__name__}')
             if isinstance(persons, dict):
                 persons = persons.get('results') or persons.get('persons') or [persons]
 
@@ -1180,6 +1186,7 @@ def whitepages_home_value(contacts: list) -> int:
                   file=sys.stderr)
             _enrich_cache[cache_key] = None
 
+    print(f'  Whitepages: {count} values found, {n_no_phone} skipped (no phone)')
     _save_enrich_cache()
     return count
 
