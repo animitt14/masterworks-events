@@ -389,6 +389,11 @@
   "pluto:TWO WORLD FINANCIAL CENTER:10128": null,
   "census:10128": "$1.4M median",
   "rocketreach_photo:225541908760": null,
+  "Skylar Baranda": {
+    "jobtitle": "Senior Manager, Marketing (Americas)",
+    "company": "The Leading Hotels of the World",
+    "_enriched": true
+  },
   "Anthony Gill": {},
   "rocketreach_photo:23421751": null,
   "rocketreach_photo:163648451": null,
@@ -504,10 +509,5 @@
   "rocketreach_photo:225541874600": null,
   "rocketreach_photo:225541894172": null,
   "rocketreach_photo:225541926440": null,
-  "rocketreach_photo:225542780453": null,
-  "Skylar Baranda": {
-    "jobtitle": "Senior Manager, Marketing (Americas)",
-    "company": "The Leading Hotels of the World",
-    "_enriched": true
-  }
+  "rocketreach_photo:225542780453": null
 }
