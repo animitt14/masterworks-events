@@ -80,6 +80,18 @@ EMAIL_CONFIRM_PHRASES = [
     "wouldn't miss", "planning on it", "absolutely", "definitely",
 ]
 
+EMAIL_CANCEL_PHRASES = [
+    "can't attend", "cannot attend", "can't make it", "cannot make it",
+    "won't be able", "will not be able", "unable to attend", "unable to make it",
+    "won't be there", "will not be there", "can't be there", "cannot be there",
+    "not able to attend", "not going to make it", "not going to be able",
+    "have to cancel", "need to cancel", "cancelling my rsvp", "canceling my rsvp",
+    "cancel my reservation", "can't join", "cannot join", "won't make it",
+    "will not make it", "something came up", "conflict came up",
+    "can't come", "cannot come", "won't be coming", "will not be coming",
+    "not able to come", "can't be there", "pulling out",
+]
+
 FINANCE_DOMAINS = {
     'jpmorgan.com', 'gs.com', 'goldmansachs.com', 'ubs.com', 'nb.com',
     'pimco.com', 'kkr.com', 'virtu.com', 'blackrock.com', 'morganstanley.com',
@@ -1133,7 +1145,8 @@ def fetch_email_confirmations(contacts: list) -> int:
             earliest_linna = min(linna_sent_at)
 
             # Step 4: look for inbound replies AFTER Linna's email.
-            # Two triggers count as confirmation:
+            # Cancellation phrases take priority over any "Re:" trigger.
+            # Confirmation triggers:
             #   A) The inbound subject starts with "Re:" — the contact replied
             #      to Linna's email at all (body text is often absent for
             #      Gmail/Outlook-connected inbound emails in HubSpot).
@@ -1148,15 +1161,23 @@ def fetch_email_confirmations(contacts: list) -> int:
 
                 subject = (props.get('hs_email_subject') or '').lower()
 
-                # Trigger A: any "Re:" reply is itself confirmation
-                is_reply_subject = subject.lstrip().startswith('re:')
-
-                # Trigger B: explicit phrase in body or subject
                 # hs_email_text may be empty; fall back to hs_email_html
                 raw_text = (props.get('hs_email_text') or '').strip()
                 raw_html = (props.get('hs_email_html') or '').strip()
                 body = (raw_text or re.sub(r'<[^>]+>', ' ', raw_html)).lower()
-                has_confirm_phrase = any(phrase in body + ' ' + subject
+                combined = body + ' ' + subject
+
+                # Cancellation check — takes priority over confirmation
+                if any(phrase in combined for phrase in EMAIL_CANCEL_PHRASES):
+                    c['properties']['_email_cancelled'] = True
+                    n_confirmed += 1
+                    break
+
+                # Trigger A: any "Re:" reply is itself confirmation
+                is_reply_subject = subject.lstrip().startswith('re:')
+
+                # Trigger B: explicit phrase in body or subject
+                has_confirm_phrase = any(phrase in combined
                                          for phrase in EMAIL_CONFIRM_PHRASES)
 
                 if is_reply_subject or has_confirm_phrase:
@@ -2471,13 +2492,22 @@ def render_row(idx: int, c: dict, show_dropdown: bool = False, show_unk: bool = 
     else:
         prop_html = '<span style="color:#c0ccd8">—</span>'
 
-    email_confirmed_badge = (
-        ' <span style="display:inline-block;font-size:0.62rem;'
-        'background:#e8f5e9;color:#2e7d32;border:1px solid #81c784;'
-        'border-radius:10px;padding:1px 7px;font-weight:700;'
-        'vertical-align:middle;margin-left:4px">&#10003;&nbsp;Replied</span>'
-        if p.get('_email_confirmed') and show_replied else ''
-    )
+    if show_replied and p.get('_email_cancelled'):
+        email_confirmed_badge = (
+            ' <span style="display:inline-block;font-size:0.62rem;'
+            'background:#fdecea;color:#c62828;border:1px solid #ef9a9a;'
+            'border-radius:10px;padding:1px 7px;font-weight:700;'
+            'vertical-align:middle;margin-left:4px">&#10007;&nbsp;Can\'t attend</span>'
+        )
+    elif show_replied and p.get('_email_confirmed'):
+        email_confirmed_badge = (
+            ' <span style="display:inline-block;font-size:0.62rem;'
+            'background:#e8f5e9;color:#2e7d32;border:1px solid #81c784;'
+            'border-radius:10px;padding:1px 7px;font-weight:700;'
+            'vertical-align:middle;margin-left:4px">&#10003;&nbsp;Replied</span>'
+        )
+    else:
+        email_confirmed_badge = ''
     nw_cell = f'<strong style="font-size:0.85rem">{escape(nw)}</strong>'
 
     plus_one_indent = 'padding-left:28px;border-left:3px solid #dde3ee;margin-left:8px' if is_plus_one else ''
