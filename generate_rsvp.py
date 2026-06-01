@@ -35,8 +35,9 @@ GOOGLE_CSE_ID      = os.environ.get('GOOGLE_CSE_ID', '')
 # RocketReach replaces NinjaPear (Apr 2026): higher photo coverage on
 # professional contacts because RocketReach pulls from LinkedIn primarily,
 # not Twitter/X.
-ROCKETREACH_API_KEY = os.environ.get('ROCKETREACH_API_KEY', '').strip()
-CENSUS_API_KEY      = os.environ.get('CENSUS_API_KEY', '').strip()
+ROCKETREACH_API_KEY  = os.environ.get('ROCKETREACH_API_KEY',  '').strip()
+CENSUS_API_KEY       = os.environ.get('CENSUS_API_KEY',       '').strip()
+WHITEPAGES_API_KEY   = os.environ.get('WHITEPAGES_API_KEY',   '').strip()
 GOOGLE_SEARCH_URL  = 'https://www.googleapis.com/customsearch/v1'
 ENRICH_LIMIT       = 95   # stay just under the 100/day free quota
 
@@ -1007,6 +1008,123 @@ def pluto_enrich_contacts(contacts: list) -> int:
         if val is not None:
             p['_pluto_val'] = val
             count += 1
+    _save_enrich_cache()
+    return count
+
+
+# ─── WHITEPAGES HOME VALUE ENRICHMENT ─────────────────────────────────────────
+
+WHITEPAGES_PERSON_URL = 'https://proapi.whitepages.com/3.3/person'
+
+def whitepages_home_value(contacts: list) -> int:
+    """
+    For each contact with today's RSVP, query the Whitepages Pro person search
+    API to find an estimated home value.  Results are cached in enrich_cache.json
+    under the key 'wp_hv:<contact_id>' and stored on the contact as _wp_home_value
+    (a formatted string like '$1.2M' or '$850K').
+    """
+    if not WHITEPAGES_API_KEY:
+        return 0
+
+    today_iso = date.today().isoformat()
+    targets = [
+        c for c in contacts
+        if (c['properties'].get('outbound_rsvp_to_event') or '')[:10] == today_iso
+    ]
+    if not targets:
+        return 0
+
+    count = 0
+    for c in targets:
+        p        = c['properties']
+        cid      = str(c['id'])
+        cache_key = f'wp_hv:{cid}'
+
+        # Use cached result (None = confirmed miss, dict = hit)
+        if cache_key in _enrich_cache:
+            cached = _enrich_cache[cache_key]
+            if cached:
+                p['_wp_home_value'] = cached
+                count += 1
+            continue
+
+        firstname = (p.get('firstname') or '').strip()
+        lastname  = (p.get('lastname')  or '').strip()
+        if not firstname or not lastname:
+            _enrich_cache[cache_key] = None
+            continue
+
+        city      = (p.get('city')  or '').strip()
+        state     = (p.get('state') or '').strip()
+        zip_code  = (p.get('zip')   or '').strip()
+        email     = (p.get('email') or '').strip()
+
+        params = {
+            'name':    f'{firstname} {lastname}',
+            'api_key': WHITEPAGES_API_KEY,
+        }
+        if city:
+            params['address.city'] = city
+        if state:
+            params['address.state_code'] = state
+        if zip_code:
+            params['address.zip_code'] = zip_code
+        if email:
+            params['email.email'] = email
+
+        try:
+            resp = requests.get(WHITEPAGES_PERSON_URL, params=params, timeout=15)
+            if not resp.ok:
+                print(f'  Whitepages error {resp.status_code} for {firstname} {lastname}',
+                      file=sys.stderr)
+                _enrich_cache[cache_key] = None
+                continue
+
+            data    = resp.json()
+            results = data.get('results') or data.get('person') or []
+            if isinstance(results, dict):
+                results = [results]
+
+            value_est = None
+            for person in results:
+                # Search current_addresses first, then historical_addresses
+                for addr_key in ('current_addresses', 'historical_addresses'):
+                    for addr in (person.get(addr_key) or []):
+                        prop = addr.get('property') or {}
+                        # Try multiple field name variants across API versions
+                        est = (prop.get('value_estimate')
+                               or prop.get('estimated_value')
+                               or prop.get('home_value'))
+                        low  = prop.get('value_estimate_low')  or prop.get('value_low')
+                        high = prop.get('value_estimate_high') or prop.get('value_high')
+                        if est:
+                            value_est = est
+                            break
+                        if low and high:
+                            value_est = (low + high) // 2
+                            break
+                    if value_est:
+                        break
+                if value_est:
+                    break
+
+            if value_est:
+                # Format: $1.2M, $850K, etc.
+                if value_est >= 1_000_000:
+                    formatted = f'${value_est / 1_000_000:.1f}M'
+                else:
+                    formatted = f'${value_est // 1_000}K'
+                p['_wp_home_value'] = formatted
+                _enrich_cache[cache_key] = formatted
+                count += 1
+            else:
+                _enrich_cache[cache_key] = None
+
+        except Exception as exc:
+            print(f'  Whitepages exception for {firstname} {lastname}: {exc}',
+                  file=sys.stderr)
+            _enrich_cache[cache_key] = None
+
     _save_enrich_cache()
     return count
 
@@ -2491,8 +2609,12 @@ def render_row(idx: int, c: dict, show_dropdown: bool = False, show_unk: bool = 
     tc_html = '<br>'.join(tc_parts) or '<span style="color:#c0ccd8">—</span>'
 
     pluto_val = (p.get('_pluto_val') or '').strip()
+    wp_val    = (p.get('_wp_home_value') or '').strip()
     if pluto_val and pluto_val != 'Commercial':
         prop_html = f'<span style="font-size:0.75rem">{escape(pluto_val)}</span>'
+    elif wp_val:
+        prop_html = (f'<span style="font-size:0.75rem">{escape(wp_val)}</span>'
+                     f'<span style="font-size:0.65rem;color:#9aabbd;margin-left:3px">est.</span>')
     else:
         prop_html = '<span style="color:#c0ccd8">—</span>'
 
@@ -4675,6 +4797,10 @@ def main():
     n_proxycurl = proxycurl_enrich_photos(contacts_to_enrich)
     if n_proxycurl:
         print(f'RocketReach: fetched profile photos for {n_proxycurl} contacts')
+
+    n_wp = whitepages_home_value(contacts_to_enrich)
+    if n_wp:
+        print(f'Whitepages: home values fetched for {n_wp} contacts')
 
     n_email_confirmed = fetch_email_confirmations(contacts_to_enrich)
     if n_email_confirmed:
