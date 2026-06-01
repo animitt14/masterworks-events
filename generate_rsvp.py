@@ -1066,6 +1066,7 @@ def fetch_email_confirmations(contacts: list) -> int:
         c for c in contacts
         if (c['properties'].get('outbound_rsvp_to_event') or '')[:10] >= today_iso
     ]
+    print(f'  Checking email replies for {len(targets)} contacts')
 
     for c in targets:
         cid = c['id']
@@ -1105,7 +1106,9 @@ def fetch_email_confirmations(contacts: list) -> int:
             # but may still match when Linna owns the contact).
             def _is_linna_outbound(e: dict) -> bool:
                 props = e['properties']
-                if props.get('hs_email_direction') not in ('EMAIL', 'SENT'):
+                # HubSpot CRM outbound emails use 'OUTGOING_EMAIL'; older/BCC-logged
+                # emails may use 'EMAIL'.  'SENT' was never a valid HubSpot direction.
+                if props.get('hs_email_direction') not in ('OUTGOING_EMAIL', 'EMAIL'):
                     return False
                 from_email = (props.get('hs_email_from_email') or '').lower().strip()
                 if from_email == LINNA_EMAIL.lower():
