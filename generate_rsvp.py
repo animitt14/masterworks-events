@@ -1177,7 +1177,9 @@ def fetch_email_confirmations(contacts: list) -> int:
                 # If the reply contains BOTH a cancel and a confirm phrase the
                 # contact is coming but their guest isn't (e.g. "he can't make it
                 # … see you this afternoon") — treat as confirmed, not cancelled.
-                if has_cancel_phrase and not has_confirm_phrase and not is_reply_subject:
+                # A bare "Re:" subject does NOT override a cancel phrase; only an
+                # explicit confirm phrase can do that.
+                if has_cancel_phrase and not has_confirm_phrase:
                     c['properties']['_email_cancelled'] = True
                     n_confirmed += 1
                     break
