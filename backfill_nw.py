@@ -64,6 +64,8 @@ def fetch_historical(cutoff: str) -> list:
             payload['after'] = after
 
         resp = requests.post(SEARCH_URL, headers=headers, json=payload, timeout=30)
+        if not resp.ok:
+            print(f'  HubSpot 400 body: {resp.text[:500]}', file=sys.stderr)
         resp.raise_for_status()
         data  = resp.json()
         batch = data.get('results', [])
