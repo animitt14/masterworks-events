@@ -1072,15 +1072,23 @@ def whitepages_home_value(contacts: list) -> int:
         cid       = str(c['id'])
         cache_key = f'wp_hv:{cid}'
 
-        if cache_key in _enrich_cache:
+        # Skip only when ALL three sub-keys are present in cache (hv + owned + age).
+        # If any is missing the API hasn't been re-run since those keys were added,
+        # so fall through to fetch fresh data.
+        _hv_keyed    = cache_key in _enrich_cache
+        _owned_keyed = f'wp_owned:{cid}' in _enrich_cache
+        _age_keyed   = f'wp_age:{cid}' in _enrich_cache
+        if _hv_keyed and _owned_keyed and _age_keyed:
             cached = _enrich_cache[cache_key]
             if cached:
                 p['_wp_home_value'] = cached
                 count += 1
-            # Also restore owned-property value from cache (separate key)
             owned_cached = _enrich_cache.get(f'wp_owned:{cid}')
             if owned_cached:
                 p['_wp_owned_prop'] = owned_cached
+            age_cached = _enrich_cache.get(f'wp_age:{cid}')
+            if age_cached:
+                p['_wp_age_range'] = age_cached
             continue
 
         # Need a phone number for the reverse lookup
@@ -1118,7 +1126,13 @@ def whitepages_home_value(contacts: list) -> int:
             owned_addrs   = []
             current_addrs = []
 
+            age_ranges = []
             for person in persons:
+                # Capture age range if present (e.g. "35-44")
+                ar = str(person.get('age_range') or person.get('age') or '').strip()
+                if ar:
+                    age_ranges.append(ar)
+
                 # owned_properties: [{"id": "...", "address": "209 E 62nd St New York, NY 10065"}]
                 for prop in (person.get('owned_properties') or []):
                     addr_str = (prop.get('address') or prop.get('full_address') or '').strip()
@@ -1136,6 +1150,8 @@ def whitepages_home_value(contacts: list) -> int:
                     if street and state:
                         current_addrs.append({'street': street, 'city': city,
                                               'state_code': state, 'zip': zip_})
+
+            best_age_range = age_ranges[0] if age_ranges else None
 
             candidate_addresses = owned_addrs + current_addrs
 
@@ -1179,6 +1195,12 @@ def whitepages_home_value(contacts: list) -> int:
                 _enrich_cache[owned_cache_key] = owned_formatted
             if owned_formatted:
                 p['_wp_owned_prop'] = owned_formatted
+
+            age_cache_key = f'wp_age:{cid}'
+            if age_cache_key not in _enrich_cache:
+                _enrich_cache[age_cache_key] = best_age_range
+            if best_age_range:
+                p['_wp_age_range'] = best_age_range
 
             formatted = owned_formatted
             if not formatted:
@@ -2103,7 +2125,52 @@ def get_persona(p: dict) -> str:
     return 'Corporate Climber'
 
 
-def get_nw(p: dict) -> tuple:
+def _wealth_seg_to_tier(ws: str) -> str | None:
+    """Map a wealth_segment string (e.g. '$2M-$5M') to the nearest NW display tier."""
+    low = _wealth_segment_low(ws)
+    if low is None:
+        return None
+    if low >= 5_000_000:   return '$3M–$10M'
+    if low >= 2_000_000:   return '$2M–$6M'
+    if low >= 1_000_000:   return '$1M–$4M'
+    if low >= 500_000:     return '$500K–$2M'
+    if low >= 100_000:     return '$150K–$500K'
+    return '$50K–$200K'
+
+
+def _income_to_nw_tier(inc: str, age_range: str) -> str | None:
+    """Estimate NW tier from inferred income and age.
+    Model: 20% savings rate × working years × 1.5× compounding factor.
+    Conservative — used only to bump a tier up, never down.
+    """
+    inc_low = _income_low(inc)
+    if not inc_low or inc_low <= 0:
+        return None
+
+    # Parse age midpoint from a range like "35-44" or "55+"
+    age: float | None = None
+    if age_range:
+        m = re.match(r'(\d+)\s*[-–]\s*(\d+)', str(age_range).strip())
+        if m:
+            age = (int(m.group(1)) + int(m.group(2))) / 2.0
+        else:
+            m2 = re.match(r'(\d+)', str(age_range).strip())
+            if m2:
+                age = float(m2.group(1))
+
+    years = min(max((age or 40) - 22, 0), 40)      # working years, capped at 40
+    implied_nw = inc_low * 0.20 * years * 1.5       # 20% savings × years × compounding
+
+    if implied_nw >= 3_000_000:   return '$3M–$10M'
+    if implied_nw >= 2_000_000:   return '$2M–$6M'
+    if implied_nw >= 1_000_000:   return '$1M–$4M'
+    if implied_nw >= 500_000:     return '$500K–$2M'
+    if implied_nw >= 150_000:     return '$150K–$500K'
+    return '$50K–$200K'
+
+
+def _get_nw_title(p: dict) -> tuple:
+    """Title/company heuristic — unchanged legacy logic."""
     title   = (p.get('jobtitle') or '').lower()
     company = (p.get('company')  or '').lower()
 
@@ -2213,6 +2280,51 @@ def get_nw(p: dict) -> tuple:
         return '$150K–$500K', 'Assumed mid-career (title present, tier unmatched)'
 
     return '—', 'No title or company data'
+
+
+def get_nw(p: dict) -> tuple:
+    """Estimate net worth tier from all available signals; returns the highest.
+
+    Signals (each only raises the tier, never lowers):
+      1. wealth_segment  — direct third-party NW estimate, most authoritative
+      2. inferred_income × age — wealth-accumulation proxy
+      3. _wp_owned_prop  — owned property value → NW floor (property ≤ 50% of NW)
+      4. job title / company heuristics (legacy logic)
+    """
+    candidates: list[tuple[str, str]] = []
+
+    # 1. Wealth segment
+    ws = p.get('wealth_segment') or ''
+    ws_tier = _wealth_seg_to_tier(ws)
+    if ws_tier:
+        candidates.append((ws_tier, f'wealth_segment {ws}'))
+
+    # 2. Inferred income × age
+    inc = p.get('inferred_income') or ''
+    age_range = p.get('_wp_age_range') or ''
+    inc_tier = _income_to_nw_tier(inc, age_range)
+    if inc_tier:
+        age_lbl = f', age {age_range}' if age_range else ''
+        candidates.append((inc_tier, f'income {inc}{age_lbl}'))
+
+    # 3. Owned property → NW floor  (pluto_nw_bump defined below — looked up at call time)
+    owned_prop = p.get('_wp_owned_prop') or ''
+    if owned_prop:
+        prop_result = pluto_nw_bump('—', owned_prop)
+        if prop_result:
+            candidates.append(prop_result)
+
+    # 4. Title / company heuristics
+    title_tier, title_reason = _get_nw_title(p)
+    if title_tier != '—':
+        candidates.append((title_tier, title_reason))
+
+    if not candidates:
+        return '—', 'No net worth signals'
+
+    # Return the highest tier across all signals
+    best = max(candidates, key=lambda x: _NW_TIER_ORDER.get(x[0], 0))
+    return best
 
 
 # ─── PLUTO → NW ADJUSTMENT ────────────────────────────────────────────────────
@@ -2620,15 +2732,7 @@ def render_row(idx: int, c: dict, show_dropdown: bool = False, show_unk: bool = 
     if cid in SCORE_OVERRIDES:
         sc = SCORE_OVERRIDES[cid]
     per       = get_persona(p)
-    nw, nw_r  = get_nw(p)
-
-    # Bump NW up only if contact *owns* a property (not just rents at that address).
-    # _wp_owned_prop = value from Whitepages owned_properties only.
-    # _pluto_val fallback for contacts whose HubSpot address predates Whitepages enrichment.
-    owned_prop_val = p.get('_wp_owned_prop') or ''
-    pluto_bump = pluto_nw_bump(nw, owned_prop_val)
-    if pluto_bump:
-        nw, nw_r = pluto_bump
+    nw, nw_r  = get_nw(p)   # incorporates wealth_segment, income×age, owned property, title
 
     owner_name = OWNERS.get(owner_id, owner_id or '—')
     if owner_id in INACTIVE_OWNERS:
