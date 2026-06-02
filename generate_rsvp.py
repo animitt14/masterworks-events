@@ -1057,7 +1057,7 @@ def whitepages_home_value(contacts: list) -> int:
     today_iso = date.today().isoformat()
     targets = [
         c for c in contacts
-        if (c['properties'].get('outbound_rsvp_to_event') or '')[:10] == today_iso
+        if (c['properties'].get('outbound_rsvp_to_event') or '')[:10] >= today_iso
     ]
     if not targets:
         return 0
