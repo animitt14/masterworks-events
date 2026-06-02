@@ -35,7 +35,11 @@ CACHE_SAVE_N  = 25   # save cache after every N Whitepages API calls
 # ─────────────────────────────────────────────────────────────────────────────
 
 def fetch_historical(cutoff: str) -> list:
-    """Fetch all contacts with outbound_rsvp_to_event ≤ cutoff (paginated)."""
+    """Fetch all contacts with outbound_rsvp_to_event ≤ cutoff (paginated).
+
+    Uses the same GTE+LTE filter pattern as generate_rsvp.fetch_contacts —
+    HubSpot's search requires a bounded range on date properties.
+    """
     if not g.HUBSPOT_TOKEN:
         print('ERROR: HUBSPOT_API_KEY not set', file=sys.stderr)
         sys.exit(1)
@@ -49,6 +53,8 @@ def fetch_historical(cutoff: str) -> list:
         page += 1
         payload = {
             'filterGroups': [{'filters': [
+                # GTE bound is required alongside LTE for HubSpot date searches
+                {'propertyName': 'outbound_rsvp_to_event', 'operator': 'GTE', 'value': '2020-01-01'},
                 {'propertyName': 'outbound_rsvp_to_event', 'operator': 'LTE', 'value': cutoff},
             ]}],
             'properties': [
@@ -65,17 +71,16 @@ def fetch_historical(cutoff: str) -> list:
 
         resp = requests.post(SEARCH_URL, headers=headers, json=payload, timeout=30)
         if not resp.ok:
-            print(f'  HubSpot 400 body: {resp.text[:500]}', file=sys.stderr)
+            print(f'  HubSpot error {resp.status_code}: {resp.text[:500]}', file=sys.stderr)
         resp.raise_for_status()
         data  = resp.json()
         batch = data.get('results', [])
         contacts.extend(batch)
-        print(f'  Page {page}: {len(batch)} contacts → {len(contacts)} total', end='\r')
+        print(f'  Page {page}: {len(batch)} contacts → {len(contacts)} total', flush=True)
         after = data.get('paging', {}).get('next', {}).get('after')
         if not after:
             break
 
-    print()
     return contacts
 
 
