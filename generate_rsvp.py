@@ -2919,12 +2919,15 @@ def likelihood_secondary(p: dict, flags: list) -> int:
 
 def render_panel(date_str: str, contacts: list, tab_id: str, active: bool, past: bool = False) -> str:
     def _sort_key(c):
-        sc, flags = score_contact(c['properties'])
+        p = c['properties']
+        sc, flags = score_contact(p)
+        nw, _ = get_nw(p)
         return (
-            -sc,                                                 # score DESC
-            -likelihood_secondary(c['properties'], flags),       # likelihood DESC
-            (c['properties'].get('lastname')  or '').lower(),   # last name ASC
-            (c['properties'].get('firstname') or '').lower(),
+            -_NW_MIDPOINTS.get(nw, 0),                           # NW midpoint DESC
+            -sc,                                                 # score DESC (tiebreak)
+            -likelihood_secondary(p, flags),                     # likelihood DESC
+            (p.get('lastname')  or '').lower(),                  # last name ASC
+            (p.get('firstname') or '').lower(),
         )
     sorted_contacts = sorted(contacts, key=_sort_key)
 
@@ -3137,12 +3140,15 @@ def build_html(by_date: dict, generated_at: str) -> str:
 
     # Build JSON data for past events (used by lazy-load JS renderer)
     def _past_sort_key(c):
-        sc, flags = score_contact(c['properties'])
+        p = c['properties']
+        sc, flags = score_contact(p)
+        nw, _ = get_nw(p)
         return (
+            -_NW_MIDPOINTS.get(nw, 0),
             -sc,
-            -likelihood_secondary(c['properties'], flags),
-            (c['properties'].get('lastname')  or '').lower(),
-            (c['properties'].get('firstname') or '').lower(),
+            -likelihood_secondary(p, flags),
+            (p.get('lastname')  or '').lower(),
+            (p.get('firstname') or '').lower(),
         )
 
     past_events_data: dict = {}
