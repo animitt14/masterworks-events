@@ -1077,6 +1077,10 @@ def whitepages_home_value(contacts: list) -> int:
             if cached:
                 p['_wp_home_value'] = cached
                 count += 1
+            # Also restore owned-property value from cache (separate key)
+            owned_cached = _enrich_cache.get(f'wp_owned:{cid}')
+            if owned_cached:
+                p['_wp_owned_prop'] = owned_cached
             continue
 
         # Need a phone number for the reverse lookup
@@ -1153,21 +1157,44 @@ def whitepages_home_value(contacts: list) -> int:
                     p.update(hs_props)
 
             # ── Step 3: value lookup via PLUTO (NYC) then Census (other) ──────
-            formatted = None
-            for addr in candidate_addresses:
+            # owned_addrs only → used for NW bump (strong signal: person owns the property)
+            # candidate_addresses (owned + current) → used for display
+            owned_formatted = None
+            for addr in owned_addrs:
                 street   = addr.get('street', '')
                 city     = addr.get('city', '')
                 zip_code = addr.get('zip', '')
-
                 val = fetch_pluto_value(street, city, zip_code)
                 if val and val != 'Commercial':
-                    formatted = val
+                    owned_formatted = val
                     break
-                if not formatted and zip_code:
+                if not owned_formatted and zip_code:
                     val = fetch_census_value(zip_code)
                     if val:
+                        owned_formatted = val
+                        break
+
+            owned_cache_key = f'wp_owned:{cid}'
+            if owned_cache_key not in _enrich_cache:
+                _enrich_cache[owned_cache_key] = owned_formatted
+            if owned_formatted:
+                p['_wp_owned_prop'] = owned_formatted
+
+            formatted = owned_formatted
+            if not formatted:
+                for addr in current_addrs:
+                    street   = addr.get('street', '')
+                    city     = addr.get('city', '')
+                    zip_code = addr.get('zip', '')
+                    val = fetch_pluto_value(street, city, zip_code)
+                    if val and val != 'Commercial':
                         formatted = val
                         break
+                    if not formatted and zip_code:
+                        val = fetch_census_value(zip_code)
+                        if val:
+                            formatted = val
+                            break
 
             if formatted:
                 p['_wp_home_value'] = formatted
@@ -2595,8 +2622,11 @@ def render_row(idx: int, c: dict, show_dropdown: bool = False, show_unk: bool = 
     per       = get_persona(p)
     nw, nw_r  = get_nw(p)
 
-    # Bump Claude NW up if PLUTO property estimate implies a higher tier
-    pluto_bump = pluto_nw_bump(nw, p.get('_pluto_val') or '')
+    # Bump NW up only if contact *owns* a property (not just rents at that address).
+    # _wp_owned_prop = value from Whitepages owned_properties only.
+    # _pluto_val fallback for contacts whose HubSpot address predates Whitepages enrichment.
+    owned_prop_val = p.get('_wp_owned_prop') or ''
+    pluto_bump = pluto_nw_bump(nw, owned_prop_val)
     if pluto_bump:
         nw, nw_r = pluto_bump
 
