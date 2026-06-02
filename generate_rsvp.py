@@ -1135,6 +1135,23 @@ def whitepages_home_value(contacts: list) -> int:
 
             candidate_addresses = owned_addrs + current_addrs
 
+            # ── Step 2b: write best address back to HubSpot ───────────────────
+            if candidate_addresses:
+                best = candidate_addresses[0]
+                hs_props = {}
+                if best.get('street'):
+                    hs_props['address'] = best['street']
+                if best.get('city'):
+                    hs_props['city'] = best['city']
+                if best.get('state_code'):
+                    hs_props['state'] = best['state_code']
+                if best.get('zip'):
+                    hs_props['zip'] = best['zip']
+                if hs_props:
+                    _patch_hubspot_contact(cid, hs_props)
+                    # Also update local properties so PLUTO picks up the new address
+                    p.update(hs_props)
+
             # ── Step 3: value lookup via PLUTO (NYC) then Census (other) ──────
             formatted = None
             for addr in candidate_addresses:
