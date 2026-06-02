@@ -15,6 +15,7 @@ Usage:
 """
 
 import os, sys, re, time
+from datetime import date
 
 # ── Load .env ─────────────────────────────────────────────────────────────────
 _env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env')
@@ -46,17 +47,20 @@ def fetch_historical(cutoff: str) -> list:
 
     import requests
     headers  = {'Authorization': f'Bearer {g.HUBSPOT_TOKEN}', 'Content-Type': 'application/json'}
+    cutoff_date = date.fromisoformat(cutoff)
     contacts, after = [], None
     page = 0
 
     while True:
         page += 1
         payload = {
-            'filterGroups': [{'filters': [
-                # GTE bound is required alongside LTE for HubSpot date searches
-                {'propertyName': 'outbound_rsvp_to_event', 'operator': 'GTE', 'value': '2020-01-01'},
-                {'propertyName': 'outbound_rsvp_to_event', 'operator': 'LTE', 'value': cutoff},
-            ]}],
+            'filterGroups': [{'filters': [{
+                # HubSpot Search API requires epoch ms for date properties
+                'propertyName': 'outbound_rsvp_to_event',
+                'operator':     'BETWEEN',
+                'value':        str(g.epoch_ms(date(2020, 1, 1))),
+                'highValue':    str(g.epoch_ms(cutoff_date, end_of_day=True)),
+            }]}],
             'properties': [
                 'firstname', 'lastname', 'jobtitle', 'company',
                 'email', 'phone', 'address', 'city', 'state', 'zip',
