@@ -31,7 +31,8 @@ import generate_rsvp as g
 
 CUTOFF_DATE   = sys.argv[1] if len(sys.argv) > 1 else '2026-06-01'
 SEARCH_URL    = 'https://api.hubapi.com/crm/v3/objects/contacts/search'
-CACHE_SAVE_N  = 25   # save cache after every N Whitepages API calls
+CACHE_SAVE_N  = 25   # save cache + push NW to HubSpot after every N Whitepages API calls
+PROGRESS_N    = 100  # print progress line every N contacts (cached or not)
 
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -101,8 +102,10 @@ def wp_enrich_all(contacts: list) -> int:
         return 0
 
     wp_headers = {'X-Api-Key': g.WHITEPAGES_API_KEY}
-    count, n_no_phone, api_calls = 0, 0, 0
+    count, n_no_phone, n_cached, api_calls = 0, 0, 0, 0
+    nw_pushed_total = 0
     total = len(contacts)
+    start_time = time.time()
 
     for idx, c in enumerate(contacts):
         p   = c['properties']
@@ -112,10 +115,11 @@ def wp_enrich_all(contacts: list) -> int:
         owned_key = f'wp_owned:{cid}'
         age_key   = f'wp_age:{cid}'
 
-        # All three cached → restore and skip
+        # All three cached → restore and skip API call
         if (hv_key in g._enrich_cache and
                 owned_key in g._enrich_cache and
                 age_key   in g._enrich_cache):
+            n_cached += 1
             if g._enrich_cache[hv_key]:
                 p['_wp_home_value'] = g._enrich_cache[hv_key]
                 count += 1
@@ -123,6 +127,15 @@ def wp_enrich_all(contacts: list) -> int:
                 p['_wp_owned_prop'] = g._enrich_cache[owned_key]
             if g._enrich_cache.get(age_key):
                 p['_wp_age_range'] = g._enrich_cache[age_key]
+
+            # Periodic progress on cached contacts
+            if (idx + 1) % PROGRESS_N == 0:
+                elapsed = time.time() - start_time
+                rate    = (idx + 1) / elapsed if elapsed > 0 else 0
+                eta_s   = (total - idx - 1) / rate if rate > 0 else 0
+                print(f'  [{idx+1}/{total} {(idx+1)/total*100:.0f}%] '
+                      f'{n_cached} cached | {api_calls} API calls | '
+                      f'{count} home values | ETA {eta_s/60:.0f}m', flush=True)
             continue
 
         phone = re.sub(r'\D', '', (p.get('phone') or ''))
@@ -134,7 +147,11 @@ def wp_enrich_all(contacts: list) -> int:
             continue
 
         name = f"{p.get('firstname','')} {p.get('lastname','')}".strip()
-        print(f'  [{idx+1}/{total}] WP → {name}')
+        elapsed = time.time() - start_time
+        rate    = (idx + 1) / elapsed if elapsed > 0 else 0
+        eta_s   = (total - idx - 1) / rate if rate > 0 else 0
+        print(f'  [{idx+1}/{total} {(idx+1)/total*100:.0f}%] WP → {name} '
+              f'(ETA {eta_s/60:.0f}m)', flush=True)
 
         try:
             resp = requests.get(
@@ -219,10 +236,14 @@ def wp_enrich_all(contacts: list) -> int:
                 p['_wp_home_value'] = display_fmt
                 count += 1
 
-            # Periodic cache save
+            # Periodic cache save + NW push (every CACHE_SAVE_N live API calls)
             if api_calls % CACHE_SAVE_N == 0:
                 g._save_enrich_cache()
-                print(f'  ↳ cache saved ({api_calls} API calls so far)')
+                n_pushed = push_nw(contacts[:idx + 1])
+                nw_pushed_total += n_pushed
+                print(f'  ↳ [{(idx+1)/total*100:.0f}%] checkpoint: cache saved, '
+                      f'{n_pushed} NW written this batch ({nw_pushed_total} total), '
+                      f'{api_calls} API calls', flush=True)
 
         except Exception as exc:
             print(f'  Exception for {name}: {exc}', file=sys.stderr)
@@ -231,7 +252,10 @@ def wp_enrich_all(contacts: list) -> int:
             g._enrich_cache.setdefault(age_key,   None)
 
     g._save_enrich_cache()
-    print(f'  Whitepages: {count} values found, {n_no_phone} skipped (no phone), {api_calls} API calls made')
+    elapsed_total = time.time() - start_time
+    print(f'  Whitepages: {count} values found | {n_cached} from cache | '
+          f'{n_no_phone} no phone | {api_calls} API calls | '
+          f'{elapsed_total/60:.1f}m elapsed')
     return count
 
 
@@ -283,15 +307,23 @@ def main():
     n_pluto = g.pluto_enrich_contacts(contacts)
     print(f'PLUTO: {n_pluto} values resolved\n')
 
+    # Step 2b: Early NW push — captures wealth_segment / title / income signals
+    # before Whitepages runs (guards against WP timeout losing all progress)
+    print('─── Step 2b: Early NW push (pre-Whitepages signals) ─────────────────────')
+    n_early = push_nw(contacts)
+    print(f'Early push: {n_early} contacts written\n')
+
     # Step 3: Whitepages reverse-phone → owned property → PLUTO (NW signal)
+    # Checkpoints every {CACHE_SAVE_N} API calls: saves cache + pushes updated NW
     print('─── Step 3: Whitepages enrichment ───────────────────────────────────────')
     n_wp = wp_enrich_all(contacts)
     print(f'Whitepages: {n_wp} display values resolved\n')
 
-    # Step 4: Write NW midpoint to HubSpot
-    print('─── Step 4: Write claude_inferred_net_worth to HubSpot ──────────────────')
+    # Step 4: Final NW push — picks up anything not caught at checkpoints
+    print('─── Step 4: Final claude_inferred_net_worth push ────────────────────────')
     n_updated = push_nw(contacts)
-    print(f'\nDone. {n_updated} contacts updated in HubSpot.')
+    print(f'\nDone. {n_early} written early + {n_updated} updated after Whitepages = '
+          f'{n_early + n_updated} total HubSpot writes.')
 
 
 if __name__ == '__main__':
