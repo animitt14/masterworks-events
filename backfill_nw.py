@@ -49,8 +49,7 @@ def fetch_historical(cutoff: str) -> list:
         page += 1
         payload = {
             'filterGroups': [{'filters': [
-                {'propertyName': 'outbound_rsvp_to_event', 'operator': 'LTE',          'value': cutoff},
-                {'propertyName': 'outbound_rsvp_to_event', 'operator': 'HAS_PROPERTY'},
+                {'propertyName': 'outbound_rsvp_to_event', 'operator': 'LTE', 'value': cutoff},
             ]}],
             'properties': [
                 'firstname', 'lastname', 'jobtitle', 'company',
