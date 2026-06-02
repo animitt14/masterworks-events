@@ -1458,7 +1458,7 @@ def fetch_contacts(start: date, end: date) -> list:
                 'outbound_event_send_confirmation',
                 'admin_url', 'totalamountpurchased', 'createdate',
                 'hs_v2_date_entered_current_stage',
-                'wealth_segment', 'inferred_income', 'address',
+                'wealth_segment', 'inferred_income', 'claude_inferred_net_worth', 'address',
                 'hs_linkedin_url', 'linkedin_personal_url', 'outbound_team___linkedin_url', 'pipl_linkedin',
                 'linkedin_image_url',
                 'hs_email_open', 'hs_email_delivered', 'hs_email_first_reply_date',
@@ -2339,6 +2339,25 @@ _NW_TIER_ORDER = {
     '—':           0,
 }
 
+# Midpoint dollar value for each NW tier (used for display and HubSpot write-back)
+_NW_MIDPOINTS: dict[str, int] = {
+    '$3M–$10M':    6_500_000,
+    '$2M–$6M':     4_000_000,
+    '$1M–$4M':     2_500_000,
+    '$500K–$2M':   1_250_000,
+    '$150K–$500K':   325_000,
+    '$50K–$200K':    125_000,
+}
+
+def nw_midpoint_fmt(tier: str) -> str:
+    """Return formatted midpoint display string, e.g. '$6.5M', '$325K', or '—'."""
+    v = _NW_MIDPOINTS.get(tier)
+    if v is None:
+        return '—'
+    if v >= 1_000_000:
+        return f'${v / 1_000_000:g}M'
+    return f'${v // 1_000:,}K'
+
 def _parse_pluto_low(pluto_val: str) -> float | None:
     """Parse the low end of a PLUTO range string e.g. '$1.4M – $2.1M' → 1_400_000."""
     m = re.match(r'\$([0-9.]+)(M|K)', pluto_val.strip())
@@ -2824,7 +2843,14 @@ def render_row(idx: int, c: dict, show_dropdown: bool = False, show_unk: bool = 
         )
     else:
         email_confirmed_badge = ''
-    nw_cell = f'<strong style="font-size:0.85rem">{escape(nw)}</strong>'
+    nw_mid_str = nw_midpoint_fmt(nw)
+    nw_cell = (
+        f'<span title="{escape(nw)} · {escape(nw_r)}" '
+        f'style="font-weight:700;font-size:0.88rem;white-space:nowrap;'
+        f'color:{"#1b3c6e" if nw_mid_str != "—" else "#c0ccd8"}">'
+        f'{escape(nw_mid_str)}'
+        f'</span>'
+    )
 
     plus_one_indent = 'padding-left:28px;border-left:3px solid #dde3ee;margin-left:8px' if is_plus_one else ''
     name_cell = (
@@ -2852,7 +2878,7 @@ def render_row(idx: int, c: dict, show_dropdown: bool = False, show_unk: bool = 
         f'<td>{name_cell}</td>'
         f'<td>{tc_html}</td>'
         f'<td style="text-align:center">{prop_html}</td>'
-        f'<td style="text-align:center" class="score-cell">{score_badge_html(sc)}</td>'
+        f'<td style="text-align:center" class="score-cell" data-score="{sc}">{nw_cell}</td>'
         + (f'<td style="text-align:center">{dq_qp_tag_html(p)}</td>' if show_dropdown else '')
         + f'<td style="text-align:center;white-space:nowrap">'
         f'<a href="{li_url(name, company, p)}" target="_blank" '
@@ -2961,7 +2987,7 @@ def render_panel(date_str: str, contacts: list, tab_id: str, active: bool, past:
         <th>Name</th>
         <th>Title / Company</th>
         <th style="width:120px">Property</th>
-        <th style="width:120px">Likelihood</th>
+        <th style="width:120px">Est. NW</th>
         <th style="width:120px">Links</th>
       </tr></thead>
       <tbody id="tbody-{tab_id}"></tbody>
@@ -3042,7 +3068,7 @@ def render_panel(date_str: str, contacts: list, tab_id: str, active: bool, past:
         <th>Name</th>
         <th>Title / Company</th>
         <th style="width:120px">Property</th>
-        <th style="width:120px">Tier</th>
+        <th style="width:120px">Est. NW</th>
         <th style="width:120px">Threshold</th>
         <th style="width:120px">Links</th>
         <th>Uninvite<br><span id="uninvite-count-{tab_id}" style="font-size:0.65rem;color:#c04040;font-weight:400">{uninvite_count if uninvite_count else ''}</span></th>
@@ -3128,6 +3154,7 @@ def build_html(by_date: dict, generated_at: str) -> str:
             p    = c['properties']
             name = f"{p.get('firstname', '')} {p.get('lastname', '')}".strip()
             sc, _ = score_contact(p)
+            nw, _ = get_nw(p)
             rows.append({
                 'id':       c['id'],
                 'name':     name,
@@ -3135,6 +3162,7 @@ def build_html(by_date: dict, generated_at: str) -> str:
                 'company':  p.get('company')  or '',
                 'pluto':    (p.get('_pluto_val') or '').strip(),
                 'score':    sc,
+                'nwMid':    nw_midpoint_fmt(nw),
                 'li':       li_url(name, p.get('company') or '', p),
                 'hs':       hs_url(c['id']),
                 'coFlag':   _email_company_mismatch(p.get('email') or '', p.get('company') or ''),
@@ -3492,9 +3520,10 @@ function renderPastTab(tabId) {{
     }} else {{
       propHtml = '<span style="color:#c0ccd8">\u2014</span>';
     }}
-    var badge = '<span style="background:' + m.bg + ';color:' + m.fg + ';border:1px solid ' + m.fg + '55;' +
-                'padding:4px 11px;border-radius:12px;font-size:0.78rem;font-weight:700">' +
-                c.score + '</span>';
+    var nwMidStr = c.nwMid || '—';
+    var badge = '<span style="font-weight:700;font-size:0.88rem;white-space:nowrap;' +
+                'color:' + (nwMidStr !== '—' ? '#1b3c6e' : '#c0ccd8') + '">' +
+                escHtml(nwMidStr) + '</span>';
     var liLink = c.li ? '<a href="' + escHtml(c.li) + '" target="_blank" rel="noopener" style="color:#0a66c2;font-weight:700;text-decoration:none;font-size:0.8rem;margin-right:8px">LI\u2197</a>' : '';
     var hsLink = '<a href="' + escHtml(c.hs) + '" target="_blank" rel="noopener" style="color:#ff7a59;font-weight:700;text-decoration:none;font-size:0.8rem">HS\u2197</a>';
     html += '<tr>' +
@@ -4867,6 +4896,32 @@ def _write_gist_state(state: dict):
         print(f'Gist write skipped: {e}', file=sys.stderr)
 
 
+def push_inferred_nw_to_hubspot(contacts: list) -> int:
+    """Write the NW midpoint to claude_inferred_net_worth on each contact where
+    the computed value differs from what HubSpot already has. Skips contacts
+    with no computable NW tier and skips unchanged values to save API calls."""
+    updated = 0
+    for c in contacts:
+        p   = c['properties']
+        cid = str(c['id'])
+        nw, _ = get_nw(p)
+        mid = _NW_MIDPOINTS.get(nw)
+        if mid is None:
+            continue
+        # Compare against currently fetched value (returned as string by HubSpot)
+        existing_raw = (p.get('claude_inferred_net_worth') or '').strip()
+        try:
+            existing = int(float(existing_raw)) if existing_raw else None
+        except (ValueError, TypeError):
+            existing = None
+        if existing == mid:
+            continue
+        _patch_hubspot_contact(cid, {'claude_inferred_net_worth': mid})
+        p['claude_inferred_net_worth'] = str(mid)
+        updated += 1
+    return updated
+
+
 def sync_uninvites_from_gist(contacts: list):
     """Read the shared Gist state and PATCH HubSpot for any uninvited contacts."""
     state = _read_gist_state()
@@ -4995,6 +5050,10 @@ def main():
     n_email_confirmed = fetch_email_confirmations(contacts_to_enrich)
     if n_email_confirmed:
         print(f'Email confirmations detected: {n_email_confirmed}')
+
+    n_nw = push_inferred_nw_to_hubspot(contacts_to_enrich)
+    if n_nw:
+        print(f'Inferred NW written to HubSpot for {n_nw} contacts')
 
     # Build a contact-ID → RSVP-date map so +1s can be re-homed to their host's date.
     id_to_date = {}
