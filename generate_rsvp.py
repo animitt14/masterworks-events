@@ -927,12 +927,19 @@ def fetch_pluto_value(address: str, city: str, zip_code: str) -> str | None:
 
         # NYC property tax ratios by unit count:
         # Tax Class 1 (1–3 units): assessed ≈ 6% of market value
-        # Tax Class 2 (4+ units): assessed ≈ 45% of market value (building total)
+        # Tax Class 2 small (4–50 units): assessed ≈ 45% of market value (building total)
+        # Tax Class 2 large (50+ units): NYC assesses via income capitalization on regulated
+        #   rents, which produces assessed values ≈ 8–12% of actual unit sale prices.
+        #   Using 45% here severely underestimates (e.g. Hillman Housing: $140K/unit vs
+        #   actual $550K–$1.4M). Use 10% for large buildings instead.
         if units_total <= 3:
             market = assess_tot / 0.06
-        else:
+        elif units_total <= 50:
             building_market = assess_tot / 0.45
-            # Divide by units for a rough per-unit estimate
+            market = building_market / units_total
+        else:
+            # Large co-op / rental building — income-approach assessment; use 10% effective ratio
+            building_market = assess_tot / 0.10
             market = building_market / units_total
 
         # Per-unit value >$6M is almost certainly a misclassified commercial building
