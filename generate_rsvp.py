@@ -1072,6 +1072,18 @@ def whitepages_home_value(contacts: list) -> int:
         cid       = str(c['id'])
         cache_key = f'wp_hv:{cid}'
 
+        # Validate phone before touching cache — invalid phones are force-set to
+        # None so stale cache entries from before this check was added are cleared.
+        phone = re.sub(r'\D', '', (p.get('phone') or ''))
+        if len(phone) == 11 and phone.startswith('1'):
+            phone = phone[1:]   # strip leading US country code
+        if len(phone) != 10:
+            n_no_phone += 1
+            _enrich_cache[cache_key]           = None
+            _enrich_cache[f'wp_owned:{cid}']   = None
+            _enrich_cache[f'wp_age:{cid}']     = None
+            continue
+
         # Skip only when ALL three sub-keys are present in cache (hv + owned + age).
         # If any is missing the API hasn't been re-run since those keys were added,
         # so fall through to fetch fresh data.
@@ -1089,13 +1101,6 @@ def whitepages_home_value(contacts: list) -> int:
             age_cached = _enrich_cache.get(f'wp_age:{cid}')
             if age_cached:
                 p['_wp_age_range'] = age_cached
-            continue
-
-        # Need a phone number for the reverse lookup
-        phone = re.sub(r'\D', '', (p.get('phone') or ''))
-        if not phone:
-            n_no_phone += 1
-            _enrich_cache[cache_key] = None
             continue
 
         firstname = (p.get('firstname') or '').strip()
@@ -2879,6 +2884,7 @@ def render_row(idx: int, c: dict, show_dropdown: bool = False, show_unk: bool = 
         f'<td>{tc_html}</td>'
         f'<td style="text-align:center">{prop_html}</td>'
         f'<td style="text-align:center" class="score-cell" data-score="{sc}">{nw_cell}</td>'
+        f'<td style="text-align:center">{score_badge_html(sc)}</td>'
         + (f'<td style="text-align:center">{dq_qp_tag_html(p)}</td>' if show_dropdown else '')
         + f'<td style="text-align:center;white-space:nowrap">'
         f'<a href="{li_url(name, company, p)}" target="_blank" '
@@ -2991,6 +2997,7 @@ def render_panel(date_str: str, contacts: list, tab_id: str, active: bool, past:
         <th>Title / Company</th>
         <th style="width:120px">Property</th>
         <th style="width:120px">Est. NW</th>
+        <th style="width:60px">Tier</th>
         <th style="width:120px">Links</th>
       </tr></thead>
       <tbody id="tbody-{tab_id}"></tbody>
@@ -3072,6 +3079,7 @@ def render_panel(date_str: str, contacts: list, tab_id: str, active: bool, past:
         <th>Title / Company</th>
         <th style="width:120px">Property</th>
         <th style="width:120px">Est. NW</th>
+        <th style="width:60px">Tier</th>
         <th style="width:120px">Threshold</th>
         <th style="width:120px">Links</th>
         <th>Uninvite<br><span id="uninvite-count-{tab_id}" style="font-size:0.65rem;color:#c04040;font-weight:400">{uninvite_count if uninvite_count else ''}</span></th>
@@ -3527,17 +3535,25 @@ function renderPastTab(tabId) {{
       propHtml = '<span style="color:#c0ccd8">\u2014</span>';
     }}
     var nwMidStr = c.nwMid || '—';
-    var badge = '<span style="font-weight:700;font-size:0.88rem;white-space:nowrap;' +
+    var nwBadge = '<span style="font-weight:700;font-size:0.88rem;white-space:nowrap;' +
                 'color:' + (nwMidStr !== '—' ? '#1b3c6e' : '#c0ccd8') + '">' +
                 escHtml(nwMidStr) + '</span>';
-    var liLink = c.li ? '<a href="' + escHtml(c.li) + '" target="_blank" rel="noopener" style="color:#0a66c2;font-weight:700;text-decoration:none;font-size:0.8rem;margin-right:8px">LI\u2197</a>' : '';
-    var hsLink = '<a href="' + escHtml(c.hs) + '" target="_blank" rel="noopener" style="color:#ff7a59;font-weight:700;text-decoration:none;font-size:0.8rem">HS\u2197</a>';
+    var sc = c.score;
+    var m = SCORE_META[sc] || {{label:'—', fg:'#666', bg:'#eee'}};
+    var tierBadge = '<span class="score-badge" data-score="' + sc + '" ' +
+      'style="background:' + m.bg + ';color:' + m.fg + ';border:1px solid ' + m.fg + '55;' +
+      'padding:4px 11px;border-radius:12px;font-size:0.78rem;font-weight:700;' +
+      'letter-spacing:0.03em;white-space:nowrap;display:inline-flex;align-items:center">' +
+      sc + '</span>';
+    var liLink = c.li ? '<a href="' + escHtml(c.li) + '" target="_blank" rel="noopener" style="color:#0a66c2;font-weight:700;text-decoration:none;font-size:0.8rem;margin-right:8px">LI↗</a>' : '';
+    var hsLink = '<a href="' + escHtml(c.hs) + '" target="_blank" rel="noopener" style="color:#ff7a59;font-weight:700;text-decoration:none;font-size:0.8rem">HS↗</a>';
     html += '<tr>' +
       '<td style="color:#9aaac0;font-size:0.78rem">' + (i + 1) + '</td>' +
       '<td style="font-weight:600">' + escHtml(c.name) + '</td>' +
       '<td>' + titleHtml + '</td>' +
       '<td style="text-align:center">' + propHtml + '</td>' +
-      '<td>' + badge + '</td>' +
+      '<td>' + nwBadge + '</td>' +
+      '<td style="text-align:center">' + tierBadge + '</td>' +
       '<td style="text-align:center;white-space:nowrap">' + liLink + hsLink + '</td>' +
     '</tr>';
   }}
