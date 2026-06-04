@@ -1287,11 +1287,21 @@ def resolve_host_contacts(contacts: list) -> None:
         except Exception as e:
             print(f'  resolve_host_contacts error: {e}', file=sys.stderr)
 
+    unresolved = host_emails - set(email_to_id.keys())
     print(f'  Host email lookup: {len(email_to_id)}/{len(host_emails)} resolved')
+    for e in sorted(email_to_id):
+        print(f'    resolved: {e} → id {email_to_id[e]}')
+    for e in sorted(unresolved):
+        print(f'    unresolved: {e!r}')
+    id_to_date_local = {str(c['id']): (c['properties'].get('outbound_rsvp_to_event') or '')[:10] for c in contacts}
     for c in contacts:
         declared = (c['properties'].get('outbound_event_host_name') or '').strip().lower()
         if declared and declared in email_to_id:
-            c['properties']['_resolved_host_id'] = email_to_id[declared]
+            host_id = email_to_id[declared]
+            c['properties']['_resolved_host_id'] = host_id
+            host_date = id_to_date_local.get(host_id, 'NOT IN PANEL')
+            guest_name = f"{c['properties'].get('firstname','')} {c['properties'].get('lastname','')}".strip()
+            print(f'    +1 {guest_name} → host id {host_id} (host rsvp date: {host_date})')
 
 
 def fetch_email_confirmations(contacts: list) -> int:
