@@ -1292,7 +1292,7 @@ def resolve_host_contacts(contacts: list) -> None:
             'limit': 200,
         }
         try:
-            resp = _req.post(SEARCH_URL, headers=headers, json=payload, timeout=30)
+            resp = requests.post(SEARCH_URL, headers=headers, json=payload, timeout=30)
             resp.raise_for_status()
             for result in resp.json().get('results', []):
                 props = result.get('properties') or {}
