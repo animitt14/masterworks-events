@@ -66,7 +66,8 @@ def fetch_historical(cutoff: str) -> list:
                 'firstname', 'lastname', 'jobtitle', 'company',
                 'email', 'phone', 'address', 'city', 'state', 'zip',
                 'wealth_segment', 'inferred_income', 'claude_inferred_net_worth',
-                'outbound_rsvp_to_event',
+                'outbound_rsvp_to_event', 'outbound_wealth_rating',
+                'lifecyclestage', 'call_completed', 'hs_v2_date_entered_current_stage',
             ],
             'limit': 200,
             'sorts': [{'propertyName': 'outbound_rsvp_to_event', 'direction': 'DESCENDING'}],
@@ -292,10 +293,40 @@ def push_nw(contacts: list) -> int:
     return updated
 
 
+def push_wealth_rating(contacts: list) -> int:
+    """Compute 1–5 tier score for each contact and write to outbound_wealth_rating if changed."""
+    updated, skipped_same = 0, 0
+
+    for c in contacts:
+        p   = c['properties']
+        cid = str(c['id'])
+
+        sc, _ = g.score_contact(p)
+
+        existing_raw = (p.get('outbound_wealth_rating') or '').strip()
+        try:
+            existing = int(float(existing_raw)) if existing_raw else None
+        except (ValueError, TypeError):
+            existing = None
+
+        if existing == sc:
+            skipped_same += 1
+            continue
+
+        name = f"{p.get('firstname','')} {p.get('lastname','')}".strip()
+        print(f'  {name}: {sc} (was {existing})')
+        g._patch_hubspot_contact(cid, {'outbound_wealth_rating': sc})
+        p['outbound_wealth_rating'] = str(sc)
+        updated += 1
+
+    print(f'  Written: {updated}  |  unchanged: {skipped_same}')
+    return updated
+
+
 def main():
     g._load_enrich_cache()
 
-    print(f'Backfill NW — contacts with RSVP ≤ {CUTOFF_DATE}\n')
+    print(f'Backfill NW + Wealth Rating — contacts with RSVP ≤ {CUTOFF_DATE}\n')
 
     # Step 1: Fetch
     print('─── Step 1: Fetch contacts ──────────────────────────────────────────────')
@@ -307,11 +338,12 @@ def main():
     n_pluto = g.pluto_enrich_contacts(contacts)
     print(f'PLUTO: {n_pluto} values resolved\n')
 
-    # Step 2b: Early NW push — captures wealth_segment / title / income signals
+    # Step 2b: Early NW + rating push — captures wealth_segment / title / income signals
     # before Whitepages runs (guards against WP timeout losing all progress)
-    print('─── Step 2b: Early NW push (pre-Whitepages signals) ─────────────────────')
-    n_early = push_nw(contacts)
-    print(f'Early push: {n_early} contacts written\n')
+    print('─── Step 2b: Early NW + wealth rating push (pre-Whitepages) ────────────')
+    n_early_nw   = push_nw(contacts)
+    n_early_rate = push_wealth_rating(contacts)
+    print(f'Early push: {n_early_nw} NW, {n_early_rate} ratings written\n')
 
     # Step 3: Whitepages reverse-phone → owned property → PLUTO (NW signal)
     # Checkpoints every {CACHE_SAVE_N} API calls: saves cache + pushes updated NW
@@ -319,11 +351,16 @@ def main():
     n_wp = wp_enrich_all(contacts)
     print(f'Whitepages: {n_wp} display values resolved\n')
 
-    # Step 4: Final NW push — picks up anything not caught at checkpoints
+    # Step 4: Final NW push — picks up anything updated by Whitepages
     print('─── Step 4: Final claude_inferred_net_worth push ────────────────────────')
-    n_updated = push_nw(contacts)
-    print(f'\nDone. {n_early} written early + {n_updated} updated after Whitepages = '
-          f'{n_early + n_updated} total HubSpot writes.')
+    n_updated_nw = push_nw(contacts)
+    print(f'NW: {n_early_nw} written early + {n_updated_nw} updated after Whitepages\n')
+
+    # Step 5: Final wealth rating push — score may change if NW tier shifted post-WP
+    print('─── Step 5: Final outbound_wealth_rating push ───────────────────────────')
+    n_updated_rate = push_wealth_rating(contacts)
+    print(f'\nDone. Wealth rating: {n_early_rate + n_updated_rate} total writes. '
+          f'NW: {n_early_nw + n_updated_nw} total writes.')
 
 
 if __name__ == '__main__':

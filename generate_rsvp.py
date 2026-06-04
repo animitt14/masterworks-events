@@ -1471,6 +1471,7 @@ def fetch_contacts(start: date, end: date) -> list:
                 'admin_url', 'totalamountpurchased', 'createdate',
                 'hs_v2_date_entered_current_stage',
                 'wealth_segment', 'inferred_income', 'claude_inferred_net_worth', 'address',
+                'outbound_wealth_rating',
                 'hs_linkedin_url', 'linkedin_personal_url', 'outbound_team___linkedin_url', 'pipl_linkedin',
                 'linkedin_image_url',
                 'hs_email_open', 'hs_email_delivered', 'hs_email_first_reply_date',
@@ -4951,6 +4952,27 @@ def push_inferred_nw_to_hubspot(contacts: list) -> int:
     return updated
 
 
+def push_wealth_rating_to_hubspot(contacts: list) -> int:
+    """Write the 1–5 tier score to outbound_wealth_rating on each contact where
+    the computed value differs from what HubSpot already has."""
+    updated = 0
+    for c in contacts:
+        p   = c['properties']
+        cid = str(c['id'])
+        sc, _ = score_contact(p)
+        existing_raw = (p.get('outbound_wealth_rating') or '').strip()
+        try:
+            existing = int(float(existing_raw)) if existing_raw else None
+        except (ValueError, TypeError):
+            existing = None
+        if existing == sc:
+            continue
+        _patch_hubspot_contact(cid, {'outbound_wealth_rating': sc})
+        p['outbound_wealth_rating'] = str(sc)
+        updated += 1
+    return updated
+
+
 def sync_uninvites_from_gist(contacts: list):
     """Read the shared Gist state and PATCH HubSpot for any uninvited contacts."""
     state = _read_gist_state()
@@ -5083,6 +5105,10 @@ def main():
     n_nw = push_inferred_nw_to_hubspot(contacts_to_enrich)
     if n_nw:
         print(f'Inferred NW written to HubSpot for {n_nw} contacts')
+
+    n_wr = push_wealth_rating_to_hubspot(contacts_to_enrich)
+    if n_wr:
+        print(f'Wealth rating written to HubSpot for {n_wr} contacts')
 
     # Build a contact-ID → RSVP-date map so +1s can be re-homed to their host's date.
     id_to_date = {}
