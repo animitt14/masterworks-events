@@ -1612,6 +1612,25 @@ def is_physician(title: str, email: str, company: str) -> bool:
         return True
     return False
 
+def classify_company_scale(company: str, linkedin_size: str = '') -> str:
+    """Return 'large', 'mid', or 'small' based on LinkedIn headcount or name heuristics."""
+    if linkedin_size:
+        s = linkedin_size.lower()
+        # LinkedIn standard ranges: "1-10", "11-50", "51-200", "201-500",
+        # "501-1000", "1001-5000", "5001-10000", "10001+"
+        if any(x in s for x in ['10001', '5001', '1001']):
+            return 'large'
+        if any(x in s for x in ['501', '201']):
+            return 'mid'
+        return 'small'
+    co = company.lower()
+    if is_small_biz(co):
+        return 'small'
+    if any(fc in co for fc in FINANCE_COMPANIES):
+        return 'large'
+    # Default: treat named companies as mid-scale
+    return 'mid' if co.strip() else 'small'
+
 def score_contact(p: dict) -> tuple:
     """Returns (score: int 1-5, flags: list)."""
     title   = (p.get('jobtitle')       or '').lower()
