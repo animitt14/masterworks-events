@@ -3,3 +3,4 @@ __pycache__/
 .env
 docs/pipeline.html
 generate_pipeline.py
+contacts_local.json
