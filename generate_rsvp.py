@@ -1250,8 +1250,11 @@ def whitepages_home_value(contacts: list) -> int:
 def resolve_host_contacts(contacts: list) -> None:
     """For guests with outbound_event_host_name set, search HubSpot for the host
     contact by that email (checking both email and work_email fields) and store
-    the resolved contact ID as _resolved_host_id.  Matching in render_panel then
-    uses IDs, sidestepping any API property-return inconsistencies."""
+    the resolved contact ID as _resolved_host_id.
+
+    If a resolved host is not already in the contacts list (e.g. they RSVPed to
+    a prior event outside the fetch window), fetch them from HubSpot directly
+    and inject them into contacts at the guest's RSVP date so nesting works."""
     host_emails = set()
     for c in contacts:
         val = (c['properties'].get('outbound_event_host_name') or '').strip().lower()
@@ -1261,8 +1264,22 @@ def resolve_host_contacts(contacts: list) -> None:
         return
 
     headers = {'Authorization': f'Bearer {HUBSPOT_TOKEN}', 'Content-Type': 'application/json'}
-    email_to_id: dict = {}
+    email_to_contact: dict = {}   # email → full contact object from HubSpot
     host_list = list(host_emails)
+
+    # Fetch properties needed both for display and for nesting
+    _host_props = [
+        'firstname', 'lastname', 'jobtitle', 'company',
+        'email', 'work_email', 'phone', 'city', 'state', 'zip',
+        'hubspot_owner_id', 'lifecyclestage', 'call_completed',
+        'outbound_rsvp_to_event', 'attended_outbound_event',
+        'outbound_event_attendee_disqualified', 'unknown_rsvp',
+        'wealth_segment', 'inferred_income', 'claude_inferred_net_worth', 'address',
+        'outbound_wealth_rating',
+        'hs_linkedin_url', 'linkedin_personal_url', 'outbound_team___linkedin_url', 'pipl_linkedin',
+        'linkedin_image_url', 'outbound_event_host_name',
+        'hs_v2_date_entered_current_stage',
+    ]
 
     for i in range(0, len(host_list), 50):
         chunk = host_list[i:i + 50]
@@ -1271,37 +1288,60 @@ def resolve_host_contacts(contacts: list) -> None:
                 {'filters': [{'propertyName': 'email',      'operator': 'IN', 'values': chunk}]},
                 {'filters': [{'propertyName': 'work_email', 'operator': 'IN', 'values': chunk}]},
             ],
-            'properties': ['email', 'work_email'],
+            'properties': _host_props,
             'limit': 200,
         }
         try:
-            resp = requests.post(SEARCH_URL, headers=headers, json=payload, timeout=30)
+            resp = _req.post(SEARCH_URL, headers=headers, json=payload, timeout=30)
             resp.raise_for_status()
             for result in resp.json().get('results', []):
                 props = result.get('properties') or {}
-                cid   = str(result['id'])
                 for field in ('email', 'work_email'):
                     val = (props.get(field) or '').strip().lower()
                     if val in host_emails:
-                        email_to_id[val] = cid
+                        email_to_contact[val] = result
         except Exception as e:
             print(f'  resolve_host_contacts error: {e}', file=sys.stderr)
 
-    unresolved = host_emails - set(email_to_id.keys())
-    print(f'  Host email lookup: {len(email_to_id)}/{len(host_emails)} resolved')
-    for e in sorted(email_to_id):
-        print(f'    resolved: {e} → id {email_to_id[e]}')
+    unresolved = host_emails - set(email_to_contact.keys())
+    print(f'  Host email lookup: {len(email_to_contact)}/{len(host_emails)} resolved')
     for e in sorted(unresolved):
         print(f'    unresolved: {e!r}')
-    id_to_date_local = {str(c['id']): (c['properties'].get('outbound_rsvp_to_event') or '')[:10] for c in contacts}
+
+    existing_ids = {str(c['id']) for c in contacts}
+    # guest_id → guest_rsvp_date for injecting missing hosts at the right date
+    guest_date_by_host_id: dict = {}
+
     for c in contacts:
         declared = (c['properties'].get('outbound_event_host_name') or '').strip().lower()
-        if declared and declared in email_to_id:
-            host_id = email_to_id[declared]
+        if declared and declared in email_to_contact:
+            host = email_to_contact[declared]
+            host_id = str(host['id'])
             c['properties']['_resolved_host_id'] = host_id
-            host_date = id_to_date_local.get(host_id, 'NOT IN PANEL')
+            guest_date = (c['properties'].get('outbound_rsvp_to_event') or '')[:10]
+            guest_date_by_host_id[host_id] = guest_date
             guest_name = f"{c['properties'].get('firstname','')} {c['properties'].get('lastname','')}".strip()
+            host_date  = (host['properties'].get('outbound_rsvp_to_event') or '')[:10] or 'none'
             print(f'    +1 {guest_name} → host id {host_id} (host rsvp date: {host_date})')
+
+    # Inject any resolved hosts that aren't already in the contacts list.
+    # Set their outbound_rsvp_to_event to match the guest's date so they land
+    # in the same panel and the +1 nests under them.
+    for host_id, guest_date in guest_date_by_host_id.items():
+        if host_id not in existing_ids:
+            # Find the full host object
+            host_obj = next(
+                (email_to_contact[e] for e in email_to_contact if str(email_to_contact[e]['id']) == host_id),
+                None,
+            )
+            if host_obj:
+                import copy as _copy
+                injected = _copy.deepcopy(host_obj)
+                injected['properties']['outbound_rsvp_to_event'] = guest_date
+                injected['properties']['_injected_host'] = True
+                contacts.append(injected)
+                host_name = f"{injected['properties'].get('firstname','')} {injected['properties'].get('lastname','')}".strip()
+                print(f'    injected host {host_name} (id {host_id}) into panel at {guest_date}')
 
 
 def fetch_email_confirmations(contacts: list) -> int:
