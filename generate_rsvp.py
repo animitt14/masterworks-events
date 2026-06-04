@@ -1749,16 +1749,28 @@ def score_contact(p: dict) -> tuple:
         else:
             sc = 3
 
+    # ── Wealth signal — bypasses founder / small-biz / title-only caps ──────────
+    # If an external wealth_segment is set, OR the computed NW tier is $500K–$2M or
+    # higher, we have enough evidence to trust the contact's profile at face value.
+    # The NW cap (below) still applies to prevent over-scoring very low-NW contacts.
+    _wealth_seg_raw = (p.get('wealth_segment') or '').strip()
+    _nw_for_cap, _ = get_nw(p)
+    _has_wealth_signal = bool(_wealth_seg_raw) or _NW_TIER_ORDER.get(_nw_for_cap, 0) >= 3  # $500K–$2M+
+
     # ── Small biz cap — founders/CEOs of juice shops, salons, etc. → Medium ───
-    if sc > 3 and is_small_biz(company) and 'invested' not in flags and 'opportunity' not in flags:
+    # Skip if we have a confirmed wealth signal.
+    if sc > 3 and is_small_biz(company) and not _has_wealth_signal and 'invested' not in flags and 'opportunity' not in flags:
         sc = 3
 
     # ── Founder/co-founder — conservative default: Low-Medium unless proven ───
     # Most founders are solo, pre-revenue, or running lifestyle businesses.
+    # Cap only fires when BOTH conditions are true: no wealth signal AND the company
+    # is a known small/lifestyle business or unknown (no company name).
     # Override exceptions: finance domain, physician, named top-tier finance firm,
     # OR an independently HIGH exec title (CEO, COO, etc.) alongside the founder signal.
     _is_founder_title = any(t in title for t in ['founder', 'co-founder', 'cofounder'])
-    if _is_founder_title and 'invested' not in flags and 'opportunity' not in flags:
+    _small_or_unknown_co = not company.strip() or is_small_biz(company)
+    if _is_founder_title and not _has_wealth_signal and _small_or_unknown_co and 'invested' not in flags and 'opportunity' not in flags:
         _fin_dom   = email_domain(email) in FINANCE_DOMAINS
         _phys      = is_physician(title, email, company)
         _top_fin   = any(fc in company for fc in FINANCE_COMPANIES)
@@ -1775,12 +1787,13 @@ def score_contact(p: dict) -> tuple:
     # ── Title-only HIGH → cap at Medium-High without a firm-quality signal ──────
     # A strong title (MD, President, CEO) at an unknown firm doesn't reliably mean
     # investable wealth. HIGH requires title + at least one firm-quality corroboration:
-    # finance-domain email, confirmed physician, or named top-tier finance company.
+    # finance-domain email, confirmed physician, named top-tier finance company,
+    # OR a confirmed wealth signal (wealth_segment / NW tier $500K+).
     if sc == 5 and 'invested' not in flags and 'opportunity' not in flags:
         _firm_signal = (email_domain(email) in FINANCE_DOMAINS
                         or is_physician(title, email, company)
                         or any(fc in company for fc in FINANCE_COMPANIES))
-        if not _firm_signal:
+        if not _firm_signal and not _has_wealth_signal:
             sc = 4
 
     # ── NW cap — applied to all except finance-domain and physician hits ───────
@@ -1789,12 +1802,11 @@ def score_contact(p: dict) -> tuple:
     _fin_domain = email_domain(email) in FINANCE_DOMAINS
     _physician  = is_physician(title, email, company)
     if 'invested' not in flags and 'opportunity' not in flags and not _fin_domain and not _physician:
-        nw, _ = get_nw(p)
-        if nw == '$50K–$200K':
+        if _nw_for_cap == '$50K–$200K':
             sc = min(sc, 2)
-        elif nw == '$150K–$500K':
+        elif _nw_for_cap == '$150K–$500K':
             sc = min(sc, 3)
-        elif nw == '$500K–$2M':
+        elif _nw_for_cap == '$500K–$2M':
             sc = min(sc, 4)   # straddles $1M — cap at Medium-High, not High
 
     return sc, flags
