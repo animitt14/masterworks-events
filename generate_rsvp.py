@@ -1396,6 +1396,16 @@ def fetch_email_confirmations(contacts: list) -> int:
 
     for c in targets:
         cid = c['id']
+        # Manual override: email_override:{id} = "cancelled" | "confirmed" in enrich cache
+        _override = _enrich_cache.get(f'email_override:{cid}')
+        if _override == 'cancelled':
+            c['properties']['_email_cancelled'] = True
+            n_confirmed += 1
+            continue
+        if _override == 'confirmed':
+            c['properties']['_email_confirmed'] = True
+            n_confirmed += 1
+            continue
         try:
             # Step 1: get email IDs associated with this contact
             assoc_url = (f'https://api.hubapi.com/crm/v3/objects/contacts'
