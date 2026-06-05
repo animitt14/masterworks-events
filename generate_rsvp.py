@@ -1301,7 +1301,30 @@ def resolve_host_contacts(contacts: list) -> None:
                     if val in host_emails:
                         email_to_contact[val] = result
         except Exception as e:
-            print(f'  resolve_host_contacts error: {e}', file=sys.stderr)
+            print(f'  resolve_host_contacts error (primary search): {e}', file=sys.stderr)
+
+    # Fallback: search hs_additional_emails for any still-unresolved addresses.
+    # HubSpot stores additional emails as a semicolon-separated string; use
+    # CONTAINS_TOKEN per email (one request per unresolved address).
+    unresolved = host_emails - set(email_to_contact.keys())
+    for addr in list(unresolved):
+        try:
+            payload = {
+                'filterGroups': [{'filters': [{
+                    'propertyName': 'hs_additional_emails',
+                    'operator':     'CONTAINS_TOKEN',
+                    'value':        addr,
+                }]}],
+                'properties': _host_props,
+                'limit': 5,
+            }
+            resp = requests.post(SEARCH_URL, headers=headers, json=payload, timeout=30)
+            resp.raise_for_status()
+            results = resp.json().get('results', [])
+            if results:
+                email_to_contact[addr] = results[0]
+        except Exception as e:
+            print(f'  resolve_host_contacts error (additional email search for {addr}): {e}', file=sys.stderr)
 
     unresolved = host_emails - set(email_to_contact.keys())
     print(f'  Host email lookup: {len(email_to_contact)}/{len(host_emails)} resolved')
