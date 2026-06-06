@@ -8650,5 +8650,24 @@
   "wp_age:226658753322": null,
   "wp_owned:226663590233": "$1.6M median",
   "wp_age:226663590233": null,
-  "wp_hv:226663590233": "$1.6M median"
+  "wp_hv:226663590233": "$1.6M median",
+  "Melissa Fersht": {
+    "jobtitle": "Executive Research Leader",
+    "company": "HFS Research",
+    "_enriched": true
+  },
+  "Allison Vo": {
+    "jobtitle": "Marketing Manager",
+    "company": "SUGARED + BRONZED",
+    "_enriched": true
+  },
+  "Alexandra Reiher": {
+    "jobtitle": "Executive Assistant",
+    "company": "Peninsula Real Estate, LLC",
+    "_enriched": true
+  },
+  "Yamini Narayanan": {
+    "company": "Majesco",
+    "_enriched": true
+  }
 }

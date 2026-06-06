@@ -35,6 +35,7 @@ jobs:
           CENSUS_API_KEY: ${{ secrets.CENSUS_API_KEY }}
           WHITEPAGES_API_KEY: ${{ secrets.WHITEPAGES_API_KEY }}
           GITHUB_REPO: ${{ github.repository }}
+          DAYS_BACK: 1
         run: python generate_rsvp.py
 
       - name: Commit and push
