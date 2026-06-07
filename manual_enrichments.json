@@ -167,11 +167,16 @@
   {
     "email": "eric.delvalle@gmail.com",
     "jobtitle": "Real Estate Agent",
-    "company": ""
+    "company": "Compass"
   },
   {
     "email": "c.david.long@gmail.com",
     "jobtitle": "Portfolio Manager",
     "company": "Paloma Partners Management Company"
+  },
+  {
+    "email": "oxana.contact@gmail.com",
+    "jobtitle": "Independent Consultant",
+    "company": ""
   }
 ]
