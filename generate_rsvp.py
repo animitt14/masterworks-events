@@ -1275,7 +1275,7 @@ def resolve_host_contacts(contacts: list) -> None:
         'outbound_rsvp_to_event', 'attended_outbound_event',
         'outbound_event_attendee_disqualified', 'unknown_rsvp',
         'wealth_segment', 'inferred_income', 'claude_inferred_net_worth', 'address',
-        'outbound_wealth_rating',
+        'outbound_wealth_rating', 'claude_tier_rank',
         'hs_linkedin_url', 'linkedin_personal_url', 'outbound_team___linkedin_url', 'pipl_linkedin',
         'linkedin_image_url', 'outbound_event_host_name',
         'hs_v2_date_entered_current_stage',
@@ -1554,7 +1554,7 @@ def fetch_contacts(start: date, end: date) -> list:
                 'admin_url', 'totalamountpurchased', 'createdate',
                 'hs_v2_date_entered_current_stage',
                 'wealth_segment', 'inferred_income', 'claude_inferred_net_worth', 'address',
-                'outbound_wealth_rating',
+                'outbound_wealth_rating', 'claude_tier_rank',
                 'hs_linkedin_url', 'linkedin_personal_url', 'outbound_team___linkedin_url', 'pipl_linkedin',
                 'linkedin_image_url',
                 'hs_email_open', 'hs_email_delivered', 'hs_email_first_reply_date',
@@ -5087,6 +5087,29 @@ def push_wealth_rating_to_hubspot(contacts: list) -> int:
     return updated
 
 
+def push_tier_rank_to_hubspot(contacts: list) -> int:
+    """Write the 1–5 tier score to claude_tier_rank on each contact where
+    the computed value differs from what HubSpot already has."""
+    updated = 0
+    for c in contacts:
+        p   = c['properties']
+        cid = str(c['id'])
+        if p.get('_injected_host'):
+            continue  # skip hosts injected for +1 nesting — they have no real RSVP
+        sc, _ = score_contact(p)
+        existing_raw = (p.get('claude_tier_rank') or '').strip()
+        try:
+            existing = int(float(existing_raw)) if existing_raw else None
+        except (ValueError, TypeError):
+            existing = None
+        if existing == sc:
+            continue
+        _patch_hubspot_contact(cid, {'claude_tier_rank': sc})
+        p['claude_tier_rank'] = str(sc)
+        updated += 1
+    return updated
+
+
 def sync_uninvites_from_gist(contacts: list):
     """Read the shared Gist state and PATCH HubSpot for any uninvited contacts."""
     state = _read_gist_state()
@@ -5223,6 +5246,10 @@ def main():
     n_wr = push_wealth_rating_to_hubspot(contacts_to_enrich)
     if n_wr:
         print(f'Wealth rating written to HubSpot for {n_wr} contacts')
+
+    n_tr = push_tier_rank_to_hubspot(contacts_to_enrich)
+    if n_tr:
+        print(f'Tier rank written to HubSpot for {n_tr} contacts')
 
     # Build a contact-ID → RSVP-date map so +1s can be re-homed to their host's date.
     id_to_date = {}
