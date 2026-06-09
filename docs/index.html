@@ -127,7 +127,7 @@ header{background:#1b3c6e;padding:16px 28px;position:sticky;top:0;z-index:100;
     <div>
       <div class="brand">Masterworks · Outbound</div>
       <div class="title">RSVP Lead Dashboard</div>
-      <div class="meta">Updated Jun 9, 2026 at 1:56 PM ET</div>
+      <div class="meta">Updated Jun 9, 2026 at 2:21 PM ET</div>
     </div>
     <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
       <div class="date-jump-wrap">
@@ -472,7 +472,7 @@ function _flushUninvitesAndRefresh(tok, btn) {
   var state = {};
   for (var i = 0; i < localStorage.length; i++) {
     var k = localStorage.key(i);
-    if (k && (k.startsWith('uninvite_') || k.startsWith('sendconf_'))) {
+    if (k && (k.startsWith('uninvite_') || k.startsWith('sendconf_') || k.startsWith('tier_override_'))) {
       state[k] = localStorage.getItem(k);
     }
   }
@@ -543,7 +543,7 @@ function _syncSharedStateToGist() {
   var state = {};
   for (var i = 0; i < localStorage.length; i++) {
     var k = localStorage.key(i);
-    if (k && (k.startsWith('uninvite_') || k.startsWith('sendconf_'))) {
+    if (k && (k.startsWith('uninvite_') || k.startsWith('sendconf_') || k.startsWith('tier_override_'))) {
       state[k] = localStorage.getItem(k);
     }
   }
@@ -757,11 +757,14 @@ function setOverride(cid, sc, tabId) {
   var key = 'override_' + cid;
   if (sc === getAutoScore(cid, tabId)) {
     removeSharedState(key);
+    localStorage.removeItem('tier_override_' + cid);
   } else {
     saveSharedState(key, sc + '|' + todayStr());
+    localStorage.setItem('tier_override_' + cid, String(sc));
   }
   applyOverride(cid, sc, tabId);
   updateResetBtn(tabId);
+  _syncSharedStateToGist();
 }
 
 function readOverride(cid) {
