@@ -3005,8 +3005,8 @@ def render_row(idx: int, c: dict, show_dropdown: bool = False, show_unk: bool = 
         f'<td>{name_cell}</td>'
         f'<td>{tc_html}</td>'
         f'<td style="text-align:center">{prop_html}</td>'
-        f'<td style="text-align:center" class="score-cell" data-score="{sc}">{nw_cell}</td>'
-        f'<td style="text-align:center">{score_badge_html(sc)}</td>'
+        f'<td style="text-align:center">{nw_cell}</td>'
+        f'<td style="text-align:center" class="score-cell" data-score="{sc}">{score_badge_html(sc)}</td>'
         + (f'<td style="text-align:center">{dq_qp_tag_html(p)}</td>' if show_dropdown else '')
         + f'<td style="text-align:center;white-space:nowrap">'
         f'<a href="{li_url(name, company, p)}" target="_blank" '
