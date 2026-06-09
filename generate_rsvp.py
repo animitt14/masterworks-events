@@ -3501,7 +3501,7 @@ function _flushUninvitesAndRefresh(tok, btn) {{
   var state = {{}};
   for (var i = 0; i < localStorage.length; i++) {{
     var k = localStorage.key(i);
-    if (k && (k.startsWith('uninvite_') || k.startsWith('sendconf_'))) {{
+    if (k && (k.startsWith('uninvite_') || k.startsWith('sendconf_') || k.startsWith('tier_override_'))) {{
       state[k] = localStorage.getItem(k);
     }}
   }}
@@ -3572,7 +3572,7 @@ function _syncSharedStateToGist() {{
   var state = {{}};
   for (var i = 0; i < localStorage.length; i++) {{
     var k = localStorage.key(i);
-    if (k && (k.startsWith('uninvite_') || k.startsWith('sendconf_'))) {{
+    if (k && (k.startsWith('uninvite_') || k.startsWith('sendconf_') || k.startsWith('tier_override_'))) {{
       state[k] = localStorage.getItem(k);
     }}
   }}
@@ -3786,11 +3786,14 @@ function setOverride(cid, sc, tabId) {{
   var key = 'override_' + cid;
   if (sc === getAutoScore(cid, tabId)) {{
     removeSharedState(key);
+    localStorage.removeItem('tier_override_' + cid);
   }} else {{
     saveSharedState(key, sc + '|' + todayStr());
+    localStorage.setItem('tier_override_' + cid, String(sc));
   }}
   applyOverride(cid, sc, tabId);
   updateResetBtn(tabId);
+  _syncSharedStateToGist();
 }}
 
 function readOverride(cid) {{
@@ -5190,6 +5193,42 @@ def sync_send_confirmations_from_gist(contacts: list):
     print('  Send-confirmation sync: sendconf_* keys cleared')
 
 
+def sync_tier_overrides_from_gist(contacts: list):
+    """Read the shared Gist state and PATCH HubSpot claude_tier_rank for any manual tier overrides."""
+    state = _read_gist_state()
+    if not state:
+        return
+
+    overrides = {k[len('tier_override_'):]: v for k, v in state.items()
+                 if k.startswith('tier_override_') and v}
+    if not overrides:
+        return
+
+    headers = {'Authorization': f'Bearer {HUBSPOT_TOKEN}', 'Content-Type': 'application/json'}
+    for cid, sc_str in overrides.items():
+        try:
+            sc = int(sc_str)
+        except (ValueError, TypeError):
+            print(f'  Tier override sync {cid}: bad value {sc_str!r}, skipping', file=sys.stderr)
+            continue
+        try:
+            resp = requests.patch(
+                f'https://api.hubapi.com/crm/v3/objects/contacts/{cid}',
+                headers=headers,
+                json={'properties': {'claude_tier_rank': sc}},
+                timeout=10,
+            )
+            status = 'OK' if resp.ok else f'HTTP {resp.status_code}'
+            print(f'  Tier override sync {cid}: tier → {sc} ({status})')
+        except Exception as e:
+            print(f'  Tier override sync {cid}: error {e}', file=sys.stderr)
+
+    # Clear only tier_override_* keys — preserve other prefixes
+    remaining = {k: v for k, v in state.items() if not k.startswith('tier_override_')}
+    _write_gist_state(remaining)
+    print('  Tier override sync: tier_override_* keys cleared')
+
+
 # ─── MAIN ─────────────────────────────────────────────────────────────────────
 
 def main():
@@ -5204,6 +5243,7 @@ def main():
     resolve_host_contacts(contacts)
     sync_uninvites_from_gist(contacts)
     sync_send_confirmations_from_gist(contacts)
+    sync_tier_overrides_from_gist(contacts)
 
     # Enrich today + future events; also include recent past events in the window
     # (start date) so that cached enrichments are applied on catch-up runs.
