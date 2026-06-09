@@ -8982,5 +8982,20 @@
   "pluto:340 E 74 ST:10021": "$1.0M \u2013 $1.6M",
   "wp_owned:227180191565": "$1.0M \u2013 $1.6M",
   "wp_age:227180191565": null,
-  "wp_hv:227180191565": "$1.0M \u2013 $1.6M"
+  "wp_hv:227180191565": "$1.0M \u2013 $1.6M",
+  "Loretta Lomanto": {
+    "jobtitle": "Production Video Editor",
+    "company": "Critical Mention",
+    "_enriched": true
+  },
+  "Mary Younkin": {
+    "jobtitle": "Visual Artist & Educator",
+    "company": "Mary Younkin Studio",
+    "_enriched": true
+  },
+  "Sheena Serafin": {
+    "jobtitle": "Vice President, Product Development & Project Management",
+    "company": "PPI Beauty",
+    "_enriched": true
+  }
 }
