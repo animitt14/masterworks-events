@@ -3893,7 +3893,6 @@ function toggleUninvite(chk) {{
     row.classList.remove('uninvited');
   }}
   _syncUninvitesToGist();
-  reorderTab(tid);
   refreshHeader(tid);
   updateResetBtn(tid);
 }}
