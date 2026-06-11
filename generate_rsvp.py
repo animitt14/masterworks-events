@@ -409,29 +409,31 @@ def google_enrich(name: str, company_hint: str = '', domain: str = '',
 MANUAL_ENRICHMENTS_FILE = Path('manual_enrichments.json')
 
 
-def _load_manual_enrichments() -> dict:
-    """Load manual enrichments keyed by lowercase email."""
+def _load_manual_enrichments() -> tuple:
+    """Load manual enrichments keyed by lowercase email and by contact ID."""
     if MANUAL_ENRICHMENTS_FILE.exists():
         try:
             entries = json.loads(MANUAL_ENRICHMENTS_FILE.read_text(encoding='utf-8'))
-            return {e['email'].lower(): e for e in entries if e.get('email')}
+            by_email = {e['email'].lower(): e for e in entries if e.get('email')}
+            by_id = {str(e['id']): e for e in entries if e.get('id') and not e.get('email')}
+            return by_email, by_id
         except Exception:
-            return {}
-    return {}
+            return {}, {}
+    return {}, {}
 
 
 def _apply_manual_enrichments(contacts: list) -> int:
     """Apply manual_enrichments.json to contacts, write to HubSpot if needed."""
-    manual = _load_manual_enrichments()
-    if not manual:
+    by_email, by_id = _load_manual_enrichments()
+    if not by_email and not by_id:
         return 0
     applied = 0
     for c in contacts:
         p = c['properties']
         email = (p.get('email') or '').strip().lower()
-        if email not in manual:
+        entry = by_email.get(email) or by_id.get(str(c.get('id', '')))
+        if not entry:
             continue
-        entry = manual[email]
         patches = {}
         if entry.get('jobtitle') and not p.get('jobtitle'):
             patches['jobtitle'] = entry['jobtitle']
