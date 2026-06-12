@@ -5,7 +5,9 @@ posts uninvite / send-confirmation toggles here and this function PATCHes
 HubSpot immediately, using the server-side token. Gated by the same Basic-Auth
 passcode as the page.
 
-POST body (JSON): {"contact_id": "123", "action": "uninvite"|"sendconf", "value": true|false}
+POST body (JSON):
+  toggles:    {"contact_id": "123", "action": "uninvite"|"sendconf", "value": true|false}
+  set score:  {"contact_id": "123", "action": "wealth_rating", "value": 1..5}
 """
 import base64
 import json
@@ -17,12 +19,35 @@ import requests
 PASSCODE = os.environ.get('DASHBOARD_PASSCODE', '')
 HUBSPOT_TOKEN = os.environ.get('HUBSPOT_API_KEY', '')
 
-# action → (property name, value when toggled ON, value when toggled OFF)
-_ACTION_MAP = {
+# Boolean toggles → (property, value when ON, value when OFF)
+_TOGGLE_MAP = {
     'uninvite': ('outbound_event_attendee_disqualified', 'Disqualified', ''),
     'sendconf': ('outbound_event_send_confirmation', 'Yes', ''),
     'attended': ('attended_outbound_event', 'yes', ''),
 }
+# Numeric "set" actions → property. value is the score (1–5) to write, or '' to clear.
+_SET_MAP = {
+    'wealth_rating': 'outbound_wealth_rating',
+}
+
+
+def _resolve(action: str, value):
+    """Map (action, value) to (property_name, new_value). Returns (None, None)
+    if the action is unknown or the value is invalid."""
+    if action in _TOGGLE_MAP:
+        prop, on_value, off_value = _TOGGLE_MAP[action]
+        return prop, (on_value if bool(value) else off_value)
+    if action in _SET_MAP:
+        if value is None or value == '':
+            return _SET_MAP[action], ''   # clear
+        try:
+            n = int(value)
+        except (ValueError, TypeError):
+            return None, None
+        if not (1 <= n <= 5):
+            return None, None
+        return _SET_MAP[action], n
+    return None, None
 
 
 def _authorized(headers) -> bool:
@@ -65,15 +90,12 @@ class handler(BaseHTTPRequestHandler):
 
         contact_id = str(data.get('contact_id') or '').strip()
         action = str(data.get('action') or '').strip()
-        value = bool(data.get('value'))
 
-        if not contact_id or action not in _ACTION_MAP:
-            return self._json(400, {'ok': False, 'error': 'missing/invalid contact_id or action'})
+        prop, new_value = _resolve(action, data.get('value'))
+        if not contact_id or prop is None:
+            return self._json(400, {'ok': False, 'error': 'missing/invalid contact_id, action, or value'})
         if not HUBSPOT_TOKEN:
             return self._json(500, {'ok': False, 'error': 'server missing HUBSPOT_API_KEY'})
-
-        prop, on_value, off_value = _ACTION_MAP[action]
-        new_value = on_value if value else off_value
 
         try:
             resp = requests.patch(

@@ -2907,7 +2907,7 @@ def render_detail_row(p: dict, per: str, nw: str, sc: int = 0, flags: list = Non
 
     return (
         f'<tr class="detail-row" style="display:none">'
-        f'<td colspan="9" style="padding:0;border-bottom:1px solid #eef1f7;width:100%">'
+        f'<td colspan="10" style="padding:0;border-bottom:1px solid #eef1f7;width:100%">'
         f'<div class="detail-inner">'
         f'<div class="detail-cell">'
         f'<p class="detail-cell-label">Persona</p>'
@@ -2948,9 +2948,19 @@ def render_row(idx: int, c: dict, show_dropdown: bool = False, show_unk: bool = 
     city     = p.get('city')  or ''
     state    = p.get('state') or ''
 
-    sc, flags = score_contact(p)
+    proposed, flags = score_contact(p)          # algorithm's score (the proposal)
     if cid in SCORE_OVERRIDES:
-        sc = SCORE_OVERRIDES[cid]
+        proposed = SCORE_OVERRIDES[cid]
+    # Approved score = what a human pushed into HubSpot (outbound_wealth_rating).
+    # When present it wins (two-way: direct HubSpot edits show here too).
+    approved_raw = (p.get('outbound_wealth_rating') or '').strip()
+    try:
+        approved = int(float(approved_raw)) if approved_raw else None
+    except (ValueError, TypeError):
+        approved = None
+    if approved is not None and not (1 <= approved <= 5):
+        approved = None
+    sc = approved if approved is not None else proposed   # effective/displayed score
     per       = get_persona(p)
     nw, nw_r  = get_nw(p)   # incorporates wealth_segment, income×age, owned property, title
 
@@ -3074,8 +3084,9 @@ def render_row(idx: int, c: dict, show_dropdown: bool = False, show_unk: bool = 
     plus_one_row_style = 'background:#f8f9fd;' if is_plus_one else ''
 
     return (
-        f'<tr data-id="{escape(cid)}" data-auto="{sc}" '
+        f'<tr data-id="{escape(cid)}" data-auto="{proposed}" '
         f'data-persona="{escape(per)}" data-score="{sc}" '
+        f'data-approved="{approved if approved is not None else ""}" '
         f'data-disqualified="{"1" if disqualified else "0"}" '
         f'{tr_attrs}class="{uninvite_class.strip()}" style="{plus_one_row_style}">'
         f'{chevron_td}'
@@ -3098,6 +3109,8 @@ def render_row(idx: int, c: dict, show_dropdown: bool = False, show_unk: bool = 
         f'<input type="checkbox" class="sendconf-chk" {send_conf_chk} '
         f'onchange="toggleSendConfirmation(this)" '
         f'style="width:16px;height:16px;cursor:pointer;accent-color:#1a5fa8" title="Send Confirmation"></td>'
+        f'<td style="text-align:center">'
+        f'<button class="push-btn" onclick="pushRow(this)">Push</button></td>'
         f'</tr>\n'
         f'{detail_row}'
     )
@@ -3266,6 +3279,7 @@ def render_panel(date_str: str, contacts: list, tab_id: str, active: bool, past:
         <th style="width:120px">Links</th>
         <th>Uninvite<br><span id="uninvite-count-{tab_id}" style="font-size:0.65rem;color:#c04040;font-weight:400">{uninvite_count if uninvite_count else ''}</span></th>
         <th>Conf?</th>
+        <th>Push tier<br><button class="push-all-btn" onclick="pushAll('{tab_id}')" title="Push every changed tier on this day to HubSpot (outbound_wealth_rating)">Push all</button></th>
       </tr></thead>
       <tbody>{rows_html}</tbody>
     </table>
@@ -3443,6 +3457,18 @@ header{{background:#1b3c6e;padding:16px 28px;position:sticky;top:0;z-index:100;
                 justify-content:center;font-weight:700;font-size:0.78rem;flex-shrink:0}}
 
 .rsvp-table tbody tr.uninvited{{opacity:0.35;text-decoration:line-through}}
+
+/* ── Push-to-HubSpot score buttons ── */
+.push-btn{{font-size:0.68rem;font-weight:700;letter-spacing:0.03em;border:1px solid #1a5fa8;
+  background:#eaf0fb;color:#1a5fa8;border-radius:5px;padding:3px 9px;cursor:pointer;transition:all 0.12s}}
+.push-btn:hover{{background:#1a5fa8;color:#fff}}
+.push-btn:disabled{{opacity:0.5;cursor:default}}
+.push-btn.pushed{{border-color:#1a7a45;background:#eaf7f0;color:#1a7a45;cursor:default}}
+.push-btn.pushed:hover{{background:#eaf7f0;color:#1a7a45}}
+.push-all-btn{{font-size:0.6rem;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;
+  border:1px solid #1a5fa8;background:#fff;color:#1a5fa8;border-radius:5px;padding:2px 7px;
+  cursor:pointer;margin-top:3px;font-weight:400}}
+.push-all-btn:hover{{background:#1a5fa8;color:#fff}}
 
 
 /* ── Contact detail dropdown (today + future events only) ── */
@@ -3780,7 +3806,55 @@ function setOverride(cid, sc, tabId) {{
   }}
   applyOverride(cid, sc, tabId);
   updateResetBtn(tabId);
-  _syncSharedStateToGist();
+  // Changing the score only updates the proposal on screen; it is not written to
+  // HubSpot until you Push. Mark the row so its Push button shows it's pending.
+  var row = document.querySelector('#tbl-' + tabId + ' tr[data-id="' + cid + '"]');
+  if (row) updatePushBtn(row);
+}}
+
+// ── Push score → HubSpot (outbound_wealth_rating) ─────────────────────────────
+// A row "needs push" when its displayed score (data-score) differs from what's
+// in HubSpot (data-approved). updatePushBtn reflects that on the button.
+function updatePushBtn(row) {{
+  var btn = row.querySelector('.push-btn');
+  if (!btn) return;
+  var cur  = row.dataset.score;
+  var appr = row.dataset.approved || '';
+  if (cur === appr) {{
+    btn.textContent = '✓';
+    btn.className = 'push-btn pushed';
+    btn.title = 'Pushed — outbound_wealth_rating = ' + appr;
+  }} else {{
+    btn.textContent = 'Push';
+    btn.className = 'push-btn';
+    btn.title = 'Push score ' + cur + ' to HubSpot';
+  }}
+}}
+
+function pushRow(btn) {{
+  var row = btn.closest('tr');
+  var cid = row.dataset.id;
+  var sc  = parseInt(row.dataset.score);
+  if (!cid || !sc) return;
+  btn.disabled = true;
+  btn.textContent = '…';
+  postAction(cid, 'wealth_rating', sc).then(function(ok) {{
+    btn.disabled = false;
+    if (ok) row.dataset.approved = String(sc);
+    updatePushBtn(row);
+  }});
+}}
+
+function pushAll(tabId) {{
+  var rows = document.querySelectorAll('#tbl-' + tabId + ' tbody tr[data-id]');
+  var n = 0;
+  rows.forEach(function(row) {{
+    if (row.dataset.score !== (row.dataset.approved || '')) {{
+      var btn = row.querySelector('.push-btn');
+      if (btn && !btn.disabled) {{ pushRow(btn); n++; }}
+    }}
+  }});
+  if (n === 0) return;
 }}
 
 function readOverride(cid) {{
@@ -3933,6 +4007,7 @@ function applyStoredOverrides(tabId) {{
       var schk = row.querySelector('.sendconf-chk');
       if (schk) schk.checked = true;
     }}
+    updatePushBtn(row);
   }});
   refreshHeader(tabId);
 }}
@@ -3966,6 +4041,7 @@ function resetOverrides(tabId) {{
     if (schk) schk.checked = false;
     if (wasUninvited) postAction(cid, 'uninvite', false);
     if (wasSendConf)  postAction(cid, 'sendconf', false);
+    updatePushBtn(row);
   }});
   refreshHeader(tabId);
   updateResetBtn(tabId);
@@ -4985,50 +5061,6 @@ def push_inferred_nw_to_hubspot(contacts: list) -> int:
     return updated
 
 
-def push_wealth_rating_to_hubspot(contacts: list) -> int:
-    """Write the 1–5 tier score to outbound_wealth_rating on each contact where
-    the computed value differs from what HubSpot already has."""
-    updated = 0
-    for c in contacts:
-        p   = c['properties']
-        cid = str(c['id'])
-        sc, _ = score_contact(p)
-        existing_raw = (p.get('outbound_wealth_rating') or '').strip()
-        try:
-            existing = int(float(existing_raw)) if existing_raw else None
-        except (ValueError, TypeError):
-            existing = None
-        if existing == sc:
-            continue
-        _patch_hubspot_contact(cid, {'outbound_wealth_rating': sc})
-        p['outbound_wealth_rating'] = str(sc)
-        updated += 1
-    return updated
-
-
-def push_tier_rank_to_hubspot(contacts: list) -> int:
-    """Write the 1–5 tier score to claude_tier_rank on each contact where
-    the computed value differs from what HubSpot already has."""
-    updated = 0
-    for c in contacts:
-        p   = c['properties']
-        cid = str(c['id'])
-        if p.get('_injected_host'):
-            continue  # skip hosts injected for +1 nesting — they have no real RSVP
-        sc, _ = score_contact(p)
-        existing_raw = (p.get('claude_tier_rank') or '').strip()
-        try:
-            existing = int(float(existing_raw)) if existing_raw else None
-        except (ValueError, TypeError):
-            existing = None
-        if existing == sc:
-            continue
-        _patch_hubspot_contact(cid, {'claude_tier_rank': sc})
-        p['claude_tier_rank'] = str(sc)
-        updated += 1
-    return updated
-
-
 # ─── MAIN ─────────────────────────────────────────────────────────────────────
 
 def _enrich_and_render(contacts: list, today: date, start: date) -> str:
@@ -5070,19 +5102,14 @@ def _enrich_and_render(contacts: list, today: date, start: date) -> str:
     if n_email_confirmed:
         print(f'Email confirmations applied: {n_email_confirmed}')
 
-    # Write computed fields back to HubSpot — Action only; skipped in render mode.
+    # Write the inferred net-worth estimate back to HubSpot (Action only).
+    # NOTE: the 1–5 score is NOT auto-written. outbound_wealth_rating is now
+    # human-controlled — set only via the dashboard Push button (or directly in
+    # HubSpot). The dashboard shows the algorithm's proposal until you push.
     if not OFFLINE_ENRICH:
         n_nw = push_inferred_nw_to_hubspot(contacts_to_enrich)
         if n_nw:
             print(f'Inferred NW written to HubSpot for {n_nw} contacts')
-
-        n_wr = push_wealth_rating_to_hubspot(contacts_to_enrich)
-        if n_wr:
-            print(f'Wealth rating written to HubSpot for {n_wr} contacts')
-
-        n_tr = push_tier_rank_to_hubspot(contacts_to_enrich)
-        if n_tr:
-            print(f'Tier rank written to HubSpot for {n_tr} contacts')
 
     # Build a contact-ID → RSVP-date map so +1s can be re-homed to their host's date.
     id_to_date = {}
