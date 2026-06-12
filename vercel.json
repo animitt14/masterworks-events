@@ -8,6 +8,10 @@
     {
       "src": "api/action.py",
       "use": "@vercel/python"
+    },
+    {
+      "src": "docs/**",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
