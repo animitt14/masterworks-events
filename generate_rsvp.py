@@ -3021,9 +3021,13 @@ def render_row(idx: int, c: dict, show_dropdown: bool = False, show_unk: bool = 
 
     pluto_val = (p.get('_pluto_val') or '').strip()
     wp_val    = (p.get('_wp_home_value') or '').strip()
-    if wp_val:
+    if pluto_val == 'Commercial':
+        # PLUTO classified the address as commercial — don't show a property
+        # value (not a meaningful home-wealth signal), even if Whitepages has one.
+        prop_html = '<span style="color:#c0ccd8">—</span>'
+    elif wp_val:
         prop_html = f'<span style="font-size:0.75rem">{escape(wp_val)}</span>'
-    elif pluto_val and pluto_val != 'Commercial':
+    elif pluto_val:
         prop_html = f'<span style="font-size:0.75rem">{escape(pluto_val)}</span>'
     else:
         prop_html = '<span style="color:#c0ccd8">—</span>'
