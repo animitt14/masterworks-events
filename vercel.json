@@ -1,16 +1,18 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "functions": {
-    "api/index.py": {
-      "includeFiles": "{generate_rsvp.py,*.json}"
+  "builds": [
+    {
+      "src": "api/index.py",
+      "use": "@vercel/python",
+      "config": { "includeFiles": "{generate_rsvp.py,*.json}" }
+    },
+    {
+      "src": "api/action.py",
+      "use": "@vercel/python"
     }
-  },
-  "rewrites": [
-    { "source": "/", "destination": "/api/index" },
-    { "source": "/index.html", "destination": "/api/index" },
-    { "source": "/action", "destination": "/api/action" },
-    { "source": "/process.html", "destination": "/docs/process.html" },
-    { "source": "/personas.html", "destination": "/docs/personas.html" },
-    { "source": "/contacts.html", "destination": "/docs/contacts.html" }
+  ],
+  "routes": [
+    { "src": "/action", "dest": "/api/action.py" },
+    { "src": "/(process|personas|contacts)\\.html", "dest": "/docs/$1.html" },
+    { "src": "/.*", "dest": "/api/index.py" }
   ]
 }
