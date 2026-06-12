@@ -5015,6 +5015,80 @@ def build_scoring_html(generated_at: str) -> str:
 </html>'''
 
 
+# ─── HUBSPOT WRITE-BACK OF COMPUTED FIELDS ───────────────────────────────────
+# These run only in the scheduled Action (online). Under OFFLINE_ENRICH the
+# render path skips them, and _patch_hubspot_contact is a no-op anyway.
+
+def push_inferred_nw_to_hubspot(contacts: list) -> int:
+    """Write the NW midpoint to claude_inferred_net_worth on each contact where
+    the computed value differs from what HubSpot already has. Skips contacts
+    with no computable NW tier and skips unchanged values to save API calls."""
+    updated = 0
+    for c in contacts:
+        p   = c['properties']
+        cid = str(c['id'])
+        nw, _ = get_nw(p)
+        mid = _NW_MIDPOINTS.get(nw)
+        if mid is None:
+            continue
+        # Compare against currently fetched value (returned as string by HubSpot)
+        existing_raw = (p.get('claude_inferred_net_worth') or '').strip()
+        try:
+            existing = int(float(existing_raw)) if existing_raw else None
+        except (ValueError, TypeError):
+            existing = None
+        if existing == mid:
+            continue
+        _patch_hubspot_contact(cid, {'claude_inferred_net_worth': mid})
+        p['claude_inferred_net_worth'] = str(mid)
+        updated += 1
+    return updated
+
+
+def push_wealth_rating_to_hubspot(contacts: list) -> int:
+    """Write the 1–5 tier score to outbound_wealth_rating on each contact where
+    the computed value differs from what HubSpot already has."""
+    updated = 0
+    for c in contacts:
+        p   = c['properties']
+        cid = str(c['id'])
+        sc, _ = score_contact(p)
+        existing_raw = (p.get('outbound_wealth_rating') or '').strip()
+        try:
+            existing = int(float(existing_raw)) if existing_raw else None
+        except (ValueError, TypeError):
+            existing = None
+        if existing == sc:
+            continue
+        _patch_hubspot_contact(cid, {'outbound_wealth_rating': sc})
+        p['outbound_wealth_rating'] = str(sc)
+        updated += 1
+    return updated
+
+
+def push_tier_rank_to_hubspot(contacts: list) -> int:
+    """Write the 1–5 tier score to claude_tier_rank on each contact where
+    the computed value differs from what HubSpot already has."""
+    updated = 0
+    for c in contacts:
+        p   = c['properties']
+        cid = str(c['id'])
+        if p.get('_injected_host'):
+            continue  # skip hosts injected for +1 nesting — they have no real RSVP
+        sc, _ = score_contact(p)
+        existing_raw = (p.get('claude_tier_rank') or '').strip()
+        try:
+            existing = int(float(existing_raw)) if existing_raw else None
+        except (ValueError, TypeError):
+            existing = None
+        if existing == sc:
+            continue
+        _patch_hubspot_contact(cid, {'claude_tier_rank': sc})
+        p['claude_tier_rank'] = str(sc)
+        updated += 1
+    return updated
+
+
 # ─── MAIN ─────────────────────────────────────────────────────────────────────
 
 def _enrich_and_render(contacts: list, today: date, start: date) -> str:
@@ -5056,17 +5130,19 @@ def _enrich_and_render(contacts: list, today: date, start: date) -> str:
     if n_email_confirmed:
         print(f'Email confirmations applied: {n_email_confirmed}')
 
-    n_nw = push_inferred_nw_to_hubspot(contacts_to_enrich)
-    if n_nw:
-        print(f'Inferred NW written to HubSpot for {n_nw} contacts')
+    # Write computed fields back to HubSpot — Action only; skipped in render mode.
+    if not OFFLINE_ENRICH:
+        n_nw = push_inferred_nw_to_hubspot(contacts_to_enrich)
+        if n_nw:
+            print(f'Inferred NW written to HubSpot for {n_nw} contacts')
 
-    n_wr = push_wealth_rating_to_hubspot(contacts_to_enrich)
-    if n_wr:
-        print(f'Wealth rating written to HubSpot for {n_wr} contacts')
+        n_wr = push_wealth_rating_to_hubspot(contacts_to_enrich)
+        if n_wr:
+            print(f'Wealth rating written to HubSpot for {n_wr} contacts')
 
-    n_tr = push_tier_rank_to_hubspot(contacts_to_enrich)
-    if n_tr:
-        print(f'Tier rank written to HubSpot for {n_tr} contacts')
+        n_tr = push_tier_rank_to_hubspot(contacts_to_enrich)
+        if n_tr:
+            print(f'Tier rank written to HubSpot for {n_tr} contacts')
 
     # Build a contact-ID → RSVP-date map so +1s can be re-homed to their host's date.
     id_to_date = {}
