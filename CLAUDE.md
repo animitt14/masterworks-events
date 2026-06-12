@@ -1,15 +1,35 @@
 # RSVP Dashboard
 
+## Architecture (live, as of June 2026)
+The dashboard is **rendered live from HubSpot on every request** by a Vercel
+serverless function — no longer a 3×/day static snapshot.
+
+- `api/index.py` — GET `/`: Basic-Auth gate (`DASHBOARD_PASSCODE`) → `render_live()` → HTML. Holds `HUBSPOT_API_KEY` server-side; 45s in-process + CDN cache.
+- `api/action.py` — POST `/action`: write-back. `{contact_id, action, value}`, action ∈ `uninvite|sendconf|attended` → PATCHes HubSpot immediately. Replaces the old Gist relay.
+- `generate_rsvp.py` — the renderer, reused as a library. `render_live()` sets nothing itself; the function sets `OFFLINE_ENRICH=1` so enrichment is **cache-only** (no external API calls, no HubSpot writes, no disk writes — Vercel FS is read-only).
+- `vercel.json` — routes `/`→`api/index`, `/action`→`api/action`; `includeFiles` bundles `generate_rsvp.py` + the JSON caches.
+
+### Cold vs hot data
+- Live from HubSpot each request: RSVP, attended, # contacted, deal stage, DQ, send-confirmation — plus enriched fields that are patched back to HubSpot (jobtitle, company, `linkedin_image_url`).
+- Cache-only on render (repopulated from `enrich_cache.json`, no network): `_pluto_val`, `_wp_home_value`.
+- `confirmations.json`: email-reply confirmations — too costly to scan live (~2 HubSpot calls/contact), so the Action persists them and `render_live()` applies them.
+
 ## Project
 - GitHub: animitt14/masterworks-events, branch main
-- Published: https://animitt14.github.io/masterworks-events/
-- Daily rebuild at 8am ET via GitHub Actions (push to main or workflow_dispatch)
-- Manual rebuild: `git pull --rebase && git commit --allow-empty -m "trigger rebuild" && git push`
+- Live: Vercel deployment (the GitHub Pages URL is the static fallback only)
+- Deploy: `vercel --prod` (or push to main — Vercel auto-deploys)
+- Scheduled GitHub Action (`daily.yml`, 3×/day) warms `enrich_cache.json` + `confirmations.json` and writes the static `docs/index.html` fallback. It does NOT serve the live view.
+
+## Vercel env vars
+- `HUBSPOT_API_KEY` — HubSpot private-app token (used by both functions)
+- `DASHBOARD_PASSCODE` — shared password for Basic-Auth access
+- Enrichment keys (Google/RocketReach/etc.) are NOT needed by the function (cache-only); they live only in the GitHub Action secrets.
 
 ## Key Files
-- `generate_rsvp.py` — main generator (ALWAYS read this before acting on dashboard data)
-- `docs/` — generated HTML artifacts (never edit directly for contact data)
-- `enrich_cache.json` — enrichment cache
+- `generate_rsvp.py` — main generator/renderer (ALWAYS read this before acting on dashboard data)
+- `api/` — Vercel serverless functions (live render + write-back)
+- `docs/` — static fallback HTML artifacts (never edit directly for contact data)
+- `enrich_cache.json` / `confirmations.json` — caches read by the live function
 - `.env` — HubSpot API token as `HUBSPOT_API_KEY` (gitignored, never commit)
 
 ## HubSpot Reference
@@ -21,12 +41,15 @@
 - Max 5-6 filters per group, batch contact IDs in groups of 7-8
 
 ## Workflow
-1. Write updates to HubSpot via API
-2. Trigger rebuild (empty commit + push)
-3. Never edit docs/*.html directly — gets overwritten
+1. The live page reflects HubSpot in real time — no rebuild needed to see data changes.
+2. Code/cache changes deploy via `vercel --prod` or push to main (Vercel auto-deploys).
+3. Never edit docs/*.html directly — overwritten by the Action's static fallback build.
 
-## Uninvite Sync
-Browser → Gist (44d6dd7bc96a5cbe2454b65ee55f8cdb) → Python sync → HubSpot PATCH. Gist clears after sync. HubSpot blocks CORS — never fetch HubSpot from browser JS.
+## Write-back (uninvite / send-confirmation / attended)
+Browser toggle → `postAction()` → POST `/action` → `api/action.py` PATCHes HubSpot
+immediately (token is server-side). The old Gist relay and the GitHub-PAT prompt are
+**gone**. The browser never talks to HubSpot directly (still CORS-blocked) — it talks to
+our own function, which carries the dashboard's Basic-Auth credentials automatically.
 
 ## Enrichment Rules
 - After first enrichment pass, always do a second pass on remaining blanks

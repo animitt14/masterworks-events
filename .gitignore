@@ -1,6 +1,7 @@
 __pycache__/
 *.pyc
 .env
+.vercel
 docs/pipeline.html
 generate_pipeline.py
 contacts_local.json

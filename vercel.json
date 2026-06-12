@@ -1,0 +1,16 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "api/index.py": {
+      "includeFiles": "{generate_rsvp.py,enrich_cache.json,manual_enrichments.json,confirmations.json}"
+    }
+  },
+  "rewrites": [
+    { "source": "/", "destination": "/api/index" },
+    { "source": "/index.html", "destination": "/api/index" },
+    { "source": "/action", "destination": "/api/action" },
+    { "source": "/process.html", "destination": "/docs/process.html" },
+    { "source": "/personas.html", "destination": "/docs/personas.html" },
+    { "source": "/contacts.html", "destination": "/docs/contacts.html" }
+  ]
+}

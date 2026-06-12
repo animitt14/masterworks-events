@@ -22,11 +22,21 @@ from collections import defaultdict
 
 # ─── CONFIG ───────────────────────────────────────────────────────────────────
 
+# Anchor all data-file paths to this script's directory so the module works
+# regardless of the current working directory (matters when imported as a
+# library by the Vercel serverless function, whose CWD is not the repo root).
+BASE_DIR = Path(__file__).resolve().parent
+
+# Cache-only / read-only render mode. When set (the serverless function sets it),
+# enrichment functions apply cached results but make ZERO external API calls,
+# never PATCH HubSpot, and never write to disk (Vercel's filesystem is read-only).
+# The scheduled GitHub Action leaves this unset so it still does full enrichment.
+OFFLINE_ENRICH = bool(os.environ.get('OFFLINE_ENRICH', ''))
+
 HUBSPOT_TOKEN = os.environ.get('HUBSPOT_API_KEY', '')
 PORTAL_ID       = '5454671'
 GITHUB_REPO     = os.environ.get('GITHUB_REPO',     '')  # e.g. 'animitt14/masterworks-events'
 GITHUB_WORKFLOW = 'daily.yml'
-SHARED_GIST_ID  = '44d6dd7bc96a5cbe2454b65ee55f8cdb'
 SEARCH_URL    = 'https://api.hubapi.com/crm/v3/objects/contacts/search'
 
 # Google Custom Search — used to enrich contacts with no title AND no company
@@ -276,7 +286,10 @@ def epoch_ms(d: date, end_of_day: bool = False) -> int:
 
 # ─── GOOGLE ENRICHMENT ───────────────────────────────────────────────────────
 
-ENRICH_CACHE_FILE = Path('enrich_cache.json')
+ENRICH_CACHE_FILE = BASE_DIR / 'enrich_cache.json'
+# Email-confirmation results are expensive to compute live (~2 HubSpot calls per
+# contact), so the scheduled Action persists them here for the render path to read.
+CONFIRMATIONS_FILE = BASE_DIR / 'confirmations.json'
 _enrich_cache: dict = {}      # loaded from file at start of main()
 _quota_exhausted: bool = False  # flip to True on first 429 — stops all further queries
 _api_calls: int = 0           # total Google API calls this run; capped at ENRICH_LIMIT
@@ -323,6 +336,8 @@ def _load_enrich_cache():
             _enrich_cache = {}
 
 def _save_enrich_cache():
+    if OFFLINE_ENRICH:
+        return  # read-only render mode (Vercel filesystem is not writable)
     ENRICH_CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
     ENRICH_CACHE_FILE.write_text(json.dumps(_enrich_cache, indent=2), encoding='utf-8')
 
@@ -342,6 +357,8 @@ def google_enrich(name: str, company_hint: str = '', domain: str = '',
         return {}
     if name in _enrich_cache:
         return _enrich_cache[name]
+    if OFFLINE_ENRICH:
+        return {}  # cache miss in render mode → no external call
 
     queries = []
 
@@ -406,7 +423,7 @@ def google_enrich(name: str, company_hint: str = '', domain: str = '',
     return {}
 
 
-MANUAL_ENRICHMENTS_FILE = Path('manual_enrichments.json')
+MANUAL_ENRICHMENTS_FILE = BASE_DIR / 'manual_enrichments.json'
 
 
 def _load_manual_enrichments() -> tuple:
@@ -551,6 +568,8 @@ def enrich_no_data_contacts(contacts: list) -> int:
 
 def _patch_hubspot_contact(contact_id: str, properties: dict):
     """PATCH a HubSpot contact with the given properties."""
+    if OFFLINE_ENRICH:
+        return  # render mode is read-only; the scheduled Action does all writes
     if not HUBSPOT_TOKEN or not properties:
         return
     try:
@@ -602,6 +621,8 @@ def _rocketreach_get_profile(*, linkedin_url: str = '', name: str = '',
     Returns a dict with any of {profile_pic, title, company} that are present,
     or None on failure. Lookup credits are charged only on success.
     """
+    if OFFLINE_ENRICH:
+        return None  # render mode: cache hits are applied by the caller; no API call
     if not ROCKETREACH_API_KEY:
         return None
 
@@ -878,6 +899,8 @@ def fetch_pluto_value(address: str, city: str, zip_code: str) -> str | None:
     cache_key = f'pluto:{normalized}:{zip_code or boro}'
     if cache_key in _enrich_cache:
         return _enrich_cache[cache_key]  # None = confirmed miss
+    if OFFLINE_ENRICH:
+        return None  # cache miss in render mode → no external call
 
     # Parse house number for prefix search
     m = re.match(r'^(\d+)', normalized)
@@ -971,6 +994,8 @@ def fetch_census_value(zip_code: str) -> str | None:
     cache_key = f'census:{zip_code}'
     if cache_key in _enrich_cache:
         return _enrich_cache[cache_key]
+    if OFFLINE_ENRICH:
+        return None  # cache miss in render mode → no external call
     try:
         r = requests.get(
             'https://api.census.gov/data/2022/acs/acs5',
@@ -1111,6 +1136,8 @@ def whitepages_home_value(contacts: list) -> int:
             if age_cached:
                 p['_wp_age_range'] = age_cached
             continue
+        if OFFLINE_ENRICH:
+            continue  # cache miss in render mode → no external call
 
         firstname = (p.get('firstname') or '').strip()
         lastname  = (p.get('lastname')  or '').strip()
@@ -1378,6 +1405,11 @@ def fetch_email_confirmations(contacts: list) -> int:
     Sets c['properties']['_email_confirmed'] = True on matches.
     Returns the count of confirmed contacts.
     """
+    if OFFLINE_ENRICH:
+        # Render mode: too expensive to scan live (~2 HubSpot calls per contact).
+        # Apply the results the scheduled Action persisted to confirmations.json.
+        return _apply_persisted_confirmations(contacts)
+
     if not HUBSPOT_TOKEN:
         return 0
 
@@ -1514,12 +1546,52 @@ def fetch_email_confirmations(contacts: list) -> int:
             print(f'  email-confirm check failed for {cid}: {exc}',
                   file=sys.stderr)
 
+    _save_persisted_confirmations(targets)
     return n_confirmed
+
+
+def _save_persisted_confirmations(contacts: list):
+    """Persist email-confirmation flags so the read-only render path can apply
+    them without re-scanning HubSpot. Map: contact id → 'confirmed' | 'cancelled'."""
+    if OFFLINE_ENRICH:
+        return
+    state = {}
+    for c in contacts:
+        p = c['properties']
+        if p.get('_email_cancelled'):
+            state[str(c['id'])] = 'cancelled'
+        elif p.get('_email_confirmed'):
+            state[str(c['id'])] = 'confirmed'
+    try:
+        CONFIRMATIONS_FILE.write_text(json.dumps(state, indent=2), encoding='utf-8')
+    except Exception as e:
+        print(f'  confirmations save skipped: {e}', file=sys.stderr)
+
+
+def _apply_persisted_confirmations(contacts: list) -> int:
+    """Render-mode counterpart: load confirmations.json and set the in-memory
+    _email_confirmed / _email_cancelled flags on matching contacts."""
+    if not CONFIRMATIONS_FILE.exists():
+        return 0
+    try:
+        state = json.loads(CONFIRMATIONS_FILE.read_text(encoding='utf-8'))
+    except Exception:
+        return 0
+    applied = 0
+    for c in contacts:
+        status = state.get(str(c['id']))
+        if status == 'cancelled':
+            c['properties']['_email_cancelled'] = True
+            applied += 1
+        elif status == 'confirmed':
+            c['properties']['_email_confirmed'] = True
+            applied += 1
+    return applied
 
 
 def fetch_contacts(start: date, end: date) -> list:
     # Local-file override: use pre-fetched contacts when HubSpot API is unreachable
-    local_file = Path('contacts_local.json')
+    local_file = BASE_DIR / 'contacts_local.json'
     if local_file.exists():
         raw = json.loads(local_file.read_text(encoding='utf-8'))
         start_str = start.isoformat()
@@ -3216,7 +3288,8 @@ def render_panel(date_str: str, contacts: list, tab_id: str, active: bool, past:
 </div>'''
 
 def build_html(by_date: dict, generated_at: str) -> str:
-    _hs_tok_b64 = base64.b64encode(HUBSPOT_TOKEN.encode()).decode() if HUBSPOT_TOKEN else ''
+    # NOTE: the HubSpot token is intentionally NOT embedded in the page anymore.
+    # Writes go through the /action serverless function, which holds the token.
     today_str = date.today().isoformat()
     dates     = sorted(by_date.keys(), reverse=True)
     all_dates_json = '[' + ','.join(f'"{d}"' for d in dates) + ']'
@@ -3481,62 +3554,13 @@ header{{background:#1b3c6e;padding:16px 28px;position:sticky;top:0;z-index:100;
 </div>
 
 <script>
-var GITHUB_REPO       = '{escape(GITHUB_REPO)}';
-var GITHUB_WORKFLOW   = '{GITHUB_WORKFLOW}';
-var HS_TOKEN          = atob('{_hs_tok_b64}');
 var PAST_EVENTS_DATA  = {past_events_json};
+// The page is now rendered live from HubSpot on each request (Vercel function),
+// so "refresh" is simply a reload — no GitHub token, no Gist, no build to wait for.
 function triggerRefresh() {{
-  var tok = localStorage.getItem('gh_pat');
-  if (!tok) {{
-    tok = prompt('Enter your GitHub personal access token to trigger a refresh.\\n(Saved in your browser — you only need to do this once.)');
-    if (!tok) return;
-    localStorage.setItem('gh_pat', tok.trim());
-    tok = tok.trim();
-  }}
   var btn = document.getElementById('refreshBtn');
-  btn.disabled = true;
-  btn.textContent = 'Updating…';
-  _flushUninvitesAndRefresh(tok, btn);
-}}
-
-function _flushUninvitesAndRefresh(tok, btn) {{
-  var state = {{}};
-  for (var i = 0; i < localStorage.length; i++) {{
-    var k = localStorage.key(i);
-    if (k && (k.startsWith('uninvite_') || k.startsWith('sendconf_') || k.startsWith('tier_override_'))) {{
-      state[k] = localStorage.getItem(k);
-    }}
-  }}
-  var gistPromise = Object.keys(state).length
-    ? fetch('https://api.github.com/gists/{SHARED_GIST_ID}', {{
-        method: 'PATCH',
-        headers: {{'Authorization': 'token ' + tok, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json'}},
-        body: JSON.stringify({{ files: {{ '{GIST_STATE_FILE}': {{ content: JSON.stringify(state) }} }} }})
-      }})
-    : Promise.resolve();
-  return gistPromise.then(function() {{
-    return fetch('https://api.github.com/repos/' + GITHUB_REPO + '/actions/workflows/' + GITHUB_WORKFLOW + '/dispatches', {{
-      method: 'POST',
-      headers: {{'Authorization': 'token ' + tok, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json'}},
-      body: JSON.stringify({{ref: 'main'}})
-    }});
-  }}).then(function(r) {{
-    if (r.status === 204) {{
-      btn.textContent = 'Updating… (~45s)';
-      setTimeout(function(){{ location.reload(); }}, 45000);
-    }} else if (r.status === 401) {{
-      localStorage.removeItem('gh_pat');
-      btn.disabled = false;
-      btn.textContent = '↻ Refresh';
-      alert('Token invalid or expired. Click Refresh to enter a new one.');
-    }} else {{
-      btn.disabled = false;
-      btn.textContent = '↻ Refresh';
-    }}
-  }}).catch(function() {{
-    btn.disabled = false;
-    btn.textContent = '↻ Refresh';
-  }});
+  if (btn) {{ btn.disabled = true; btn.textContent = 'Refreshing…'; }}
+  location.reload();
 }}
 
 var TODAY      = '{today_str}';
@@ -3549,7 +3573,9 @@ var SCORE_META = {{
   1: {{label:'Low',        fg:'#6a9fd8', bg:'#edf4fc'}},
 }};
 
-// ── Shared state (localStorage + direct HubSpot writes) ───────────────────────
+// ── Shared state (localStorage for optimistic UI) + live HubSpot writes ───────
+// localStorage keeps toggles visually sticky across reloads within the render
+// cache window; the source of truth is HubSpot, written immediately via /action.
 function getSharedState(key) {{
   return localStorage.getItem(key);
 }}
@@ -3559,39 +3585,19 @@ function saveSharedState(key, val) {{
 function removeSharedState(key) {{
   localStorage.removeItem(key);
 }}
-function _patchHubSpot(cid, properties) {{
-  // HubSpot private app tokens don't support CORS — browser fetch will be blocked.
-  // Uninvites are synced via Gist → Python daily run instead (_syncUninvitesToGist).
-}}
-function _syncSharedStateToGist() {{
-  var tok = localStorage.getItem('gh_pat');
-  if (!tok) {{
-    tok = prompt('Enter the team GitHub token to save changes.\\n(Ask Ani for the token — it will be saved in your browser after first use.)');
-    if (!tok) return;
-    localStorage.setItem('gh_pat', tok.trim());
-    tok = tok.trim();
-  }}
-  var state = {{}};
-  for (var i = 0; i < localStorage.length; i++) {{
-    var k = localStorage.key(i);
-    if (k && (k.startsWith('uninvite_') || k.startsWith('sendconf_') || k.startsWith('tier_override_'))) {{
-      state[k] = localStorage.getItem(k);
-    }}
-  }}
-  fetch('https://api.github.com/gists/{SHARED_GIST_ID}', {{
-    method: 'PATCH',
-    headers: {{
-      'Authorization': 'token ' + tok,
-      'Accept': 'application/vnd.github.v3+json',
-      'Content-Type': 'application/json'
-    }},
-    body: JSON.stringify({{ files: {{ '{GIST_STATE_FILE}': {{ content: JSON.stringify(state) }} }} }})
+// POST a single toggle to the serverless write-back function, which holds the
+// HubSpot token and PATCHes immediately. The browser sends the dashboard's
+// Basic-Auth credentials automatically (same origin), so no token handling here.
+function postAction(cid, action, value) {{
+  return fetch('/action', {{
+    method: 'POST',
+    headers: {{'Content-Type': 'application/json'}},
+    body: JSON.stringify({{contact_id: String(cid), action: action, value: !!value}})
   }}).then(function(r) {{
-    if (!r.ok) {{ console.error('Gist write returned', r.status); }}
-  }}).catch(function(e) {{ console.error('Gist write failed:', e); }});
+    if (!r.ok) console.error('action failed:', action, cid, r.status);
+    return r.ok;
+  }}).catch(function(e) {{ console.error('action error:', e); }});
 }}
-// Back-compat alias — older inline callers may still reference this name.
-function _syncUninvitesToGist() {{ _syncSharedStateToGist(); }}
 function initSharedState(cb) {{
   if (cb) cb();
 }}
@@ -3894,7 +3900,8 @@ function toggleUninvite(chk) {{
     removeSharedState('uninvite_' + cid);
     row.classList.remove('uninvited');
   }}
-  _syncUninvitesToGist();
+  postAction(cid, 'uninvite', chk.checked);
+  reorderTab(tid);
   refreshHeader(tid);
   updateResetBtn(tid);
 }}
@@ -3908,7 +3915,7 @@ function toggleSendConfirmation(chk) {{
   }} else {{
     removeSharedState('sendconf_' + cid);
   }}
-  _syncSharedStateToGist();
+  postAction(cid, 'sendconf', chk.checked);
   refreshHeader(tid);
   updateResetBtn(tid);
 }}
@@ -3919,10 +3926,10 @@ function toggleAttended(chk) {{
   var tid = row.closest('.tab-panel').id.replace('tab-','');
   if (chk.checked) {{
     saveSharedState('attended_' + cid, '1');
-    _patchHubSpot(cid, {{attended_outbound_event: 'yes'}});
+    postAction(cid, 'attended', true);
   }} else {{
     removeSharedState('attended_' + cid);
-    _patchHubSpot(cid, {{attended_outbound_event: ''}});
+    postAction(cid, 'attended', false);
   }}
   refreshHeader(tid);
   updateResetBtn(tid);
@@ -4016,9 +4023,9 @@ function resetOverrides(tabId) {{
     if (achk) achk.checked = false;
     var schk = row.querySelector('.sendconf-chk');
     if (schk) schk.checked = false;
-    if (wasUninvited) _patchHubSpot(cid, {{outbound_event_attendee_disqualified: ''}});
-    if (wasAttended)  _patchHubSpot(cid, {{attended_outbound_event: ''}});
-    if (wasSendConf)  _syncSharedStateToGist();
+    if (wasUninvited) postAction(cid, 'uninvite', false);
+    if (wasAttended)  postAction(cid, 'attended', false);
+    if (wasSendConf)  postAction(cid, 'sendconf', false);
   }});
   refreshHeader(tabId);
   updateResetBtn(tabId);
@@ -5008,247 +5015,16 @@ def build_scoring_html(generated_at: str) -> str:
 </html>'''
 
 
-# ─── GIST → HUBSPOT UNINVITE SYNC ────────────────────────────────────────────
-
-GIST_STATE_FILE = 'mw_rsvp_state.json'
-
-def _read_gist_state() -> dict:
-    """Read the shared-state Gist; return {} on any error."""
-    try:
-        r = requests.get(
-            f'https://api.github.com/gists/{SHARED_GIST_ID}',
-            headers={'Accept': 'application/vnd.github.v3+json'},
-            timeout=10,
-        )
-        r.raise_for_status()
-        content = r.json().get('files', {}).get(GIST_STATE_FILE, {}).get('content', '{}')
-        return json.loads(content)
-    except Exception as e:
-        print(f'Gist read skipped: {e}', file=sys.stderr)
-        return {}
-
-
-def _write_gist_state(state: dict):
-    """Write a (possibly empty) state dict back to the Gist."""
-    gh_token = os.environ.get('GITHUB_TOKEN', '')
-    if not gh_token:
-        return
-    try:
-        requests.patch(
-            f'https://api.github.com/gists/{SHARED_GIST_ID}',
-            headers={'Authorization': f'token {gh_token}', 'Accept': 'application/vnd.github.v3+json'},
-            json={'files': {GIST_STATE_FILE: {'content': json.dumps(state)}}},
-            timeout=10,
-        )
-    except Exception as e:
-        print(f'Gist write skipped: {e}', file=sys.stderr)
-
-
-def push_inferred_nw_to_hubspot(contacts: list) -> int:
-    """Write the NW midpoint to claude_inferred_net_worth on each contact where
-    the computed value differs from what HubSpot already has. Skips contacts
-    with no computable NW tier and skips unchanged values to save API calls."""
-    updated = 0
-    for c in contacts:
-        p   = c['properties']
-        cid = str(c['id'])
-        nw, _ = get_nw(p)
-        mid = _NW_MIDPOINTS.get(nw)
-        if mid is None:
-            continue
-        # Compare against currently fetched value (returned as string by HubSpot)
-        existing_raw = (p.get('claude_inferred_net_worth') or '').strip()
-        try:
-            existing = int(float(existing_raw)) if existing_raw else None
-        except (ValueError, TypeError):
-            existing = None
-        if existing == mid:
-            continue
-        _patch_hubspot_contact(cid, {'claude_inferred_net_worth': mid})
-        p['claude_inferred_net_worth'] = str(mid)
-        updated += 1
-    return updated
-
-
-def push_wealth_rating_to_hubspot(contacts: list) -> int:
-    """Write the 1–5 tier score to outbound_wealth_rating on each contact where
-    the computed value differs from what HubSpot already has."""
-    updated = 0
-    for c in contacts:
-        p   = c['properties']
-        cid = str(c['id'])
-        sc, _ = score_contact(p)
-        existing_raw = (p.get('outbound_wealth_rating') or '').strip()
-        try:
-            existing = int(float(existing_raw)) if existing_raw else None
-        except (ValueError, TypeError):
-            existing = None
-        if existing == sc:
-            continue
-        _patch_hubspot_contact(cid, {'outbound_wealth_rating': sc})
-        p['outbound_wealth_rating'] = str(sc)
-        updated += 1
-    return updated
-
-
-def push_tier_rank_to_hubspot(contacts: list) -> int:
-    """Write the 1–5 tier score to claude_tier_rank on each contact where
-    the computed value differs from what HubSpot already has."""
-    updated = 0
-    for c in contacts:
-        p   = c['properties']
-        cid = str(c['id'])
-        if p.get('_injected_host'):
-            continue  # skip hosts injected for +1 nesting — they have no real RSVP
-        sc, _ = score_contact(p)
-        existing_raw = (p.get('claude_tier_rank') or '').strip()
-        try:
-            existing = int(float(existing_raw)) if existing_raw else None
-        except (ValueError, TypeError):
-            existing = None
-        if existing == sc:
-            continue
-        _patch_hubspot_contact(cid, {'claude_tier_rank': sc})
-        p['claude_tier_rank'] = str(sc)
-        updated += 1
-    return updated
-
-
-def sync_uninvites_from_gist(contacts: list):
-    """Read the shared Gist state and PATCH HubSpot for any uninvited contacts."""
-    state = _read_gist_state()
-    if not state:
-        return
-
-    uninvite_ids = [k[len('uninvite_'):] for k, v in state.items()
-                    if k.startswith('uninvite_') and v]
-    if not uninvite_ids:
-        return
-
-    # Skip contacts already marked Disqualified in HubSpot — no need to re-patch
-    already_done = {
-        c['id'] for c in contacts
-        if (c['properties'].get('outbound_event_attendee_disqualified') or '').strip().lower() == 'disqualified'
-    }
-    to_patch = [cid for cid in uninvite_ids if cid not in already_done]
-    if not to_patch:
-        print('  Uninvite sync: all already Disqualified in HubSpot, nothing to patch')
-    else:
-        headers = {'Authorization': f'Bearer {HUBSPOT_TOKEN}', 'Content-Type': 'application/json'}
-        for cid in to_patch:
-            try:
-                resp = requests.patch(
-                    f'https://api.hubapi.com/crm/v3/objects/contacts/{cid}',
-                    headers=headers,
-                    json={'properties': {'outbound_event_attendee_disqualified': 'Disqualified'}},
-                    timeout=10,
-                )
-                status = 'OK' if resp.ok else f'HTTP {resp.status_code}'
-                print(f'  Uninvite sync {cid}: {status}')
-            except Exception as e:
-                print(f'  Uninvite sync {cid}: error {e}', file=sys.stderr)
-
-    # Clear ONLY uninvite_* keys — preserve sendconf_* (or other prefixes) for their own sync
-    remaining = {k: v for k, v in state.items() if not k.startswith('uninvite_')}
-    _write_gist_state(remaining)
-    print('  Uninvite sync: uninvite_* keys cleared')
-
-
-def sync_send_confirmations_from_gist(contacts: list):
-    """Read the shared Gist state and PATCH HubSpot for any send-confirmation requests."""
-    state = _read_gist_state()
-    if not state:
-        return
-
-    sendconf_ids = [k[len('sendconf_'):] for k, v in state.items()
-                    if k.startswith('sendconf_') and v]
-    if not sendconf_ids:
-        return
-
-    # Skip contacts already set to "Yes" in HubSpot
-    already_done = {
-        c['id'] for c in contacts
-        if (c['properties'].get('outbound_event_send_confirmation') or '').strip().lower() == 'yes'
-    }
-    to_patch = [cid for cid in sendconf_ids if cid not in already_done]
-    if not to_patch:
-        print('  Send-confirmation sync: all already set to Yes in HubSpot, nothing to patch')
-    else:
-        headers = {'Authorization': f'Bearer {HUBSPOT_TOKEN}', 'Content-Type': 'application/json'}
-        for cid in to_patch:
-            try:
-                resp = requests.patch(
-                    f'https://api.hubapi.com/crm/v3/objects/contacts/{cid}',
-                    headers=headers,
-                    json={'properties': {'outbound_event_send_confirmation': 'Yes'}},
-                    timeout=10,
-                )
-                status = 'OK' if resp.ok else f'HTTP {resp.status_code}'
-                print(f'  Send-confirmation sync {cid}: {status}')
-            except Exception as e:
-                print(f'  Send-confirmation sync {cid}: error {e}', file=sys.stderr)
-
-    # Clear ONLY sendconf_* keys — preserve other prefixes
-    remaining = {k: v for k, v in _read_gist_state().items() if not k.startswith('sendconf_')}
-    _write_gist_state(remaining)
-    print('  Send-confirmation sync: sendconf_* keys cleared')
-
-
-def sync_tier_overrides_from_gist(contacts: list):
-    """Read the shared Gist state and PATCH HubSpot claude_tier_rank for any manual tier overrides."""
-    state = _read_gist_state()
-    if not state:
-        return
-
-    overrides = {k[len('tier_override_'):]: v for k, v in state.items()
-                 if k.startswith('tier_override_') and v}
-    if not overrides:
-        return
-
-    headers = {'Authorization': f'Bearer {HUBSPOT_TOKEN}', 'Content-Type': 'application/json'}
-    for cid, sc_str in overrides.items():
-        try:
-            sc = int(sc_str)
-        except (ValueError, TypeError):
-            print(f'  Tier override sync {cid}: bad value {sc_str!r}, skipping', file=sys.stderr)
-            continue
-        try:
-            resp = requests.patch(
-                f'https://api.hubapi.com/crm/v3/objects/contacts/{cid}',
-                headers=headers,
-                json={'properties': {'claude_tier_rank': sc}},
-                timeout=10,
-            )
-            status = 'OK' if resp.ok else f'HTTP {resp.status_code}'
-            print(f'  Tier override sync {cid}: tier → {sc} ({status})')
-        except Exception as e:
-            print(f'  Tier override sync {cid}: error {e}', file=sys.stderr)
-
-    # Clear only tier_override_* keys — preserve other prefixes
-    remaining = {k: v for k, v in state.items() if not k.startswith('tier_override_')}
-    _write_gist_state(remaining)
-    print('  Tier override sync: tier_override_* keys cleared')
-
-
 # ─── MAIN ─────────────────────────────────────────────────────────────────────
 
-def main():
-    today = date.today()
-    start = today - timedelta(days=DAYS_BACK)
-    end   = today + timedelta(days=DAYS_AHEAD)
+def _enrich_and_render(contacts: list, today: date, start: date) -> str:
+    """Shared build pipeline: enrich (cache-only under OFFLINE_ENRICH), re-home
+    +1s to their host's date, and return the rendered dashboard HTML.
 
-    _load_enrich_cache()
-    print(f'Fetching RSVPs {start} → {end}  (DAYS_BACK={DAYS_BACK}, DAYS_AHEAD={DAYS_AHEAD})')
-    contacts = fetch_contacts(start, end)
-    print(f'Got {len(contacts)} contacts')
-    resolve_host_contacts(contacts)
-    sync_uninvites_from_gist(contacts)
-    sync_send_confirmations_from_gist(contacts)
-    sync_tier_overrides_from_gist(contacts)
-
+    Used by both main() (scheduled Action, full enrichment + write to docs/) and
+    render_live() (serverless function, cache-only read-only render)."""
     # Enrich today + future events; also include recent past events in the window
     # (start date) so that cached enrichments are applied on catch-up runs.
-    today_iso = today.isoformat()
     window_iso = start.isoformat()
     contacts_to_enrich = sorted(
         [c for c in contacts
@@ -5278,7 +5054,7 @@ def main():
 
     n_email_confirmed = fetch_email_confirmations(contacts_to_enrich)
     if n_email_confirmed:
-        print(f'Email confirmations detected: {n_email_confirmed}')
+        print(f'Email confirmations applied: {n_email_confirmed}')
 
     n_nw = push_inferred_nw_to_hubspot(contacts_to_enrich)
     if n_nw:
@@ -5320,10 +5096,40 @@ def main():
     _et = datetime.now(timezone(timedelta(hours=-4)))
     now_str = _et.strftime('%b %#d, %Y at %#I:%M %p ET') if sys.platform == 'win32' else _et.strftime('%b %-d, %Y at %-I:%M %p ET')
 
-    docs = Path('docs')
-    docs.mkdir(parents=True, exist_ok=True)
+    return build_html(dict(by_date), now_str)
 
-    rsvp_html = build_html(dict(by_date), now_str)
+
+def render_live() -> str:
+    """Render the dashboard HTML on demand for the serverless function.
+
+    The caller (api/index.py) sets OFFLINE_ENRICH=1 so enrichment is cache-only,
+    makes no external API calls, performs no HubSpot writes, and writes nothing to
+    disk. Live HubSpot data still comes through fetch_contacts on every call."""
+    today = date.today()
+    start = today - timedelta(days=DAYS_BACK)
+    end   = today + timedelta(days=DAYS_AHEAD)
+
+    _load_enrich_cache()
+    contacts = fetch_contacts(start, end)
+    resolve_host_contacts(contacts)
+    return _enrich_and_render(contacts, today, start)
+
+
+def main():
+    today = date.today()
+    start = today - timedelta(days=DAYS_BACK)
+    end   = today + timedelta(days=DAYS_AHEAD)
+
+    _load_enrich_cache()
+    print(f'Fetching RSVPs {start} → {end}  (DAYS_BACK={DAYS_BACK}, DAYS_AHEAD={DAYS_AHEAD})')
+    contacts = fetch_contacts(start, end)
+    print(f'Got {len(contacts)} contacts')
+    resolve_host_contacts(contacts)
+
+    rsvp_html = _enrich_and_render(contacts, today, start)
+
+    docs = BASE_DIR / 'docs'
+    docs.mkdir(parents=True, exist_ok=True)
     (docs / 'index.html').write_text(rsvp_html, encoding='utf-8')
     print(f'Written → docs/index.html  ({len(rsvp_html):,} bytes)')
 
