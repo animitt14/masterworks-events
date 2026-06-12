@@ -2907,7 +2907,7 @@ def render_detail_row(p: dict, per: str, nw: str, sc: int = 0, flags: list = Non
 
     return (
         f'<tr class="detail-row" style="display:none">'
-        f'<td colspan="10" style="padding:0;border-bottom:1px solid #eef1f7;width:100%">'
+        f'<td colspan="9" style="padding:0;border-bottom:1px solid #eef1f7;width:100%">'
         f'<div class="detail-inner">'
         f'<div class="detail-cell">'
         f'<p class="detail-cell-label">Persona</p>'
@@ -3091,10 +3091,6 @@ def render_row(idx: int, c: dict, show_dropdown: bool = False, show_unk: bool = 
         f'<input type="checkbox" class="uninvite-chk" {uninvite_chk} onchange="toggleUninvite(this)" '
         f'style="width:16px;height:16px;cursor:pointer;accent-color:#c94040" title="Uninvite"></td>'
         f'<td style="text-align:center">'
-        f'<input type="checkbox" class="attended-chk" {attended_chk} '
-        f'onchange="toggleAttended(this)" '
-        f'style="width:16px;height:16px;cursor:pointer;accent-color:#1a7a45"></td>'
-        f'<td style="text-align:center">'
         f'<input type="checkbox" class="sendconf-chk" {send_conf_chk} '
         f'onchange="toggleSendConfirmation(this)" '
         f'style="width:16px;height:16px;cursor:pointer;accent-color:#1a5fa8" title="Send Confirmation"></td>'
@@ -3153,22 +3149,10 @@ def render_panel(date_str: str, contacts: list, tab_id: str, active: bool, past:
         score_contact(c['properties'])[0] for c in contacts
         if (c['properties'].get('outbound_event_attendee_disqualified') or '').strip().lower() != 'disqualified'
     )
-    attended_sc = sum(
-        score_contact(c['properties'])[0] for c in contacts
-        if (c['properties'].get('attended_outbound_event') or '').strip().lower() == 'yes'
-    )
-    attended_count  = sum(1 for c in contacts if (c['properties'].get('attended_outbound_event') or '').strip().lower() == 'yes')
     uninvite_count  = sum(1 for c in contacts if (c['properties'].get('outbound_event_attendee_disqualified') or '').strip().lower() == 'disqualified')
     send_conf_count = sum(1 for c in contacts if (c['properties'].get('outbound_event_send_confirmation') or '').strip().lower() == 'yes')
-    attended_score_html = (
-        f'<span style="font-size:0.78rem;color:#1a7a45;font-weight:700" '
-        f'id="attended-score-{tab_id}">Attended score: {attended_sc}</span>'
-        if attended_sc > 0 else
-        f'<span style="font-size:0.78rem;color:#1a7a45;font-weight:700;display:none" '
-        f'id="attended-score-{tab_id}"></span>'
-    )
 
-    past_note = ' <span style="font-size:0.72rem;color:#9aaac0">(past)</span>' if is_past(date_str) else ''
+    past_note =' <span style="font-size:0.72rem;color:#9aaac0">(past)</span>' if is_past(date_str) else ''
     display = 'block' if active else 'none'
 
     if past:
@@ -3180,7 +3164,6 @@ def render_panel(date_str: str, contacts: list, tab_id: str, active: bool, past:
       <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">
         <span class="rsvp-count">{len(contacts)} RSVPs{past_note}</span>
         <span style="font-size:0.78rem;color:#7a94b8">Day score: <strong style="color:#1b3c6e">{day_score}</strong></span>
-        {attended_score_html}
       </div>
       <div class="score-pills" style="margin-top:6px">{pills_html}</div>
     </div>
@@ -3249,7 +3232,6 @@ def render_panel(date_str: str, contacts: list, tab_id: str, active: bool, past:
       <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">
         <span class="rsvp-count">{len(contacts)} RSVPs{past_note}</span>
         <span style="font-size:0.78rem;color:#7a94b8">Day score: <strong id="day-score-{tab_id}" style="color:#1b3c6e">{day_score}</strong></span>
-        {attended_score_html}
       </div>
       <div class="score-pills" style="margin-top:6px">{pills_html}</div>
     </div>
@@ -3279,7 +3261,6 @@ def render_panel(date_str: str, contacts: list, tab_id: str, active: bool, past:
         <th style="width:120px">Threshold</th>
         <th style="width:120px">Links</th>
         <th>Uninvite<br><span id="uninvite-count-{tab_id}" style="font-size:0.65rem;color:#c04040;font-weight:400">{uninvite_count if uninvite_count else ''}</span></th>
-        <th style="width:120px">Attended<br><span id="attended-count-{tab_id}" style="font-size:0.65rem;color:#1a7a45;font-weight:400">{attended_count if attended_count else ''}</span></th>
         <th>Conf?</th>
       </tr></thead>
       <tbody>{rows_html}</tbody>
@@ -3524,7 +3505,6 @@ header{{background:#1b3c6e;padding:16px 28px;position:sticky;top:0;z-index:100;
         <span class="date-jump-label">Jump to date</span>
         <input type="date" id="dateJump" title="Jump to event date">
       </div>
-      <button class="refresh-btn" id="refreshBtn" onclick="triggerRefresh()">↻ Refresh</button>
     </div>
   </div>
   <div class="page-tabs">
@@ -3555,13 +3535,8 @@ header{{background:#1b3c6e;padding:16px 28px;position:sticky;top:0;z-index:100;
 
 <script>
 var PAST_EVENTS_DATA  = {past_events_json};
-// The page is now rendered live from HubSpot on each request (Vercel function),
-// so "refresh" is simply a reload — no GitHub token, no Gist, no build to wait for.
-function triggerRefresh() {{
-  var btn = document.getElementById('refreshBtn');
-  if (btn) {{ btn.disabled = true; btn.textContent = 'Refreshing…'; }}
-  location.reload();
-}}
+// The page renders live from HubSpot on each request, so there's no refresh
+// button — a normal browser reload shows the latest data.
 
 var TODAY      = '{today_str}';
 var ALL_DATES  = {all_dates_json};
@@ -3920,36 +3895,7 @@ function toggleSendConfirmation(chk) {{
   updateResetBtn(tid);
 }}
 
-function toggleAttended(chk) {{
-  var row = chk.closest('tr');
-  var cid = row.dataset.id;
-  var tid = row.closest('.tab-panel').id.replace('tab-','');
-  if (chk.checked) {{
-    saveSharedState('attended_' + cid, '1');
-    postAction(cid, 'attended', true);
-  }} else {{
-    removeSharedState('attended_' + cid);
-    postAction(cid, 'attended', false);
-  }}
-  refreshHeader(tid);
-  updateResetBtn(tid);
-}}
-
-
 function refreshHeader(tabId) {{
-  var el = document.getElementById('attended-score-' + tabId);
-  if (!el) return;
-  var sc = 0;
-  document.querySelectorAll('#tbl-' + tabId + ' .attended-chk:checked').forEach(function(chk) {{
-    sc += parseInt(chk.closest('tr').dataset.score);
-  }});
-  el.textContent = sc > 0 ? 'Attended score: ' + sc : '';
-  el.style.display = sc > 0 ? 'inline' : 'none';
-
-  var attCount = document.querySelectorAll('#tbl-' + tabId + ' .attended-chk:checked').length;
-  var attEl = document.getElementById('attended-count-' + tabId);
-  if (attEl) attEl.textContent = attCount || '';
-
   var uninvCount = document.querySelectorAll('#tbl-' + tabId + ' .uninvite-chk:checked').length;
   var uninvEl = document.getElementById('uninvite-count-' + tabId);
   if (uninvEl) uninvEl.textContent = uninvCount || '';
@@ -3979,10 +3925,6 @@ function applyStoredOverrides(tabId) {{
       var uchk = row.querySelector('.uninvite-chk');
       if (uchk) uchk.checked = true;
     }}
-    if (getSharedState('attended_' + cid)) {{
-      var achk = row.querySelector('.attended-chk');
-      if (achk) achk.checked = true;
-    }}
     if (getSharedState('sendconf_' + cid)) {{
       var schk = row.querySelector('.sendconf-chk');
       if (schk) schk.checked = true;
@@ -3996,7 +3938,6 @@ function updateResetBtn(tabId) {{
   var hasAny = Array.from(rows).some(function(r) {{
     return readOverride(r.dataset.id) !== null ||
            getSharedState('uninvite_'  + r.dataset.id) ||
-           getSharedState('attended_'  + r.dataset.id) ||
            getSharedState('sendconf_'  + r.dataset.id);
   }});
   var btn = document.querySelector('.reset-overrides-btn[data-tab="' + tabId + '"]');
@@ -4010,21 +3951,16 @@ function resetOverrides(tabId) {{
     var auto = parseInt(row.dataset.auto);
     removeSharedState('override_' + cid);
     var wasUninvited = !!getSharedState('uninvite_' + cid);
-    var wasAttended  = !!getSharedState('attended_'  + cid);
     var wasSendConf  = !!getSharedState('sendconf_'  + cid);
     removeSharedState('uninvite_' + cid);
-    removeSharedState('attended_' + cid);
     removeSharedState('sendconf_' + cid);
     applyOverride(cid, auto, tabId);
     row.classList.remove('uninvited');
     var uchk = row.querySelector('.uninvite-chk');
     if (uchk) uchk.checked = false;
-    var achk = row.querySelector('.attended-chk');
-    if (achk) achk.checked = false;
     var schk = row.querySelector('.sendconf-chk');
     if (schk) schk.checked = false;
     if (wasUninvited) postAction(cid, 'uninvite', false);
-    if (wasAttended)  postAction(cid, 'attended', false);
     if (wasSendConf)  postAction(cid, 'sendconf', false);
   }});
   refreshHeader(tabId);
