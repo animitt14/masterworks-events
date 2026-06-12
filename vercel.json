@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "functions": {
     "api/index.py": {
-      "includeFiles": "{generate_rsvp.py,enrich_cache.json,manual_enrichments.json,confirmations.json}"
+      "includeFiles": "{generate_rsvp.py,*.json}"
     }
   },
   "rewrites": [
